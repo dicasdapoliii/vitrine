@@ -318,8 +318,6 @@
                 <option value="Seleção Stanley">Seleção Stanley</option>
                 <option value="Seleção AliExpress">Seleção AliExpress</option>
                 <option value="Seleção Cama in Box">Seleção Cama in Box</option>
-<option value="Casa e Decoração">Casa e Decoração</option>
-
             </select>
             <input type="text" id="searchInput" placeholder="🔍 Digite o número ou nome do produto..." onkeyup="filtrarProdutos()">
         </div>
@@ -372,7 +370,6 @@
                 <option value="Seleção Stanley">Seleção Stanley</option>
                 <option value="Seleção AliExpress">Seleção AliExpress</option>
                 <option value="Seleção Cama in Box">Seleção Cama in Box</option>
-<option value="Casa e Decoração">Casa e Decoração</option>
             </select>
             <input type="text" id="newTitle" placeholder="Título do Produto" style="margin-bottom: 8px;">
             <input type="text" id="newDesc" placeholder="Descrição curta (ex: CUPOM: NIKE20)" style="margin-bottom: 8px;">
@@ -390,15 +387,13 @@
     </div>
 
     <script>
-        // LISTA OFICIAL DE PRODUTOS: É aqui que você adiciona ou edita seus achadinhos!
+        // LISTA OFICIAL DE PRODUTOS: Com os 5 produtos cadastrados perfeitamente!
         let produtos = [
             { id: 1, num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "foto1.jpeg", link: "https://link.amazon/B0iyHOGdO" },
             { id: 2, num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "foto2.jpg", link: "https://link.amazon/B08NbP2XR" },
             { id: 3, num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
-            { id: 1788377930665, num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_.jpg", link: "https://link.amazon/B07yeqFrP" }
-
-{ id: 1788380234635, num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_.jpg", link: "https://link.amazon/B02qKAmV1" },
-
+            { id: 4, num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/B07yeqFrP" },
+            { id: 1788380234635, num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" }
         ];
 
         function renderizarProdutos(lista) {
@@ -475,7 +470,6 @@
 
             let codigoGerado = `{ id: ${Date.now()}, num: "#${num.replace("#","")}", cat: "${cat}", title: "${title}", desc: "${desc}", img: "${img}", link: "${link}" },`;
             
-            // Exibe a caixinha com o código e o botão de copiar na própria página
             document.getElementById('output-code').value = codigoGerado;
             document.getElementById('output-box').style.display = 'block';
 
@@ -489,10 +483,10 @@
         function copiarCodigo() {
             const campoTexto = document.getElementById('output-code');
             campoTexto.select();
-            campoTexto.setSelectionRange(0, 99999); // Para dispositivos móveis
+            campoTexto.setSelectionRange(0, 99999);
             
             navigator.clipboard.writeText(campoTexto.value).then(() => {
-                alert("✅ Código copiado com sucesso! Agora é só colar no seu Bloco de Notas.");
+                alert("✅ Código copiado com sucesso!");
             }).catch(err => {
                 alert("Erro ao copiar o código.");
             });
