@@ -242,7 +242,7 @@
         <a href="https://wa.me/" target="_blank" class="btn-whatsapp">💬 Entrar no Canal de Ofertas</a>
         <a href="https://wa.me/" target="_blank" class="btn-whatsapp" style="background-color: #128c7e;">🟢 Falar com a Poli</a>
 
-        <!-- Filtros e Pesquisa com todas as categorias -->
+        <!-- Filtros e Pesquisa -->
         <div class="filter-section">
             <select id="categoryFilter" onchange="filtrarProdutos()">
                 <option value="todos">🛒 Todas as Categorias</option>
@@ -259,18 +259,49 @@
             <!-- Os produtos cadastrados aparecem aqui automaticamente -->
         </div>
 
-        <!-- Botão para abrir o Painel Administrativo -->
-        <a class="admin-link" onclick="toggleAdmin()">⚙️ Painel de Administração</a>
+        <!-- Botão Protegido por Senha para abrir o Painel -->
+        <a class="admin-link" onclick="pedirSenhaAdmin()">⚙️ Painel de Administração</a>
 
         <!-- Painel Restrito de Cadastro -->
         <div id="admin-panel">
             <h3>Adicionar Novo Produto</h3>
             <input type="text" id="newNum" placeholder="Número (ex: #3)" style="margin-bottom: 8px;">
             <select id="newCat" style="margin-bottom: 8px;">
-                <option value="Mochilas">Mochilas</option>
+                <option value="Alimentos e bebidas">Alimentos e bebidas</option>
+                <option value="Ar condicionado">Ar condicionado</option>
+                <option value="Automotivo e acessórios">Automotivo e acessórios</option>
+                <option value="Bebê">Bebê</option>
+                <option value="Cama, mesa e banho">Cama, mesa e banho</option>
+                <option value="Beleza">Beleza</option>
+                <option value="Camping e jardim">Camping e jardim</option>
+                <option value="Celular e acessórios">Celular e acessórios</option>
+                <option value="Computação e informática">Computação e informática</option>
+                <option value="Eletrodoméstico">Eletrodoméstico</option>
                 <option value="Eletrônicos">Eletrônicos</option>
-                <option value="Casa">Casa</option>
-                <option value="Achadinhos">Achadinhos Gerais</option>
+                <option value="Ferramentas e construção">Ferramentas e construção</option>
+                <option value="Fitness e suplemento">Fitness e suplemento</option>
+                <option value="Games">Games</option>
+                <option value="Infantil">Infantil</option>
+                <option value="Internacional">Internacional</option>
+                <option value="Lazer">Lazer</option>
+                <option value="Perfumes e hidratantes">Perfumes e hidratantes</option>
+                <option value="Pet">Pet</option>
+                <option value="Saúde">Saúde</option>
+                <option value="Saúde e beleza">Saúde e beleza</option>
+                <option value="Segurança">Segurança</option>
+                <option value="Seleção Hering">Seleção Hering</option>
+                <option value="Smartphones">Smartphones</option>
+                <option value="Ventilação">Ventilação</option>
+                <option value="Viagem">Viagem</option>
+                <option value="Televisores">Televisores</option>
+                <option value="Seleção Nike">Seleção Nike</option>
+                <option value="Seleção Adidas">Seleção Adidas</option>
+                <option value="Seleção C&A">Seleção C&A</option>
+                <option value="Seleção Dafiti">Seleção Dafiti</option>
+                <option value="Seleção Kabum">Seleção Kabum</option>
+                <option value="Seleção Stanley">Seleção Stanley</option>
+                <option value="Seleção AliExpress">Seleção AliExpress</option>
+                <option value="Seleção Cama in Box">Seleção Cama in Box</option>
             </select>
             <input type="text" id="newTitle" placeholder="Título do Produto" style="margin-bottom: 8px;">
             <input type="text" id="newDesc" placeholder="Descrição curta" style="margin-bottom: 8px;">
@@ -281,13 +312,11 @@
     </div>
 
     <script>
-        // Lista base atualizada com os produtos iniciais e limpa de conflitos de memória
         let produtos = [
             { id: 1, num: "#1", cat: "Mochilas", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "foto1.jpeg", link: "#" },
             { id: 2, num: "#2", cat: "Mochilas", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "foto2.jpg", link: "#" }
         ];
 
-        // Carrega produtos salvos anteriormente, se houver, garantindo que não suma nada
         let salvos = localStorage.getItem('produtos_dicas_v2');
         if (salvos) {
             produtos = JSON.parse(salvos);
@@ -332,12 +361,16 @@
             renderizarProdutos(filtrados);
         }
 
-        function toggleAdmin() {
-            const panel = document.getElementById('admin-panel');
-            if (panel.style.display === 'block') {
-                panel.style.display = 'none';
-            } else {
-                panel.style.display = 'block';
+        // Função de segurança que pede a senha antes de abrir o painel
+        function pedirSenhaAdmin() {
+            const senhaMestra = "81160266Po#"; // <--- Você pode alterar esta senha se quiser!
+            const digitada = prompt("Digite a senha de administração:");
+
+            if (digitada === senhaMestra) {
+                const panel = document.getElementById('admin-panel');
+                panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+            } else if (digitada !== null) {
+                alert("Senha incorreta! Acesso negado.");
             }
         }
 
