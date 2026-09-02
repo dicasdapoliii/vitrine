@@ -144,6 +144,7 @@
             display: flex;
             gap: 12px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            position: relative;
         }
 
         .product-card img {
@@ -191,6 +192,33 @@
             margin-top: 5px;
         }
 
+        /* Botões de Administração no Card (Editar e Excluir) */
+        .card-admin-actions {
+            display: none; /* Só aparecem quando logado */
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .btn-edit {
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-delete {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
         /* Link Admin discreto no rodapé */
         .admin-link {
             margin-top: 30px;
@@ -217,43 +245,6 @@
             font-size: 16px;
             margin-bottom: 10px;
             color: #333;
-        }
-
-        /* Caixa de código gerado e botão copiar */
-        #output-box {
-            display: none;
-            margin-top: 12px;
-            background: #fff;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-        }
-        #output-code {
-            width: 100%;
-            height: 70px;
-            font-size: 11px;
-            font-family: monospace;
-            padding: 6px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            resize: none;
-            background: #f4f4f4;
-            outline: none;
-        }
-        .btn-copy {
-            width: 100%;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 8px;
-            border-radius: 5px;
-            font-weight: bold;
-            font-size: 13px;
-            cursor: pointer;
-            margin-top: 6px;
-        }
-        .btn-copy:hover {
-            background-color: #45a049;
         }
     </style>
 </head>
@@ -331,9 +322,10 @@
         <!-- Botão Protegido por Senha para abrir o Painel -->
         <a class="admin-link" onclick="pedirSenhaAdmin()">⚙️ Painel de Administração</a>
 
-        <!-- Painel Restrito de Cadastro -->
+        <!-- Painel Restrito de Cadastro e Edição -->
         <div id="admin-panel">
-            <h3>Adicionar Novo Produto</h3>
+            <h3 id="panel-title">Adicionar Novo Produto</h3>
+            <input type="hidden" id="editId"> <!-- Guarda o ID se estiver editando -->
             <input type="text" id="newNum" placeholder="Número (ex: 4)" style="margin-bottom: 8px;">
             <select id="newCat" style="margin-bottom: 8px;">
                 <option value="Alimentos e bebidas">Alimentos e bebidas</option>
@@ -377,20 +369,14 @@
             <input type="text" id="newDesc" placeholder="Descrição curta (ex: CUPOM: NIKE20)" style="margin-bottom: 8px;">
             <input type="text" id="newImg" placeholder="Link direto da imagem (URL da web)" style="margin-bottom: 8px;">
             <input type="text" id="newLink" placeholder="Link de afiliado (URL)" style="margin-bottom: 8px;">
-            <button class="btn-shopee" onclick="adicionarProduto()">Gerar Código do Produto</button>
-
-            <!-- Área onde o código gerado e o botão de copiar aparecem -->
-            <div id="output-box">
-                <p style="font-size: 12px; margin-bottom: 4px; color: #333; font-weight: bold;">Código pronto para copiar (com vírgula inclusa):</p>
-                <textarea id="output-code" readonly></textarea>
-                <button class="btn-copy" onclick="copiarCodigo()">📋 Copiar Código</button>
-            </div>
+            <button class="btn-shopee" id="btnSalvar" onclick="salvarProduto()">Salvar Produto na Vitrine</button>
+            <button class="btn-copy" id="btnCancelar" onclick="cancelarEdicao()" style="display:none; background-color:#777;">Cancelar Edição</button>
         </div>
     </div>
 
     <script>
-        // LISTA OFICIAL DE PRODUTOS: Com os 5 produtos cadastrados perfeitamente!
-        let produtos = [
+        // LISTA INICIAL DE PRODUTOS (Carregada apenas na primeira vez)
+        const produtosIniciais = [
             { id: 1, num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "foto1.jpeg", link: "https://link.amazon/B0iyHOGdO" },
             { id: 2, num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "foto2.jpg", link: "https://link.amazon/B08NbP2XR" },
             { id: 3, num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
@@ -398,6 +384,14 @@
             { id: 5, num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" },
 { id: 1788382428330, num: "#6", cat: "Bebê", title: "Kit enxoval de bebê –Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil ", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-824h9-mesoxsw7bdhea5.webp", link: "https://s.shopee.com.br/4VcUMrOEiM" },
         ];
+
+        // Carrega do navegador ou usa os iniciais
+        let produtos = JSON.parse(localStorage.getItem('dicasdapoli_produtos')) || produtosIniciais;
+        let isAdminLogado = false;
+
+        function salvarNoNavegador() {
+            localStorage.setItem('dicasdapoli_produtos', JSON.stringify(produtos));
+        }
 
         function renderizarProdutos(lista) {
             const container = document.getElementById('productList');
@@ -408,7 +402,6 @@
                 return;
             }
 
-            // Ordena os produtos do menor número para o maior (#1, #2, #3...)
             lista.sort((a, b) => {
                 let numA = parseInt(a.num.replace("#", "")) || 0;
                 let numB = parseInt(b.num.replace("#", "")) || 0;
@@ -416,6 +409,14 @@
             });
 
             lista.forEach(p => {
+                // Se o admin estiver logado, exibe os botões de Editar e Excluir em cada card
+                let botoesAdmin = isAdminLogado ? `
+                    <div class="card-admin-actions" style="display: flex;">
+                        <button class="btn-edit" onclick="carregarParaEditar(${p.id})">✏️ Editar</button>
+                        <button class="btn-delete" onclick="excluirProduto(${p.id})">🗑️ Excluir</button>
+                    </div>
+                ` : '';
+
                 container.innerHTML += `
                     <div class="product-card">
                         <img src="${p.img}" alt="${p.title}">
@@ -424,6 +425,7 @@
                                 <span class="product-number">${p.num}</span>
                                 <div class="product-title">${p.title}</div>
                                 <div class="product-desc">${p.desc}</div>
+                                ${botoesAdmin}
                             </div>
                             <a href="${p.link}" target="_blank" class="btn-buy">Comprar Agora</a>
                         </div>
@@ -445,20 +447,25 @@
             renderizarProdutos(filtrados);
         }
 
-        // Função de Segurança Protegida por Senha Mestra
+        // Senha Mestra
         function pedirSenhaAdmin() {
             const senhaMestra = "018315"; 
             const digitada = prompt("Digite a senha de administração:");
 
             if (digitada === senhaMestra) {
+                isAdminLogado = true;
                 const panel = document.getElementById('admin-panel');
                 panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+                renderizarProdutos(produtos); // Atualiza para mostrar os botões de editar/excluir
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
             } else if (digitada !== null) {
                 alert("Senha incorreta! Acesso negado.");
             }
         }
 
-        function adicionarProduto() {
+        // Salvar ou Atualizar Produto
+        function salvarProduto() {
+            const editId = document.getElementById('editId').value;
             const num = document.getElementById('newNum').value;
             const cat = document.getElementById('newCat').value;
             const title = document.getElementById('newTitle').value;
@@ -471,32 +478,89 @@
                 return;
             }
 
-            // O código gerado agora já sai com a vírgula no final garantida!
-            let codigoGerado = `{ id: ${Date.now()}, num: "#${num.replace("#","")}", cat: "${cat}", title: "${title}", desc: "${desc}", img: "${img}", link: "${link}" },`;
-            
-            document.getElementById('output-code').value = codigoGerado;
-            document.getElementById('output-box').style.display = 'block';
+            if(editId) {
+                // Modo Edição: Atualiza o produto existente
+                let index = produtos.findIndex(p => p.id == editId);
+                if(index !== -1) {
+                    produtos[index].num = "#" + num.replace("#","");
+                    produtos[index].cat = cat;
+                    produtos[index].title = title;
+                    produtos[index].desc = desc;
+                    produtos[index].img = img;
+                    produtos[index].link = link;
+                }
+                alert("✅ Produto atualizado com sucesso na vitrine!");
+            } else {
+                // Modo Novo Produto: Adiciona à lista
+                let novo = {
+                    id: Date.now(),
+                    num: "#" + num.replace("#",""),
+                    cat: cat,
+                    title: title,
+                    desc: desc,
+                    img: img,
+                    link: link
+                };
+                produtos.push(novo);
+                alert("✅ Produto adicionado com sucesso na vitrine!");
+            }
 
+            salvarNoNavegador();
+            filtrarProdutos();
+            limparFormulario();
+            document.getElementById('admin-panel').style.display = 'none';
+        }
+
+        // Carrega dados para edição
+        function carregarParaEditar(id) {
+            let p = produtos.find(item => item.id == id);
+            if(p) {
+                document.getElementById('editId').value = p.id;
+                document.getElementById('newNum').value = p.num.replace("#","");
+                document.getElementById('newCat').value = p.cat;
+                document.getElementById('newTitle').value = p.title;
+                document.getElementById('newDesc').value = p.desc;
+                document.getElementById('newImg').value = p.img;
+                document.getElementById('newLink').value = p.link;
+
+                document.getElementById('panel-title').innerText = "Editar Produto";
+                document.getElementById('btnSalvar').innerText = "Atualizar Produto";
+                document.getElementById('btnCancelar').style.display = "block";
+
+                document.getElementById('admin-panel').style.display = 'block';
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            }
+        }
+
+        // Cancelar Edição
+        function cancelarEdicao() {
+            limparFormulario();
+            document.getElementById('admin-panel').style.display = 'none';
+        }
+
+        // Excluir Produto
+        function excluirProduto(id) {
+            if(confirm("Tem certeza que deseja excluir este produto da vitrine?")) {
+                produtos = produtos.filter(p => p.id != id);
+                salvarNoNavegador();
+                filtrarProdutos();
+                alert("🗑️ Produto excluído com sucesso!");
+            }
+        }
+
+        function limparFormulario() {
+            document.getElementById('editId').value = '';
             document.getElementById('newNum').value = '';
             document.getElementById('newTitle').value = '';
             document.getElementById('newDesc').value = '';
             document.getElementById('newImg').value = '';
             document.getElementById('newLink').value = '';
+            document.getElementById('panel-title').innerText = "Adicionar Novo Produto";
+            document.getElementById('btnSalvar').innerText = "Salvar Produto na Vitrine";
+            document.getElementById('btnCancelar').style.display = "none";
         }
 
-        function copiarCodigo() {
-            const campoTexto = document.getElementById('output-code');
-            campoTexto.select();
-            campoTexto.setSelectionRange(0, 99999);
-            
-            navigator.clipboard.writeText(campoTexto.value).then(() => {
-                alert("✅ Código copiado com sucesso!");
-            }).catch(err => {
-                alert("Erro ao copiar o código.");
-            });
-        }
-
-        // Inicializa a vitrine exibindo todos os produtos oficiais
+        // Inicializa a vitrine ao carregar a página
         renderizarProdutos(produtos);
     </script>
 </body>
