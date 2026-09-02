@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dicasdapoliii</title>
+    <!-- Ícones das Redes Sociais (FontAwesome) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #fce4ec; /* Fundo rosinha claro */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Perfil e Logo */
+        .profile-pic {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 3px solid #ff4081;
+            padding: 3px;
+            margin-bottom: 15px;
+            object-fit: cover;
+        }
+
+        h1 {
+            font-size: 22px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .bio {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* Redes Sociais */
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .social-icons a {
+            font-size: 20px;
+            color: #333;
+            transition: color 0.3s;
+        }
+
+        .social-icons a:hover {
+            color: #ff4081;
+        }
+
+        /* Botões de Ação Principal */
+        .btn-shopee {
+            width: 100%;
+            background-color: #ff5722;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            text-align: center;
+            text-decoration: none;
+            display: block;
+        }
+
+        .btn-whatsapp {
+            width: 100%;
+            background-color: #25d366;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            text-align: center;
+            text-decoration: none;
+            display: block;
+        }
+
+        /* Filtros e Busca */
+        .filter-section {
+            width: 100%;
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        /* Lista de Produtos */
+        .product-list {
+            width: 100%;
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .product-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            gap: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .product-card img {
+            width: 90px;
+            height: 90px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .product-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            flex: 1;
+        }
+
+        .product-number {
+            font-size: 13px;
+            font-weight: bold;
+            color: #ff4081;
+        }
+
+        .product-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .product-desc {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .btn-buy {
+            background-color: #e91e63;
+            color: white;
+            border: none;
+            padding: 6px;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: bold;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        /* Link Admin discreto no rodapé */
+        .admin-link {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #aaa;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .admin-link:hover {
+            color: #333;
+        }
+
+        /* Estilo da Área Admin */
+        #admin-panel {
+            display: none;
+            width: 100%;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        #admin-panel h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        /* Caixa de código gerado e botão copiar */
+        #output-box {
+            display: none;
+            margin-top: 12px;
+            background: #fff;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        #output-code {
+            width: 100%;
+            height: 70px;
+            font-size: 11px;
+            font-family: monospace;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: none;
+            background: #f4f4f4;
+            outline: none;
+        }
+        .btn-copy {
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+        .btn-copy:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Logo -->
+        <img src="logo.jpeg" alt="Logo Dicasdapoliii" class="profile-pic">
+        
+        <h1>Dicasdapoliii</h1>
+        <p class="bio">Seu guia de compras online</p>
+
+        <!-- Redes Sociais -->
+        <div class="social-icons">
+            <a href="https://www.tiktok.com" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
+            <a href="https://www.instagram.com" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+            <a href="https://www.youtube.com" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+            <a href="https://www.pinterest.com" target="_blank"><i class="fa-brands fa-pinterest"></i></a>
+        </div>
+
+        <!-- Botões de Conversão -->
+        <a href="https://s.shopee.com.br/8ANLneMzRi" target="_blank" class="btn-shopee">🛍️ Resgatar Cupons Shopee</a>
+        <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="btn-whatsapp">💬 Entrar no Canal de Ofertas</a>
+        <a href="https://wa.me/5566999087449" target="_blank" class="btn-whatsapp" style="background-color: #128c7e;">🟢 Falar com a Poli</a>
+
+        <!-- Filtros e Busca -->
+        <div class="filter-section">
+            <select id="categoryFilter" onchange="filtrarProdutos()">
+                <option value="todos">🛒 Todas as Categorias</option>
+                <option value="Alimentos e bebidas">Alimentos e bebidas</option>
+                <option value="Ar condicionado">Ar condicionado</option>
+                <option value="Automotivo e acessórios">Automotivo e acessórios</option>
+                <option value="Bebê">Bebê</option>
+                <option value="Cama, mesa e banho">Cama, mesa e banho</option>
+                <option value="Beleza">Beleza</option>
+                <option value="Camping e jardim">Camping e jardim</option>
+                <option value="Celular e acessórios">Celular e acessórios</option>
+                <option value="Computação e informática">Computação e informática</option>
+                <option value="Eletrodoméstico">Eletrodoméstico</option>
+                <option value="Eletrônicos">Eletrônicos</option>
+                <option value="Ferramentas e construção">Ferramentas e construção</option>
+                <option value="Fitness e suplemento">Fitness e suplemento</option>
+                <option value="Games">Games</option>
+                <option value="Infantil">Infantil</option>
+                <option value="Internacional">Internacional</option>
+                <option value="Lazer">Lazer</option>
+                <option value="Perfumes e hidratantes">Perfumes e hidratantes</option>
+                <option value="Pet">Pet</option>
+                <option value="Saúde">Saúde</option>
+                <option value="Saúde e beleza">Saúde e beleza</option>
+                <option value="Segurança">Segurança</option>
+                <option value="Seleção Hering">Seleção Hering</option>
+                <option value="Smartphones">Smartphones</option>
+                <option value="Ventilação">Ventilação</option>
+                <option value="Viagem">Viagem</option>
+                <option value="Televisores">Televisores</option>
+                <option value="Seleção Nike">Seleção Nike</option>
+                <option value="Seleção Adidas">Seleção Adidas</option>
+                <option value="Seleção C&A">Seleção C&A</option>
+                <option value="Seleção Dafiti">Seleção Dafiti</option>
+                <option value="Seleção Kabum">Seleção Kabum</option>
+                <option value="Seleção Stanley">Seleção Stanley</option>
+                <option value="Seleção AliExpress">Seleção AliExpress</option>
+                <option value="Seleção Cama in Box">Seleção Cama in Box</option>
+            </select>
+            <input type="text" id="searchInput" placeholder="🔍 Digite o número ou nome do produto..." onkeyup="filtrarProdutos()">
+        </div>
+
+        <!-- Lista Dinâmica de Produtos -->
+        <div class="product-list" id="productList">
+            <!-- Os produtos aparecem aqui automaticamente -->
+        </div>
+
+        <!-- Botão Protegido por Senha para abrir o Painel -->
+        <a class="admin-link" onclick="pedirSenhaAdmin()">⚙️ Painel de Administração</a>
+
+        <!-- Painel Restrito de Cadastro -->
+        <div id="admin-panel">
+            <h3>Adicionar Novo Produto</h3>
+            <input type="text" id="newNum" placeholder="Número (ex: 4)" style="margin-bottom: 8px;">
+            <select id="newCat" style="margin-bottom: 8px;">
+                <option value="Alimentos e bebidas">Alimentos e bebidas</option>
+                <option value="Ar condicionado">Ar condicionado</option>
+                <option value="Automotivo e acessórios">Automotivo e acessórios</option>
+                <option value="Bebê">Bebê</option>
+                <option value="Cama, mesa e banho">Cama, mesa e banho</option>
+                <option value="Beleza">Beleza</option>
+                <option value="Camping e jardim">Camping e jardim</option>
+                <option value="Celular e acessórios">Celular e acessórios</option>
+                <option value="Computação e informática">Computação e informática</option>
+                <option value="Eletrodoméstico">Eletrodoméstico</option>
+                <option value="Eletrônicos">Eletrônicos</option>
+                <option value="Ferramentas e construção">Ferramentas e construção</option>
+                <option value="Fitness e suplemento">Fitness e suplemento</option>
+                <option value="Games">Games</option>
+                <option value="Infantil">Infantil</option>
+                <option value="Internacional">Internacional</option>
+                <option value="Lazer">Lazer</option>
+                <option value="Perfumes e hidratantes">Perfumes e hidratantes</option>
+                <option value="Pet">Pet</option>
+                <option value="Saúde">Saúde</option>
+                <option value="Saúde e beleza">Saúde e beleza</option>
+                <option value="Segurança">Segurança</option>
+                <option value="Seleção Hering">Seleção Hering</option>
+                <option value="Smartphones">Smartphones</option>
+                <option value="Ventilação">Ventilação</option>
+                <option value="Viagem">Viagem</option>
+                <option value="Televisores">Televisores</option>
+                <option value="Seleção Nike">Seleção Nike</option>
+                <option value="Seleção Adidas">Seleção Adidas</option>
+                <option value="Seleção C&A">Seleção C&A</option>
+                <option value="Seleção Dafiti">Seleção Dafiti</option>
+                <option value="Seleção Kabum">Seleção Kabum</option>
+                <option value="Seleção Stanley">Seleção Stanley</option>
+                <option value="Seleção AliExpress">Seleção AliExpress</option>
+                <option value="Seleção Cama in Box">Seleção Cama in Box</option>
+            </select>
+            <input type="text" id="newTitle" placeholder="Título do Produto" style="margin-bottom: 8px;">
+            <input type="text" id="newDesc" placeholder="Descrição curta (ex: CUPOM: NIKE20)" style="margin-bottom: 8px;">
+            <input type="text" id="newImg" placeholder="Link direto da imagem (URL da web)" style="margin-bottom: 8px;">
+            <input type="text" id="newLink" placeholder="Link de afiliado (URL)" style="margin-bottom: 8px;">
+            <button class="btn-shopee" onclick="adicionarProduto()">Gerar Código do Produto</button>
+
+            <!-- Área onde o código gerado e o botão de copiar aparecem -->
+            <div id="output-box">
+                <p style="font-size: 12px; margin-bottom: 4px; color: #333; font-weight: bold;">Código pronto para copiar:</p>
+                <textarea id="output-code" readonly></textarea>
+                <button class="btn-copy" onclick="copiarCodigo()">📋 Copiar Código</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // LISTA OFICIAL DE PRODUTOS: É aqui que você adiciona ou edita seus achadinhos!
+        let produtos = [
+            { id: 1, num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "foto1.jpeg", link: "https://link.amazon/B0iyHOGdO" },
+            { id: 2, num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "foto2.jpg", link: "https://link.amazon/B08NbP2XR" },
+            { id: 3, num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
+            { id: 1788377930665, num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_.jpg", link: "https://link.amazon/B07yeqFrP" }
+        ];
+
+        function renderizarProdutos(lista) {
+            const container = document.getElementById('productList');
+            container.innerHTML = "";
+
+            if(lista.length === 0) {
+                container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Nenhum produto encontrado.</p>";
+                return;
+            }
+
+            // Ordena os produtos do menor número para o maior (#1, #2, #3...)
+            lista.sort((a, b) => {
+                let numA = parseInt(a.num.replace("#", "")) || 0;
+                let numB = parseInt(b.num.replace("#", "")) || 0;
+                return numA - numB;
+            });
+
+            lista.forEach(p => {
+                container.innerHTML += `
+                    <div class="product-card">
+                        <img src="${p.img}" alt="${p.title}">
+                        <div class="product-info">
+                            <div>
+                                <span class="product-number">${p.num}</span>
+                                <div class="product-title">${p.title}</div>
+                                <div class="product-desc">${p.desc}</div>
+                            </div>
+                            <a href="${p.link}" target="_blank" class="btn-buy">Comprar Agora</a>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function filtrarProdutos() {
+            const termo = document.getElementById('searchInput').value.toLowerCase();
+            const categoria = document.getElementById('categoryFilter').value;
+
+            const filtrados = produtos.filter(p => {
+                const matchCat = (categoria === 'todos' || p.cat === categoria);
+                const matchTexto = p.title.toLowerCase().includes(termo) || p.num.toLowerCase().includes(termo);
+                return matchCat && matchTexto;
+            });
+
+            renderizarProdutos(filtrados);
+        }
+
+        // Função de Segurança Protegida por Senha Mestra
+        function pedirSenhaAdmin() {
+            const senhaMestra = "018315"; 
+            const digitada = prompt("Digite a senha de administração:");
+
+            if (digitada === senhaMestra) {
+                const panel = document.getElementById('admin-panel');
+                panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+            } else if (digitada !== null) {
+                alert("Senha incorreta! Acesso negado.");
+            }
+        }
+
+        function adicionarProduto() {
+            const num = document.getElementById('newNum').value;
+            const cat = document.getElementById('newCat').value;
+            const title = document.getElementById('newTitle').value;
+            const desc = document.getElementById('newDesc').value;
+            const img = document.getElementById('newImg').value;
+            const link = document.getElementById('newLink').value;
+
+            if(!num || !title || !link || !img) {
+                alert("Preencha todos os campos obrigatórios (Número, Título, Imagem e Link)!");
+                return;
+            }
+
+            let codigoGerado = `{ id: ${Date.now()}, num: "#${num.replace("#","")}", cat: "${cat}", title: "${title}", desc: "${desc}", img: "${img}", link: "${link}" },`;
+            
+            // Exibe a caixinha com o código e o botão de copiar na própria página
+            document.getElementById('output-code').value = codigoGerado;
+            document.getElementById('output-box').style.display = 'block';
+
+            document.getElementById('newNum').value = '';
+            document.getElementById('newTitle').value = '';
+            document.getElementById('newDesc').value = '';
+            document.getElementById('newImg').value = '';
+            document.getElementById('newLink').value = '';
+        }
+
+        function copiarCodigo() {
+            const campoTexto = document.getElementById('output-code');
+            campoTexto.select();
+            campoTexto.setSelectionRange(0, 99999); // Para dispositivos móveis
+            
+            navigator.clipboard.writeText(campoTexto.value).then(() => {
+                alert("✅ Código copiado com sucesso! Agora é só colar no seu Bloco de Notas.");
+            }).catch(err => {
+                alert("Erro ao copiar o código.");
+            });
+        }
+
+        // Inicializa a vitrine exibindo todos os produtos oficiais
+        renderizarProdutos(produtos);
+    </script>
+</body>
+</html>
