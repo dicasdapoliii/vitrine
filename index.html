@@ -287,6 +287,7 @@
                 <option value="Ar condicionado">Ar condicionado</option>
                 <option value="Automotivo e acessórios">Automotivo e acessórios</option>
                 <option value="Bebê">Bebê</option>
+                <option value="Casa e Decoração">Casa e Decoração</option>
                 <option value="Cama, mesa e banho">Cama, mesa e banho</option>
                 <option value="Beleza">Beleza</option>
                 <option value="Camping e jardim">Camping e jardim</option>
@@ -339,6 +340,7 @@
                 <option value="Ar condicionado">Ar condicionado</option>
                 <option value="Automotivo e acessórios">Automotivo e acessórios</option>
                 <option value="Bebê">Bebê</option>
+                <option value="Casa e Decoração">Casa e Decoração</option>
                 <option value="Cama, mesa e banho">Cama, mesa e banho</option>
                 <option value="Beleza">Beleza</option>
                 <option value="Camping e jardim">Camping e jardim</option>
@@ -379,7 +381,7 @@
 
             <!-- Área onde o código gerado e o botão de copiar aparecem -->
             <div id="output-box">
-                <p style="font-size: 12px; margin-bottom: 4px; color: #333; font-weight: bold;">Código pronto para copiar:</p>
+                <p style="font-size: 12px; margin-bottom: 4px; color: #333; font-weight: bold;">Código pronto para copiar (com vírgula inclusa):</p>
                 <textarea id="output-code" readonly></textarea>
                 <button class="btn-copy" onclick="copiarCodigo()">📋 Copiar Código</button>
             </div>
@@ -393,7 +395,7 @@
             { id: 2, num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "foto2.jpg", link: "https://link.amazon/B08NbP2XR" },
             { id: 3, num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
             { id: 4, num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/B07yeqFrP" },
-            { id: 1788380234635, num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" }
+            { id: 5, num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" },
         ];
 
         function renderizarProdutos(lista) {
@@ -468,6 +470,7 @@
                 return;
             }
 
+            // O código gerado agora já sai com a vírgula no final garantida!
             let codigoGerado = `{ id: ${Date.now()}, num: "#${num.replace("#","")}", cat: "${cat}", title: "${title}", desc: "${desc}", img: "${img}", link: "${link}" },`;
             
             document.getElementById('output-code').value = codigoGerado;
