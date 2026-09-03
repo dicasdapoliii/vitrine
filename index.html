@@ -27,6 +27,17 @@
         let produtos = [];
         let isAdminLogado = false;
 
+        // Lista Inicial de Produtos para popular a nuvem automaticamente se estiver vazia
+        const produtosIniciais = [
+            { num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "https://m.media-amazon.com/images/I/41ni5hZ4JTL._MCnd_AC_.jpg", link: "https://link.amazon/B0iyHOGdO" },
+            { num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "https://m.media-amazon.com/images/I/71+Q6dV--EL._AC_SY355_.jpg", link: "https://link.amazon/B08NbP2XR" },
+            { num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
+            { num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/B07yeqFrP" },
+            { num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" },
+            { num: "#6", cat: "Bebê", title: "Kit enxoval de bebê – Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-824h9mesoxsw7bdhea5.webp", link: "https://s.shopee.com.br/4VcUMrOEiM" },
+            { num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-81zwf-mn6zcnk7vfnn7e.webp", link: "https://s.shopee.com.br/6fgyxhGRNH" }
+        ];
+
         // Carregar Logo da Nuvem
         window.carregarLogoDaNuvem = async function() {
             try {
@@ -57,25 +68,29 @@
             }
         }
 
-        // Carregar Produtos do Banco de Dados Online
+        // Carregar Produtos do Firebase (com inserção automática se estiver vazio)
         window.carregarProdutosDaNuvem = async function() {
             const container = document.getElementById('productList');
-            container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Carregando produtos da nuvem...</p>";
+            container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Sincronizando produtos da nuvem...</p>";
             
             try {
-                const querySnapshot = await getDocs(collection(db, "produtos"));
-                produtos = [];
+                const querySnapshot = await collection(db, "produtos");
+                let snapshotDocs = await getDocs(querySnapshot);
                 
-                querySnapshot.forEach((docSnap) => {
+                // Se a nuvem estiver vazia, cadastra automaticamente os 7 produtos iniciais
+                if (snapshotDocs.empty) {
+                    for (let prod of produtosIniciais) {
+                        await addDoc(collection(db, "produtos"), prod);
+                    }
+                    snapshotDocs = await getDocs(querySnapshot);
+                }
+
+                produtos = [];
+                snapshotDocs.forEach((docSnap) => {
                     let p = docSnap.data();
                     p.firebaseId = docSnap.id;
                     produtos.push(p);
                 });
-
-                if(produtos.length === 0) {
-                    container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Nenhum produto cadastrado na nuvem.</p>";
-                    return;
-                }
 
                 window.renderizarProdutos(produtos);
             } catch (error) {
