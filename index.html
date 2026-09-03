@@ -7,48 +7,81 @@
     <!-- Ícones das Redes Sociais (FontAwesome) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <script>
-        // Lista Inicial Completa de Produtos da Vitrine
-        const produtosIniciais = [
-            { id: 1, num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "https://m.media-amazon.com/images/I/41VyYpDvaYL._MCnd_AC_.jpg", link: "https://link.amazon/B0iyHOGdO" },
-            { id: 2, num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B08NbP2XR" },
-            { id: 3, num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
-            { id: 4, num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/B07yeqFrP" },
-            { id: 5, num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" },
-            { id: 6, num: "#6", cat: "Bebê", title: "Kit enxoval de bebê – Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-824h9mesoxsw7bdhea5.webp", link: "https://s.shopee.com.br/4VcUMrOEiM" },
-            { id: 7, num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/exemplo" }
-        ];
+    <!-- Bibliotecas do Firebase (SDK Modular via CDN) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Força a atualização para carregar todos os 7 produtos se a lista estiver menor que o esperado
-        let produtos = JSON.parse(localStorage.getItem('vitrine_produtos')) || [];
-        if (produtos.length < produtosIniciais.length) {
-            produtos = produtosIniciais;
-            localStorage.setItem('vitrine_produtos', JSON.stringify(produtos));
-        }
+        const firebaseConfig = {
+            apiKey: "AIzaSyDkmxkyd1DeXtSSMCDEhdws_wE53u5Mg1M",
+            authDomain: "vitrinedicasapoliii.firebaseapp.com",
+            projectId: "vitrinedicasapoliii",
+            storageBucket: "vitrinedicasapoliii.firebasestorage.app",
+            messagingSenderId: "76420423085",
+            appId: "1:76420423085:web:cb9e0a423b5707727f5524"
+        };
 
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app, "(default)");
+
+        let produtos = [];
         let isAdminLogado = false;
 
-        window.carregarLogoDaNuvem = function() {
-            let logoSalva = localStorage.getItem('vitrine_logo');
-            if(logoSalva) {
-                document.getElementById('logoImg').src = logoSalva;
+        // Carregar Logo da Nuvem
+        window.carregarLogoDaNuvem = async function() {
+            try {
+                const logoDoc = await getDoc(doc(db, "configuracoes", "geral"));
+                if(logoDoc.exists() && logoDoc.data().logoUrl) {
+                    document.getElementById('logoImg').src = logoDoc.data().logoUrl;
+                }
+            } catch (error) {
+                console.error("Erro ao carregar logo da nuvem: ", error);
             }
         }
 
-        window.salvarLogoNaNuvem = function() {
+        // Salvar Nova Logo na Nuvem
+        window.salvarLogoNaNuvem = async function() {
             const novaLogoUrl = document.getElementById('newLogoUrl').value;
             if(!novaLogoUrl) {
                 alert("Cole o link da nova imagem da logo!");
                 return;
             }
-            localStorage.setItem('vitrine_logo', novaLogoUrl);
-            document.getElementById('logoImg').src = novaLogoUrl;
-            document.getElementById('newLogoUrl').value = '';
-            alert("✅ Logo atualizada com sucesso!");
+            try {
+                await setDoc(doc(db, "configuracoes", "geral"), { logoUrl: novaLogoUrl }, { merge: true });
+                document.getElementById('logoImg').src = novaLogoUrl;
+                document.getElementById('newLogoUrl').value = '';
+                alert("✅ Logo atualizada com sucesso na nuvem!");
+            } catch (error) {
+                console.error("Erro ao salvar logo: ", error);
+                alert("Erro ao atualizar a logo no banco de dados.");
+            }
         }
 
-        window.carregarProdutosDaNuvem = function() {
-            renderizarProdutos(produtos);
+        // Carregar Produtos da Nuvem em Tempo Real
+        window.carregarProdutosDaNuvem = async function() {
+            const container = document.getElementById('productList');
+            container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Carregando produtos da nuvem...</p>";
+            
+            try {
+                const querySnapshot = await getDocs(collection(db, "produtos"));
+                produtos = [];
+                
+                querySnapshot.forEach((docSnap) => {
+                    let p = docSnap.data();
+                    p.firebaseId = docSnap.id;
+                    produtos.push(p);
+                });
+
+                if(produtos.length === 0) {
+                    container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Nenhum produto cadastrado na nuvem.</p>";
+                    return;
+                }
+
+                window.renderizarProdutos(produtos);
+            } catch (error) {
+                console.error("Erro ao carregar produtos do Firestore: ", error);
+                container.innerHTML = "<p style='text-align:center; color:red; font-size:13px;'>Erro de conexão com o banco de dados online.</p>";
+            }
         }
 
         window.renderizarProdutos = function(lista) {
@@ -56,7 +89,7 @@
             container.innerHTML = "";
 
             if(lista.length === 0) {
-                container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Nenhum produto cadastrado na vitrine.</p>";
+                container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Nenhum produto encontrado.</p>";
                 return;
             }
 
@@ -66,11 +99,11 @@
                 return numA - numB;
             });
 
-            lista.forEach((p, index) => {
+            lista.forEach(p => {
                 let botoesAdmin = isAdminLogado ? `
                     <div class="card-admin-actions" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">
-                        <button class="btn-edit" onclick="carregarParaEditar(${index})">✏️ Editar</button>
-                        <button class="btn-delete" onclick="excluirProduto(${index})">🗑️ Excluir</button>
+                        <button class="btn-edit" onclick="carregarParaEditar('${p.firebaseId}')">✏️ Editar</button>
+                        <button class="btn-delete" onclick="excluirProduto('${p.firebaseId}')">🗑️ Excluir</button>
                         <button class="btn-share" onclick="compartilharProduto('${p.title.replace(/'/g, "")}', '${p.link}')">🔗 Copiar Link</button>
                     </div>
                 ` : '';
@@ -92,7 +125,7 @@
             });
         }
 
-        // Função formatada com o título isolado na linha de baixo
+        // Função de compartilhamento formatada
         window.compartilharProduto = function(titulo, linkAfiliado) {
             let textoCompartilhar = `✨ Confira essa super dica:\n*${titulo}* 🛒\n\n👇 Compre aqui:\n${linkAfiliado}`;
             
@@ -103,8 +136,9 @@
             });
         }
 
-        window.salvarProdutoNaNuvem = function() {
-            const editIndex = document.getElementById('editId').value;
+        // Salvar ou Atualizar Produto direto na Nuvem
+        window.salvarProdutoNaNuvem = async function() {
+            const editId = document.getElementById('editId').value;
             const num = document.getElementById('newNum').value;
             const cat = document.getElementById('newCat').value;
             const title = document.getElementById('newTitle').value;
@@ -117,41 +151,51 @@
                 return;
             }
 
-            const produtoObj = {
-                num: "#" + num.replace("#",""),
-                cat: cat,
-                title: title,
-                desc: desc,
-                img: img,
-                link: link
-            };
+            try {
+                const dadosProduto = {
+                    num: "#" + num.replace("#",""),
+                    cat: cat,
+                    title: title,
+                    desc: desc,
+                    img: img,
+                    link: link
+                };
 
-            if(editIndex !== "") {
-                produtos[editIndex] = produtoObj;
-                alert("✅ Produto atualizado com sucesso!");
-            } else {
-                produtos.push(produtoObj);
-                alert("✅ Produto adicionado com sucesso!");
+                if(editId) {
+                    const prodRef = doc(db, "produtos", editId);
+                    await updateDoc(prodRef, dadosProduto);
+                    alert("✅ Produto atualizado na nuvem com sucesso!");
+                } else {
+                    await addDoc(collection(db, "produtos"), dadosProduto);
+                    alert("✅ Produto adicionado na nuvem com sucesso!");
+                }
+
+                limparFormulario();
+                carregarProdutosDaNuvem();
+            } catch (error) {
+                console.error("Erro ao salvar no Firestore: ", error);
+                alert("❌ Erro ao salvar no banco de dados online. Verifique o console.");
             }
-
-            localStorage.setItem('vitrine_produtos', JSON.stringify(produtos));
-            limparFormulario();
-            renderizarProdutos(produtos);
         }
 
-        window.excluirProduto = function(index) {
+        // Excluir Produto da Nuvem
+        window.excluirProduto = async function(firebaseId) {
             if(confirm("Tem certeza que deseja excluir este produto da vitrine?")) {
-                produtos.splice(index, 1);
-                localStorage.setItem('vitrine_produtos', JSON.stringify(produtos));
-                renderizarProdutos(produtos);
-                alert("🗑️ Produto excluído com sucesso!");
+                try {
+                    await deleteDoc(doc(db, "produtos", firebaseId));
+                    alert("🗑️ Produto excluído da nuvem com sucesso!");
+                    carregarProdutosDaNuvem();
+                } catch (error) {
+                    console.error("Erro ao excluir do Firestore: ", error);
+                    alert("Erro ao excluir produto do banco de dados.");
+                }
             }
         }
 
-        window.carregarParaEditar = function(index) {
-            let p = produtos[index];
+        window.carregarParaEditar = function(firebaseId) {
+            let p = produtos.find(item => item.firebaseId === firebaseId);
             if(p) {
-                document.getElementById('editId').value = index;
+                document.getElementById('editId').value = p.firebaseId;
                 document.getElementById('newNum').value = p.num.replace("#","");
                 document.getElementById('newCat').value = p.cat;
                 document.getElementById('newTitle').value = p.title;
@@ -174,6 +218,10 @@
         }
         
         window.getProdutos = function() { return produtos; }
+
+        // Inicializa carregando os dados da nuvem
+        carregarLogoDaNuvem();
+        carregarProdutosDaNuvem();
     </script>
 
     <style>
@@ -628,9 +676,6 @@
             document.getElementById('btnSalvar').innerText = "Salvar Produto na Vitrine";
             document.getElementById('btnCancelar').style.display = "none";
         }
-
-        carregarLogoDaNuvem();
-        carregarProdutosDaNuvem();
     </script>
 </body>
 </html>
