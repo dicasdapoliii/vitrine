@@ -76,10 +76,12 @@
             });
         }
 
+        // Função ajustada com o título do produto isolado na linha de baixo
         window.compartilharProduto = function(titulo, linkAfiliado) {
-            let textoCompartilhar = `Confira esse achadinho: *${titulo}* 🛒\nCompre aqui: ${linkAfiliado}`;
+            let textoCompartilhar = `✨ Confira essa super dica:\n*${titulo}* 🛒\n\n👇 Compre aqui:\n${linkAfiliado}`;
+            
             navigator.clipboard.writeText(textoCompartilhar).then(() => {
-                alert("✅ Link e mensagem copiados para a área de transferência!");
+                alert("✅ Mensagem formatada copiada com sucesso!");
             }).catch(err => {
                 alert("Erro ao copiar link.");
             });
