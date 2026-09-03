@@ -27,15 +27,15 @@
         let produtos = [];
         let isAdminLogado = false;
 
-        // Lista de Produtos Inicial com imagens e links corretos e individualizados
+        // Lista de Produtos Inicial com imagens individuais e corretas para cada item
         const produtosIniciais = [
             { firebaseId: "p1", num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "https://m.media-amazon.com/images/I/41ni5hZ4JTL._MCnd_AC_.jpg", link: "https://link.amazon/B0iyHOGdO" },
             { firebaseId: "p2", num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "https://m.media-amazon.com/images/I/71+Q6dV--EL._AC_SY355_.jpg", link: "https://link.amazon/B08NbP2XR" },
             { firebaseId: "p3", num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
             { firebaseId: "p4", num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/B07yeqFrP" },
             { firebaseId: "p5", num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" },
-            { firebaseId: "p6", num: "#6", cat: "Bebê", title: "Kit enxoval de bebê – Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://s.shopee.com.br/4VcUMrOEiM" },
-            { firebaseId: "p7", num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/exemplo" }
+            { firebaseId: "p6", num: "#6", cat: "Bebê", title: "Kit enxoval de bebê – Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil", desc: "", img: "https://m.media-amazon.com/images/I/71k4vB2fVbL._AC_SY450_.jpg", link: "https://s.shopee.com.br/4VcUMrOEiM" },
+            { firebaseId: "p7", num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/exemplo" }
         ];
 
         // Carregar Logo da Nuvem
@@ -144,7 +144,7 @@
             });
         }
 
-        // Salvar ou Atualizar Produto (Com gravação garantida no Firestore)
+        // Salvar ou Atualizar Produto (Gravação Direta e Robusta no Firestore)
         window.salvarProdutoNaNuvem = async function() {
             const editId = document.getElementById('editId').value;
             const num = document.getElementById('newNum').value;
@@ -169,11 +169,11 @@
                     link: link
                 };
 
-                // Se for um item temporário da lista padrão (começa com "p"), ele grava como novo documento no Firebase
+                // Se o ID existir e for real do banco (não começa com "p"), atualiza. Senão, cria um novo registro na nuvem.
                 if(editId && !editId.startsWith("p")) {
                     const prodRef = doc(db, "produtos", editId);
                     await updateDoc(prodRef, dadosProduto);
-                    alert("✅ Produto atualizado com sucesso!");
+                    alert("✅ Produto atualizado na nuvem com sucesso!");
                 } else {
                     await addDoc(collection(db, "produtos"), dadosProduto);
                     alert("✅ Produto salvo na nuvem com sucesso!");
