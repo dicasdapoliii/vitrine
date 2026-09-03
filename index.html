@@ -72,7 +72,7 @@
                 });
 
                 if(produtos.length === 0) {
-                    await cadastrarProdutosIniciais();
+                    container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Nenhum produto cadastrado na nuvem.</p>";
                     return;
                 }
 
@@ -81,23 +81,6 @@
                 console.error("Erro ao carregar produtos: ", error);
                 container.innerHTML = "<p style='text-align:center; color:red; font-size:13px;'>Erro ao carregar do banco de dados.</p>";
             }
-        }
-
-        async function cadastrarProdutosIniciais() {
-            const iniciais = [
-                { num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "foto1.jpeg", link: "https://link.amazon/B0iyHOGdO" },
-                { num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "foto2.jpg", link: "https://link.amazon/B08NbP2XR" },
-                { num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
-                { num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/B07yeqFrP" },
-                { num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" },
-                { num: "#6", cat: "Bebê", title: "Kit enxoval de bebê – Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-824h9mesoxsw7bdhea5.webp", link: "https://s.shopee.com.br/4VcUMrOEiM" },
-                { num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/exemplo" }
-            ];
-
-            for(let prod of iniciais) {
-                await addDoc(collection(db, "produtos"), prod);
-            }
-            carregarProdutosDaNuvem();
         }
 
         window.renderizarProdutos = function(lista) {
