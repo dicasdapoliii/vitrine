@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dicasdapoliii</title>
+    <!-- Ícones das Redes Sociais (FontAwesome) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Bibliotecas do Firebase (SDK Modular via CDN) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDkmxkyd1DeXtSSMCDEhdws_wE53u5Mg1M",
+            authDomain: "vitrinedicasapoliii.firebaseapp.com",
+            projectId: "vitrinedicasapoliii",
+            storageBucket: "vitrinedicasapoliii.firebasestorage.app",
+            messagingSenderId: "76420423085",
+            appId: "1:76420423085:web:cb9e0a423b5707727f5524"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        // Correção aplicada: Inicializando o Firestore explicitamente na base padrão (default)
+        const db = getFirestore(app, "(default)");
+
+        let produtos = [];
+        let isAdminLogado = false;
+
+        // Carregar Logo da Nuvem
+        window.carregarLogoDaNuvem = async function() {
+            try {
+                const logoDoc = await getDoc(doc(db, "configuracoes", "geral"));
+                if(logoDoc.exists() && logoDoc.data().logoUrl) {
+                    document.getElementById('logoImg').src = logoDoc.data().logoUrl;
+                }
+            } catch (error) {
+                console.error("Erro ao carregar logo: ", error);
+            }
+        }
+
+        // Salvar Nova Logo na Nuvem
+        window.salvarLogoNaNuvem = async function() {
+            const novaLogoUrl = document.getElementById('newLogoUrl').value;
+            if(!novaLogoUrl) {
+                alert("Cole o link da nova imagem da logo!");
+                return;
+            }
+            try {
+                await setDoc(doc(db, "configuracoes", "geral"), { logoUrl: novaLogoUrl }, { merge: true });
+                document.getElementById('logoImg').src = novaLogoUrl;
+                document.getElementById('newLogoUrl').value = '';
+                alert("✅ Logo atualizada com sucesso na nuvem!");
+            } catch (error) {
+                console.error("Erro ao salvar logo: ", error);
+                alert("Erro ao atualizar a logo.");
+            }
+        }
+
+        // Carregar Produtos da Nuvem
+        window.carregarProdutosDaNuvem = async function() {
+            const container = document.getElementById('productList');
+            container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Carregando produtos da nuvem...</p>";
+            
+            try {
+                const querySnapshot = await getDocs(collection(db, "produtos"));
+                produtos = [];
+                
+                querySnapshot.forEach((docSnap) => {
+                    let p = docSnap.data();
+                    p.firebaseId = docSnap.id;
+                    produtos.push(p);
+                });
+
+                if(produtos.length === 0) {
+                    container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Nenhum produto cadastrado na nuvem.</p>";
+                    return;
+                }
+
+                renderizarProdutos(produtos);
+            } catch (error) {
+                console.error("Erro ao carregar produtos: ", error);
+                container.innerHTML = "<p style='text-align:center; color:red; font-size:13px;'>Erro ao carregar do banco de dados.</p>";
+            }
+        }
+
+        window.renderizarProdutos = function(lista) {
+            const container = document.getElementById('productList');
+            container.innerHTML = "";
+
+            if(lista.length === 0) {
+                container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Nenhum produto encontrado.</p>";
+                return;
+            }
+
+            lista.sort((a, b) => {
+                let numA = parseInt(a.num.replace("#", "")) || 0;
+                let numB = parseInt(b.num.replace("#", "")) || 0;
+                return numA - numB;
+            });
+
+            lista.forEach(p => {
+                let botoesAdmin = isAdminLogado ? `
+                    <div class="card-admin-actions" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">
+                        <button class="btn-edit" onclick="carregarParaEditar('${p.firebaseId}')">✏️ Editar</button>
+                        <button class="btn-delete" onclick="excluirProduto('${p.firebaseId}')">🗑️ Excluir</button>
+                        <button class="btn-share" onclick="compartilharProduto('${p.title.replace(/'/g, "")}', '${p.link}')">🔗 Copiar Link</button>
+                    </div>
+                ` : '';
+
+                container.innerHTML += `
+                    <div class="product-card">
+                        <img src="${p.img}" alt="${p.title}">
+                        <div class="product-info">
+                            <div>
+                                <span class="product-number">${p.num}</span>
+                                <div class="product-title">${p.title}</div>
+                                <div class="product-desc">${p.desc}</div>
+                                ${botoesAdmin}
+                            </div>
+                            <a href="${p.link}" target="_blank" class="btn-buy">Comprar Agora</a>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        window.compartilharProduto = function(titulo, linkAfiliado) {
+            let textoCompartilhar = `Confira esse achadinho: *${titulo}* 🛒\nCompre aqui: ${linkAfiliado}`;
+            navigator.clipboard.writeText(textoCompartilhar).then(() => {
+                alert("✅ Link e mensagem do produto copiados para a área de transferência!");
+            }).catch(err => {
+                alert("Erro ao copiar link.");
+            });
+        }
+
+        window.salvarProdutoNaNuvem = async function() {
+            const editId = document.getElementById('editId').value;
+            const num = document.getElementById('newNum').value;
+            const cat = document.getElementById('newCat').value;
+            const title = document.getElementById('newTitle').value;
+            const desc = document.getElementById('newDesc').value;
+            const img = document.getElementById('newImg').value;
+            const link = document.getElementById('newLink').value;
+
+            if(!num || !title || !link || !img) {
+                alert("Preencha todos os campos obrigatórios (Número, Título, Imagem e Link)!");
+                return;
+            }
+
+            try {
+                if(editId) {
+                    const prodRef = doc(db, "produtos", editId);
+                    await updateDoc(prodRef, {
+                        num: "#" + num.replace("#",""),
+                        cat: cat,
+                        title: title,
+                        desc: desc,
+                        img: img,
+                        link: link
+                    });
+                    alert("✅ Produto atualizado na nuvem com sucesso!");
+                } else {
+                    await addDoc(collection(db, "produtos"), {
+                        num: "#" + num.replace("#",""),
+                        cat: cat,
+                        title: title,
+                        desc: desc,
+                        img: img,
+                        link: link
+                    });
+                    alert("✅ Produto adicionado na nuvem com sucesso!");
+                }
+
+                limparFormulario();
+                carregarProdutosDaNuvem();
+            } catch (error) {
+                console.error("Erro ao salvar: ", error);
+                alert("Erro ao salvar produto no banco de dados.");
+            }
+        }
+
+        window.excluirProdutoDaNuvem = async function(firebaseId) {
+            if(confirm("Tem certeza que deseja excluir este produto da vitrine?")) {
+                try {
+                    await deleteDoc(doc(db, "produtos", firebaseId));
+                    alert("🗑️ Produto excluído com sucesso!");
+                    carregarProdutosDaNuvem();
+                } catch (error) {
+                    console.error("Erro ao excluir: ", error);
+                    alert("Erro ao excluir produto.");
+                }
+            }
+        }
+
+        window.setIsAdmin = function(val) { isAdminLogado = val; renderizarProdutos(produtos); }
+        window.getProdutos = function() { return produtos; }
+
+        carregarLogoDaNuvem();
+        carregarProdutosDaNuvem();
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #fce4ec;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .profile-pic {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 3px solid #ff4081;
+            padding: 3px;
+            margin-bottom: 15px;
+            object-fit: cover;
+        }
+
+        h1 {
+            font-size: 22px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .bio {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .social-icons a {
+            font-size: 20px;
+            color: #333;
+            transition: color 0.3s;
+        }
+
+        .social-icons a:hover {
+            color: #ff4081;
+        }
+
+        .btn-shopee {
+            width: 100%;
+            background-color: #ff5722;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            text-align: center;
+            text-decoration: none;
+            display: block;
+        }
+
+        .btn-whatsapp {
+            width: 100%;
+            background-color: #25d366;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            text-align: center;
+            text-decoration: none;
+            display: block;
+        }
+
+        .filter-section {
+            width: 100%;
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .product-list {
+            width: 100%;
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .product-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            gap: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        .product-card img {
+            width: 90px;
+            height: 90px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .product-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            flex: 1;
+        }
+
+        .product-number {
+            font-size: 13px;
+            font-weight: bold;
+            color: #ff4081;
+        }
+
+        .product-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .product-desc {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .btn-buy {
+            background-color: #e91e63;
+            color: white;
+            border: none;
+            padding: 6px;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: bold;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        .card-admin-actions {
+            display: none;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .btn-edit {
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-delete {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-share {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .admin-link {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #aaa;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .admin-link:hover {
+            color: #333;
+        }
+
+        #admin-panel {
+            display: none;
+            width: 100%;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        #admin-panel h3 {
+            font-size: 15px;
+            color: #333;
+            margin: 0;
+        }
+        .btn-close-admin {
+            background-color: #e0e0e0;
+            color: #333;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-close-admin:hover {
+            background-color: #ccc;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Logo Dinâmica -->
+        <img id="logoImg" src="logo.jpeg" alt="Logo Dicasdapoliii" class="profile-pic">
+        
+        <h1>Dicasdapoliii</h1>
+        <p class="bio">Seu guia de compras online</p>
+
+        <!-- Redes Sociais -->
+        <div class="social-icons">
+            <a href="https://www.tiktok.com" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
+            <a href="https://www.instagram.com" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+            <a href="https://www.youtube.com" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+            <a href="https://www.pinterest.com" target="_blank"><i class="fa-brands fa-pinterest"></i></a>
+        </div>
+
+        <!-- Botões de Conversão -->
+        <a href="https://s.shopee.com.br/8ANLneMzRi" target="_blank" class="btn-shopee">🛍️ Resgatar Cupons Shopee</a>
+        <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="btn-whatsapp">💬 Entrar no Canal de Ofertas</a>
+        <a href="https://wa.me/5566999087449" target="_blank" class="btn-whatsapp" style="background-color: #128c7e;">🟢 Falar com a Poli</a>
+
+        <!-- Filtros e Busca -->
+        <div class="filter-section">
+            <select id="categoryFilter" onchange="filtrarProdutosLocal()">
+                <option value="todos">🛒 Todas as Categorias</option>
+                <option value="Alimentos e bebidas">Alimentos e bebidas</option>
+                <option value="Ar condicionado">Ar condicionado</option>
+                <option value="Automotivo e acessórios">Automotivo e acessórios</option>
+                <option value="Bebê">Bebê</option>
+                <option value="Casa e Decoração">Casa e Decoração</option>
+                <option value="Cama, mesa e banho">Cama, mesa e banho</option>
+                <option value="Beleza">Beleza</option>
+                <option value="Camping e jardim">Camping e jardim</option>
+                <option value="Celular e acessórios">Celular e acessórios</option>
+                <option value="Computação e informática">Computação e informática</option>
+                <option value="Eletrodoméstico">Eletrodoméstico</option>
+                <option value="Eletrônicos">Eletrônicos</option>
+                <option value="Ferramentas e construção">Ferramentas e construção</option>
+                <option value="Fitness e suplemento">Fitness e suplemento</option>
+                <option value="Games">Games</option>
+                <option value="Infantil">Infantil</option>
+                <option value="Internacional">Internacional</option>
+                <option value="Lazer">Lazer</option>
+                <option value="Perfumes e hidratantes">Perfumes e hidratantes</option>
+                <option value="Pet">Pet</option>
+                <option value="Saúde">Saúde</option>
+                <option value="Saúde e beleza">Saúde e beleza</option>
+                <option value="Segurança">Segurança</option>
+                <option value="Seleção Hering">Seleção Hering</option>
+                <option value="Smartphones">Smartphones</option>
+                <option value="Ventilação">Ventilação</option>
+                <option value="Viagem">Viagem</option>
+                <option value="Televisores">Televisores</option>
+                <option value="Seleção Nike">Seleção Nike</option>
+                <option value="Seleção Adidas">Seleção Adidas</option>
+                <option value="Seleção C&A">Seleção C&A</option>
+                <option value="Seleção Dafiti">Seleção Dafiti</option>
+                <option value="Seleção Kabum">Seleção Kabum</option>
+                <option value="Seleção Stanley">Seleção Stanley</option>
+                <option value="Seleção AliExpress">Seleção AliExpress</option>
+                <option value="Seleção Cama in Box">Seleção Cama in Box</option>
+            </select>
+            <input type="text" id="searchInput" placeholder="🔍 Digite o número ou nome do produto..." onkeyup="filtrarProdutosLocal()">
+        </div>
+
+        <!-- Lista Dinâmica de Produtos -->
+        <div class="product-list" id="productList"></div>
+
+        <!-- Botão Protegido por Senha para abrir o Painel -->
+        <a class="admin-link" onclick="pedirSenhaAdminLocal()">⚙️ Painel de Administração</a>
+
+        <!-- Painel Restrito de Administração (Produtos + Logo) -->
+        <div id="admin-panel">
+            <div class="admin-header">
+                <h3 id="panel-title">Adicionar Novo Produto</h3>
+                <button class="btn-close-admin" onclick="sairDoAdminLocal()">✕ Sair</button>
+            </div>
+
+            <!-- Seção para Atualizar a Logo -->
+            <div style="background:#fff; padding:10px; border-radius:8px; margin-bottom:12px; border:1px solid #ddd;">
+                <p style="font-size:12px; font-weight:bold; margin-bottom:5px;">Alterar Imagem da Logo:</p>
+                <input type="text" id="newLogoUrl" placeholder="Cole o link da nova imagem da logo" style="margin-bottom:6px;">
+                <button class="btn-shopee" style="padding:6px; font-size:12px; margin-bottom:0;" onclick="salvarLogoNaNuvem()">Atualizar Logo na Nuvem</button>
+            </div>
+
+            <hr style="border:0; border-top:1px solid #ddd; margin:12px 0;">
+
+            <input type="hidden" id="editId">
+            <input type="text" id="newNum" placeholder="Número (ex: 4)" style="margin-bottom: 8px;">
+            <select id="newCat" style="margin-bottom: 8px;">
+                <option value="Alimentos e bebidas">Alimentos e bebidas</option>
+                <option value="Ar condicionado">Ar condicionado</option>
+                <option value="Automotivo e acessórios">Automotivo e acessórios</option>
+                <option value="Bebê">Bebê</option>
+                <option value="Casa e Decoração">Casa e Decoração</option>
+                <option value="Cama, mesa e banho">Cama, mesa e banho</option>
+                <option value="Beleza">Beleza</option>
+                <option value="Camping e jardim">Camping e jardim</option>
+                <option value="Celular e acessórios">Celular e acessórios</option>
+                <option value="Computação e informática">Computação e informática</option>
+                <option value="Eletrodoméstico">Eletrodoméstico</option>
+                <option value="Eletrônicos">Eletrônicos</option>
+                <option value="Ferramentas e construção">Ferramentas e construção</option>
+                <option value="Fitness e suplemento">Fitness e suplemento</option>
+                <option value="Games">Games</option>
+                <option value="Infantil">Infantil</option>
+                <option value="Internacional">Internacional</option>
+                <option value="Lazer">Lazer</option>
+                <option value="Perfumes e hidratantes">Perfumes e hidratantes</option>
+                <option value="Pet">Pet</option>
+                <option value="Saúde">Saúde</option>
+                <option value="Saúde e beleza">Saúde e beleza</option>
+                <option value="Segurança">Segurança</option>
+                <option value="Seleção Hering">Seleção Hering</option>
+                <option value="Smartphones">Smartphones</option>
+                <option value="Ventilação">Ventilação</option>
+                <option value="Viagem">Viagem</option>
+                <option value="Televisores">Televisores</option>
+                <option value="Seleção Nike">Seleção Nike</option>
+                <option value="Seleção Adidas">Seleção Adidas</option>
+                <option value="Seleção C&A">Seleção C&A</option>
+                <option value="Seleção Dafiti">Seleção Dafiti</option>
+                <option value="Seleção Kabum">Seleção Kabum</option>
+                <option value="Seleção Stanley">Seleção Stanley</option>
+                <option value="Seleção AliExpress">Seleção AliExpress</option>
+                <option value="Seleção Cama in Box">Seleção Cama in Box</option>
+            </select>
+            <input type="text" id="newTitle" placeholder="Título do Produto" style="margin-bottom: 8px;">
+            <input type="text" id="newDesc" placeholder="Descrição curta (ex: CUPOM: NIKE20)" style="margin-bottom: 8px;">
+            <input type="text" id="newImg" placeholder="Link direto da imagem (URL da web)" style="margin-bottom: 8px;">
+            <input type="text" id="newLink" placeholder="Link de afiliado (URL)" style="margin-bottom: 8px;">
+            <button class="btn-shopee" id="btnSalvar" onclick="salvarProdutoNaNuvem()">Salvar Produto na Vitrine</button>
+            <button class="btn-copy" id="btnCancelar" onclick="cancelarEdicaoLocal()" style="display:none; background-color:#777; margin-top:5px;">Cancelar Edição</button>
+        </div>
+    </div>
+
+    <script>
+        function filtrarProdutosLocal() {
+            const termo = document.getElementById('searchInput').value.toLowerCase();
+            const categoria = document.getElementById('categoryFilter').value;
+            let produtosAtuais = window.getProdutos();
+
+            const filtrados = produtosAtuais.filter(p => {
+                const matchCat = (categoria === 'todos' || p.cat === categoria);
+                const matchTexto = p.title.toLowerCase().includes(termo) || p.num.toLowerCase().includes(termo);
+                return matchCat && matchTexto;
+            });
+
+            window.renderizarProdutos(filtrados);
+        }
+
+        function pedirSenhaAdminLocal() {
+            const senhaMestra = "018315"; 
+            const digitada = prompt("Digite a senha de administração:");
+
+            if (digitada === senhaMestra) {
+                window.setIsAdmin(true);
+                document.getElementById('admin-panel').style.display = 'block';
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            } else if (digitada !== null) {
+                alert("Senha incorreta! Acesso negado.");
+            }
+        }
+
+        function sairDoAdminLocal() {
+            window.setIsAdmin(false);
+            document.getElementById('admin-panel').style.display = 'none';
+            limparFormulario();
+        }
+
+        window.carregarParaEditar = function(firebaseId) {
+            let produtosAtuais = window.getProdutos();
+            let p = produtosAtuais.find(item => item.firebaseId === firebaseId);
+            if(p) {
+                document.getElementById('editId').value = p.firebaseId;
+                document.getElementById('newNum').value = p.num.replace("#","");
+                document.getElementById('newCat').value = p.cat;
+                document.getElementById('newTitle').value = p.title;
+                document.getElementById('newDesc').value = p.desc;
+                document.getElementById('newImg').value = p.img;
+                document.getElementById('newLink').value = p.link;
+
+                document.getElementById('panel-title').innerText = "Editar Produto";
+                document.getElementById('btnSalvar').innerText = "Atualizar Produto";
+                document.getElementById('btnCancelar').style.display = "block";
+
+                document.getElementById('admin-panel').style.display = 'block';
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            }
+        }
+
+        function cancelarEdicaoLocal() {
+            limparFormulario();
+            document.getElementById('panel-title').innerText = "Adicionar Novo Produto";
+            document.getElementById('btnSalvar').innerText = "Salvar Produto na Vitrine";
+            document.getElementById('btnCancelar').style.display = "none";
+        }
+
+        function excluirProduto(firebaseId) {
+            window.excluirProdutoDaNuvem(firebaseId);
+        }
+
+        function limparFormulario() {
+            document.getElementById('editId').value = '';
+            document.getElementById('newNum').value = '';
+            document.getElementById('newTitle').value = '';
+            document.getElementById('newDesc').value = '';
+            document.getElementById('newImg').value = '';
+            document.getElementById('newLink').value = '';
+            document.getElementById('panel-title').innerText = "Adicionar Novo Produto";
+            document.getElementById('btnSalvar').innerText = "Salvar Produto na Vitrine";
+            document.getElementById('btnCancelar').style.display = "none";
+        }
+    </script>
+</body>
+</html>
