@@ -15,7 +15,7 @@
             { id: 3, num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
             { id: 4, num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/B07yeqFrP" },
             { id: 5, num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" },
-            { id: 6, num: "#6", cat: "Bebê", title: "Kit enxoval de bebê – Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://s.shopee.com.br/4VcUMrOEiM" },
+            { id: 6, num: "#6", cat: "Bebê", title: "Kit enxoval de bebê – Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil", desc: "", img: "https://m.media-amazon.com/images/I/71k4vB2fVbL._AC_SY450_.jpg", link: "https://s.shopee.com.br/4VcUMrOEiM" },
             { id: 7, num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-81zwf-mn6zcnk7vfnn7e.webp", link: "https://s.shopee.com.br/6fgyxhGRNH" }
         ];
 
@@ -23,7 +23,6 @@
         let isAdminLogado = false;
 
         function carregarProdutos() {
-            // Sempre atualiza com a lista oficial para garantir sincronização perfeita entre abas
             produtos = produtosIniciais;
             salvarNoLocalStorage();
             renderizarProdutos(produtos);
@@ -500,7 +499,7 @@
         <!-- Filtros e Busca -->
         <div class="filter-section">
             <select id="categoryFilter" onchange="filtrarProdutos()">
-                <option value="todos">🛒 Toutes as Categorias</option>
+                <option value="todos">🛒 Todas as Categorias</option>
                 <option value="Alimentos e bebidas">Alimentos e bebidas</option>
                 <option value="Ar condicionado">Ar condicionado</option>
                 <option value="Automotivo e acessórios">Automotivo e acessórios</option>
