@@ -7,82 +7,32 @@
     <!-- Ícones das Redes Sociais (FontAwesome) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Bibliotecas do Firebase (SDK Modular via CDN) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDkmxkyd1DeXtSSMCDEhdws_wE53u5Mg1M",
-            authDomain: "vitrinedicasapoliii.firebaseapp.com",
-            projectId: "vitrinedicasapoliii",
-            storageBucket: "vitrinedicasapoliii.firebasestorage.app",
-            messagingSenderId: "76420423085",
-            appId: "1:76420423085:web:cb9e0a423b5707727f5524"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        // Correção aplicada: Inicializando o Firestore explicitamente na base padrão (default)
-        const db = getFirestore(app, "(default)");
-
-        let produtos = [];
+    <script>
+        // Sistema Baseado em Armazenamento Local Robusto para a Vitrine
+        let produtos = JSON.parse(localStorage.getItem('vitrine_produtos')) || [];
         let isAdminLogado = false;
 
-        // Carregar Logo da Nuvem
-        window.carregarLogoDaNuvem = async function() {
-            try {
-                const logoDoc = await getDoc(doc(db, "configuracoes", "geral"));
-                if(logoDoc.exists() && logoDoc.data().logoUrl) {
-                    document.getElementById('logoImg').src = logoDoc.data().logoUrl;
-                }
-            } catch (error) {
-                console.error("Erro ao carregar logo: ", error);
+        window.carregarLogoDaNuvem = function() {
+            let logoSalva = localStorage.getItem('vitrine_logo');
+            if(logoSalva) {
+                document.getElementById('logoImg').src = logoSalva;
             }
         }
 
-        // Salvar Nova Logo na Nuvem
-        window.salvarLogoNaNuvem = async function() {
+        window.salvarLogoNaNuvem = function() {
             const novaLogoUrl = document.getElementById('newLogoUrl').value;
             if(!novaLogoUrl) {
                 alert("Cole o link da nova imagem da logo!");
                 return;
             }
-            try {
-                await setDoc(doc(db, "configuracoes", "geral"), { logoUrl: novaLogoUrl }, { merge: true });
-                document.getElementById('logoImg').src = novaLogoUrl;
-                document.getElementById('newLogoUrl').value = '';
-                alert("✅ Logo atualizada com sucesso na nuvem!");
-            } catch (error) {
-                console.error("Erro ao salvar logo: ", error);
-                alert("Erro ao atualizar a logo.");
-            }
+            localStorage.setItem('vitrine_logo', novaLogoUrl);
+            document.getElementById('logoImg').src = novaLogoUrl;
+            document.getElementById('newLogoUrl').value = '';
+            alert("✅ Logo atualizada com sucesso!");
         }
 
-        // Carregar Produtos da Nuvem
-        window.carregarProdutosDaNuvem = async function() {
-            const container = document.getElementById('productList');
-            container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Carregando produtos da nuvem...</p>";
-            
-            try {
-                const querySnapshot = await getDocs(collection(db, "produtos"));
-                produtos = [];
-                
-                querySnapshot.forEach((docSnap) => {
-                    let p = docSnap.data();
-                    p.firebaseId = docSnap.id;
-                    produtos.push(p);
-                });
-
-                if(produtos.length === 0) {
-                    container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Nenhum produto cadastrado na nuvem.</p>";
-                    return;
-                }
-
-                renderizarProdutos(produtos);
-            } catch (error) {
-                console.error("Erro ao carregar produtos: ", error);
-                container.innerHTML = "<p style='text-align:center; color:red; font-size:13px;'>Erro ao carregar do banco de dados.</p>";
-            }
+        window.carregarProdutosDaNuvem = function() {
+            renderizarProdutos(produtos);
         }
 
         window.renderizarProdutos = function(lista) {
@@ -90,7 +40,7 @@
             container.innerHTML = "";
 
             if(lista.length === 0) {
-                container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Nenhum produto encontrado.</p>";
+                container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Nenhum produto cadastrado na vitrine.</p>";
                 return;
             }
 
@@ -100,11 +50,11 @@
                 return numA - numB;
             });
 
-            lista.forEach(p => {
+            lista.forEach((p, index) => {
                 let botoesAdmin = isAdminLogado ? `
                     <div class="card-admin-actions" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">
-                        <button class="btn-edit" onclick="carregarParaEditar('${p.firebaseId}')">✏️ Editar</button>
-                        <button class="btn-delete" onclick="excluirProduto('${p.firebaseId}')">🗑️ Excluir</button>
+                        <button class="btn-edit" onclick="carregarParaEditar(${index})">✏️ Editar</button>
+                        <button class="btn-delete" onclick="excluirProduto(${index})">🗑️ Excluir</button>
                         <button class="btn-share" onclick="compartilharProduto('${p.title.replace(/'/g, "")}', '${p.link}')">🔗 Copiar Link</button>
                     </div>
                 ` : '';
@@ -129,14 +79,14 @@
         window.compartilharProduto = function(titulo, linkAfiliado) {
             let textoCompartilhar = `Confira esse achadinho: *${titulo}* 🛒\nCompre aqui: ${linkAfiliado}`;
             navigator.clipboard.writeText(textoCompartilhar).then(() => {
-                alert("✅ Link e mensagem do produto copiados para a área de transferência!");
+                alert("✅ Link e mensagem copiados para a área de transferência!");
             }).catch(err => {
                 alert("Erro ao copiar link.");
             });
         }
 
-        window.salvarProdutoNaNuvem = async function() {
-            const editId = document.getElementById('editId').value;
+        window.salvarProdutoNaNuvem = function() {
+            const editIndex = document.getElementById('editId').value;
             const num = document.getElementById('newNum').value;
             const cat = document.getElementById('newCat').value;
             const title = document.getElementById('newTitle').value;
@@ -149,56 +99,63 @@
                 return;
             }
 
-            try {
-                if(editId) {
-                    const prodRef = doc(db, "produtos", editId);
-                    await updateDoc(prodRef, {
-                        num: "#" + num.replace("#",""),
-                        cat: cat,
-                        title: title,
-                        desc: desc,
-                        img: img,
-                        link: link
-                    });
-                    alert("✅ Produto atualizado na nuvem com sucesso!");
-                } else {
-                    await addDoc(collection(db, "produtos"), {
-                        num: "#" + num.replace("#",""),
-                        cat: cat,
-                        title: title,
-                        desc: desc,
-                        img: img,
-                        link: link
-                    });
-                    alert("✅ Produto adicionado na nuvem com sucesso!");
-                }
+            const produtoObj = {
+                num: "#" + num.replace("#",""),
+                cat: cat,
+                title: title,
+                desc: desc,
+                img: img,
+                link: link
+            };
 
-                limparFormulario();
-                carregarProdutosDaNuvem();
-            } catch (error) {
-                console.error("Erro ao salvar: ", error);
-                alert("Erro ao salvar produto no banco de dados.");
+            if(editIndex !== "") {
+                produtos[editIndex] = produtoObj;
+                alert("✅ Produto atualizado com sucesso!");
+            } else {
+                produtos.push(produtoObj);
+                alert("✅ Produto adicionado com sucesso!");
             }
+
+            localStorage.setItem('vitrine_produtos', JSON.stringify(produtos));
+            limparFormulario();
+            renderizarProdutos(produtos);
         }
 
-        window.excluirProdutoDaNuvem = async function(firebaseId) {
+        window.excluirProduto = function(index) {
             if(confirm("Tem certeza que deseja excluir este produto da vitrine?")) {
-                try {
-                    await deleteDoc(doc(db, "produtos", firebaseId));
-                    alert("🗑️ Produto excluído com sucesso!");
-                    carregarProdutosDaNuvem();
-                } catch (error) {
-                    console.error("Erro ao excluir: ", error);
-                    alert("Erro ao excluir produto.");
-                }
+                produtos.splice(index, 1);
+                localStorage.setItem('vitrine_produtos', JSON.stringify(produtos));
+                renderizarProdutos(produtos);
+                alert("🗑️ Produto excluído com sucesso!");
             }
         }
 
-        window.setIsAdmin = function(val) { isAdminLogado = val; renderizarProdutos(produtos); }
-        window.getProdutos = function() { return produtos; }
+        window.carregarParaEditar = function(index) {
+            let p = produtos[index];
+            if(p) {
+                document.getElementById('editId').value = index;
+                document.getElementById('newNum').value = p.num.replace("#","");
+                document.getElementById('newCat').value = p.cat;
+                document.getElementById('newTitle').value = p.title;
+                document.getElementById('newDesc').value = p.desc;
+                document.getElementById('newImg').value = p.img;
+                document.getElementById('newLink').value = p.link;
 
-        carregarLogoDaNuvem();
-        carregarProdutosDaNuvem();
+                document.getElementById('panel-title').innerText = "Editar Produto";
+                document.getElementById('btnSalvar').innerText = "Atualizar Produto";
+                document.getElementById('btnCancelar').style.display = "block";
+
+                document.getElementById('admin-panel').style.display = 'block';
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            }
+        }
+
+        window.setIsAdmin = function(val) { 
+            isAdminLogado = val; 
+            renderizarProdutos(produtos); 
+        }
+        
+        window.getProdutos = function() { return produtos; }
     </script>
 
     <style>
@@ -547,7 +504,7 @@
             <div style="background:#fff; padding:10px; border-radius:8px; margin-bottom:12px; border:1px solid #ddd;">
                 <p style="font-size:12px; font-weight:bold; margin-bottom:5px;">Alterar Imagem da Logo:</p>
                 <input type="text" id="newLogoUrl" placeholder="Cole o link da nova imagem da logo" style="margin-bottom:6px;">
-                <button class="btn-shopee" style="padding:6px; font-size:12px; margin-bottom:0;" onclick="salvarLogoNaNuvem()">Atualizar Logo na Nuvem</button>
+                <button class="btn-shopee" style="padding:6px; font-size:12px; margin-bottom:0;" onclick="salvarLogoNaNuvem()">Atualizar Logo</button>
             </div>
 
             <hr style="border:0; border-top:1px solid #ddd; margin:12px 0;">
@@ -635,36 +592,11 @@
             limparFormulario();
         }
 
-        window.carregarParaEditar = function(firebaseId) {
-            let produtosAtuais = window.getProdutos();
-            let p = produtosAtuais.find(item => item.firebaseId === firebaseId);
-            if(p) {
-                document.getElementById('editId').value = p.firebaseId;
-                document.getElementById('newNum').value = p.num.replace("#","");
-                document.getElementById('newCat').value = p.cat;
-                document.getElementById('newTitle').value = p.title;
-                document.getElementById('newDesc').value = p.desc;
-                document.getElementById('newImg').value = p.img;
-                document.getElementById('newLink').value = p.link;
-
-                document.getElementById('panel-title').innerText = "Editar Produto";
-                document.getElementById('btnSalvar').innerText = "Atualizar Produto";
-                document.getElementById('btnCancelar').style.display = "block";
-
-                document.getElementById('admin-panel').style.display = 'block';
-                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-            }
-        }
-
         function cancelarEdicaoLocal() {
             limparFormulario();
             document.getElementById('panel-title').innerText = "Adicionar Novo Produto";
             document.getElementById('btnSalvar').innerText = "Salvar Produto na Vitrine";
             document.getElementById('btnCancelar').style.display = "none";
-        }
-
-        function excluirProduto(firebaseId) {
-            window.excluirProdutoDaNuvem(firebaseId);
         }
 
         function limparFormulario() {
@@ -678,6 +610,9 @@
             document.getElementById('btnSalvar').innerText = "Salvar Produto na Vitrine";
             document.getElementById('btnCancelar').style.display = "none";
         }
+
+        carregarLogoDaNuvem();
+        carregarProdutosDaNuvem();
     </script>
 </body>
 </html>
