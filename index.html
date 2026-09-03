@@ -10,9 +10,8 @@
     <!-- Bibliotecas do Firebase (SDK Modular via CDN) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Configuração oficial do seu Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyDkmxkyd1DeXtSSMCDEhdws_wE53u5Mg1M",
             authDomain: "vitrinedicasapoliii.firebaseapp.com",
@@ -22,14 +21,43 @@
             appId: "1:76420423085:web:cb9e0a423b5707727f5524"
         };
 
-        // Inicializa o Firebase e o Firestore
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
         let produtos = [];
         let isAdminLogado = false;
 
-        // Função para buscar produtos do Banco de Dados em Nuvem
+        // Carregar Logo da Nuvem
+        window.carregarLogoDaNuvem = async function() {
+            try {
+                const logoDoc = await getDoc(doc(db, "configuracoes", "geral"));
+                if(logoDoc.exists() && logoDoc.data().logoUrl) {
+                    document.getElementById('logoImg').src = logoDoc.data().logoUrl;
+                }
+            } catch (error) {
+                console.error("Erro ao carregar logo: ", error);
+            }
+        }
+
+        // Salvar Nova Logo na Nuvem
+        window.salvarLogoNaNuvem = async function() {
+            const novaLogoUrl = document.getElementById('newLogoUrl').value;
+            if(!novaLogoUrl) {
+                alert("Cole o link da nova imagem da logo!");
+                return;
+            }
+            try {
+                await setDoc(doc(db, "configuracoes", "geral"), { logoUrl: novaLogoUrl }, { merge: true });
+                document.getElementById('logoImg').src = novaLogoUrl;
+                document.getElementById('newLogoUrl').value = '';
+                alert("✅ Logo atualizada com sucesso na nuvem!");
+            } catch (error) {
+                console.error("Erro ao salvar logo: ", error);
+                alert("Erro ao atualizar a logo.");
+            }
+        }
+
+        // Carregar Produtos da Nuvem
         window.carregarProdutosDaNuvem = async function() {
             const container = document.getElementById('productList');
             container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Carregando produtos da nuvem...</p>";
@@ -39,11 +67,10 @@
                 produtos = [];
                 querySnapshot.forEach((docSnap) => {
                     let p = docSnap.data();
-                    p.firebaseId = docSnap.id; // Guarda o ID único do documento da nuvem
+                    p.firebaseId = docSnap.id;
                     produtos.push(p);
                 });
 
-                // Se o banco estiver vazio pela primeira vez, cadastra os produtos iniciais automaticamente
                 if(produtos.length === 0) {
                     await cadastrarProdutosIniciais();
                     return;
@@ -56,7 +83,6 @@
             }
         }
 
-        // Cadastra os produtos iniciais caso o banco esteja vazio
         async function cadastrarProdutosIniciais() {
             const iniciais = [
                 { num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "foto1.jpeg", link: "https://link.amazon/B0iyHOGdO" },
@@ -74,7 +100,6 @@
             carregarProdutosDaNuvem();
         }
 
-        // Função global de renderização
         window.renderizarProdutos = function(lista) {
             const container = document.getElementById('productList');
             container.innerHTML = "";
@@ -92,9 +117,10 @@
 
             lista.forEach(p => {
                 let botoesAdmin = isAdminLogado ? `
-                    <div class="card-admin-actions" style="display: flex;">
+                    <div class="card-admin-actions" style="display: flex; flex-wrap: wrap; gap: 5px;">
                         <button class="btn-edit" onclick="carregarParaEditar('${p.firebaseId}')">✏️ Editar</button>
                         <button class="btn-delete" onclick="excluirProduto('${p.firebaseId}')">🗑️ Excluir</button>
+                        <button class="btn-share" onclick="compartilharProduto('${p.title.replace(/'/g, "")}', '${p.link}')">🔗 Copiar Link</button>
                     </div>
                 ` : '';
 
@@ -115,7 +141,16 @@
             });
         }
 
-        // Salvar ou Atualizar no Firebase
+        // Função para copiar o link específico do produto para enviar no WhatsApp
+        window.compartilharProduto = function(titulo, linkAfiliado) {
+            let textoCompartilhar = `Confira esse achadinho: *${titulo}* 🛒\nCompre aqui: ${linkAfiliado}`;
+            navigator.clipboard.writeText(textoCompartilhar).then(() => {
+                alert("✅ Link e mensagem do produto copiados para a área de transferência!");
+            }).catch(err => {
+                alert("Erro ao copiar link.");
+            });
+        }
+
         window.salvarProdutoNaNuvem = async function() {
             const editId = document.getElementById('editId').value;
             const num = document.getElementById('newNum').value;
@@ -132,7 +167,6 @@
 
             try {
                 if(editId) {
-                    // Atualiza na nuvem
                     const prodRef = doc(db, "produtos", editId);
                     await updateDoc(prodRef, {
                         num: "#" + num.replace("#",""),
@@ -144,7 +178,6 @@
                     });
                     alert("✅ Produto atualizado na nuvem com sucesso!");
                 } else {
-                    // Adiciona novo na nuvem
                     await addDoc(collection(db, "produtos"), {
                         num: "#" + num.replace("#",""),
                         cat: cat,
@@ -164,7 +197,6 @@
             }
         }
 
-        // Excluir do Firebase
         window.excluirProdutoDaNuvem = async function(firebaseId) {
             if(confirm("Tem certeza que deseja excluir este produto da vitrine?")) {
                 try {
@@ -178,11 +210,10 @@
             }
         }
 
-        // Disponibiliza funções globais para o HTML
         window.setIsAdmin = function(val) { isAdminLogado = val; renderizarProdutos(produtos); }
         window.getProdutos = function() { return produtos; }
 
-        // Carrega os dados assim que o script iniciar
+        carregarLogoDaNuvem();
         carregarProdutosDaNuvem();
     </script>
 
@@ -392,6 +423,16 @@
             cursor: pointer;
             font-weight: bold;
         }
+        .btn-share {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: bold;
+        }
 
         .admin-link {
             margin-top: 30px;
@@ -420,7 +461,7 @@
             margin-bottom: 10px;
         }
         #admin-panel h3 {
-            font-size: 16px;
+            font-size: 15px;
             color: #333;
             margin: 0;
         }
@@ -442,8 +483,8 @@
 <body>
 
     <div class="container">
-        <!-- Logo -->
-        <img src="logo.jpeg" alt="Logo Dicasdapoliii" class="profile-pic">
+        <!-- Logo Dinâmica -->
+        <img id="logoImg" src="logo.jpeg" alt="Logo Dicasdapoliii" class="profile-pic">
         
         <h1>Dicasdapoliii</h1>
         <p class="bio">Seu guia de compras online</p>
@@ -506,19 +547,27 @@
         </div>
 
         <!-- Lista Dinâmica de Produtos -->
-        <div class="product-list" id="productList">
-            <!-- Os produtos aparecem aqui automaticamente -->
-        </div>
+        <div class="product-list" id="productList"></div>
 
         <!-- Botão Protegido por Senha para abrir o Painel -->
         <a class="admin-link" onclick="pedirSenhaAdminLocal()">⚙️ Painel de Administração</a>
 
-        <!-- Painel Restrito de Cadastro e Edição -->
+        <!-- Painel Restrito de Administração (Produtos + Logo) -->
         <div id="admin-panel">
             <div class="admin-header">
                 <h3 id="panel-title">Adicionar Novo Produto</h3>
-                <button class="btn-close-admin" onclick="sairDoAdminLocal()">✕ Sair do Painel</button>
+                <button class="btn-close-admin" onclick="sairDoAdminLocal()">✕ Sair</button>
             </div>
+
+            <!-- Seção para Atualizar a Logo -->
+            <div style="background:#fff; padding:10px; border-radius:8px; margin-bottom:12px; border:1px solid #ddd;">
+                <p style="font-size:12px; font-weight:bold; margin-bottom:5px;">Alterar Imagem da Logo:</p>
+                <input type="text" id="newLogoUrl" placeholder="Cole o link da nova imagem da logo" style="margin-bottom:6px;">
+                <button class="btn-shopee" style="padding:6px; font-size:12px; margin-bottom:0;" onclick="salvarLogoNaNuvem()">Atualizar Logo na Nuvem</button>
+            </div>
+
+            <hr style="border:0; border-top:1px solid #ddd; margin:12px 0;">
+
             <input type="hidden" id="editId">
             <input type="text" id="newNum" placeholder="Número (ex: 4)" style="margin-bottom: 8px;">
             <select id="newCat" style="margin-bottom: 8px;">
@@ -569,7 +618,6 @@
     </div>
 
     <script>
-        // Funções de interface interligadas com o Firebase
         function filtrarProdutosLocal() {
             const termo = document.getElementById('searchInput').value.toLowerCase();
             const categoria = document.getElementById('categoryFilter').value;
