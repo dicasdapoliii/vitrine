@@ -8,8 +8,24 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
-        // Sistema Baseado em Armazenamento Local Robusto para a Vitrine
-        let produtos = JSON.parse(localStorage.getItem('vitrine_produtos')) || [];
+        // Lista Inicial Completa de Produtos da Vitrine
+        const produtosIniciais = [
+            { id: 1, num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "https://m.media-amazon.com/images/I/41VyYpDvaYL._MCnd_AC_.jpg", link: "https://link.amazon/B0iyHOGdO" },
+            { id: 2, num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B08NbP2XR" },
+            { id: 3, num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
+            { id: 4, num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/B07yeqFrP" },
+            { id: 5, num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" },
+            { id: 6, num: "#6", cat: "Bebê", title: "Kit enxoval de bebê – Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-824h9mesoxsw7bdhea5.webp", link: "https://s.shopee.com.br/4VcUMrOEiM" },
+            { id: 7, num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/exemplo" }
+        ];
+
+        // Carrega do localStorage ou inicializa com a lista completa se estiver vazio
+        let produtos = JSON.parse(localStorage.getItem('vitrine_produtos'));
+        if (!produtos || produtos.length === 0) {
+            produtos = produtosIniciais;
+            localStorage.setItem('vitrine_produtos', JSON.stringify(produtos));
+        }
+
         let isAdminLogado = false;
 
         window.carregarLogoDaNuvem = function() {
@@ -76,7 +92,7 @@
             });
         }
 
-        // Função ajustada com o título do produto isolado na linha de baixo
+        // Função formatada com o título isolado na linha de baixo
         window.compartilharProduto = function(titulo, linkAfiliado) {
             let textoCompartilhar = `✨ Confira essa super dica:\n*${titulo}* 🛒\n\n👇 Compre aqui:\n${linkAfiliado}`;
             
