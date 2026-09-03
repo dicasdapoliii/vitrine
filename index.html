@@ -117,7 +117,7 @@
 
             lista.forEach(p => {
                 let botoesAdmin = isAdminLogado ? `
-                    <div class="card-admin-actions" style="display: flex; flex-wrap: wrap; gap: 5px;">
+                    <div class="card-admin-actions" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">
                         <button class="btn-edit" onclick="carregarParaEditar('${p.firebaseId}')">✏️ Editar</button>
                         <button class="btn-delete" onclick="excluirProduto('${p.firebaseId}')">🗑️ Excluir</button>
                         <button class="btn-share" onclick="compartilharProduto('${p.title.replace(/'/g, "")}', '${p.link}')">🔗 Copiar Link</button>
@@ -141,7 +141,6 @@
             });
         }
 
-        // Função para copiar o link específico do produto para enviar no WhatsApp
         window.compartilharProduto = function(titulo, linkAfiliado) {
             let textoCompartilhar = `Confira esse achadinho: *${titulo}* 🛒\nCompre aqui: ${linkAfiliado}`;
             navigator.clipboard.writeText(textoCompartilhar).then(() => {
