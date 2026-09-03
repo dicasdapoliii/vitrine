@@ -7,102 +7,42 @@
     <!-- Ícones das Redes Sociais (FontAwesome) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- SDK do Firebase Firestore (Modular v10.8.0) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDkmxkyd1DeXtSSMCDEhdws_wE53u5Mg1M",
-            authDomain: "vitrinedicasapoliii.firebaseapp.com",
-            projectId: "vitrinedicasapoliii",
-            storageBucket: "vitrinedicasapoliii.firebasestorage.app",
-            messagingSenderId: "76420423085",
-            appId: "1:76420423085:web:cb9e0a423b5707727f5524"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app, "(default)");
+    <script>
+        // Lista Oficial Inicial Completa e Perfeita
+        const produtosIniciais = [
+            { id: 1, num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "https://m.media-amazon.com/images/I/41ni5hZ4JTL._MCnd_AC_.jpg", link: "https://link.amazon/B0iyHOGdO" },
+            { id: 2, num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "https://m.media-amazon.com/images/I/71+Q6dV--EL._AC_SY355_.jpg", link: "https://link.amazon/B08NbP2XR" },
+            { id: 3, num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
+            { id: 4, num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/B07yeqFrP" },
+            { id: 5, num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" },
+            { id: 6, num: "#6", cat: "Bebê", title: "Kit enxoval de bebê – Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil", desc: "", img: "https://m.media-amazon.com/images/I/71k4vB2fVbL._AC_SY450_.jpg", link: "https://s.shopee.com.br/4VcUMrOEiM" },
+            { id: 7, num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://m.media-amazon.com/images/I/71zwf-mn6zcnk7vfnn7e.webp", link: "https://link.amazon/exemplo" }
+        ];
 
         let produtos = [];
         let isAdminLogado = false;
 
-        // Lista de Produtos Inicial com imagens e links corretos
-        const produtosIniciais = [
-            { num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "https://m.media-amazon.com/images/I/41ni5hZ4JTL._MCnd_AC_.jpg", link: "https://link.amazon/B0iyHOGdO" },
-            { num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "https://m.media-amazon.com/images/I/71+Q6dV--EL._AC_SY355_.jpg", link: "https://link.amazon/B08NbP2XR" },
-            { num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
-            { num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/B07yeqFrP" },
-            { num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" },
-            { num: "#6", cat: "Bebê", title: "Kit enxoval de bebê – Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil", desc: "", img: "https://m.media-amazon.com/images/I/71k4vB2fVbL._AC_SY450_.jpg", link: "https://s.shopee.com.br/4VcUMrOEiM" },
-            { num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/exemplo" }
-        ];
-
-        // Carregar Logo da Nuvem
-        window.carregarLogoDaNuvem = async function() {
-            try {
-                const logoDoc = await getDoc(doc(db, "configuracoes", "geral"));
-                if(logoDoc.exists() && logoDoc.data().logoUrl) {
-                    document.getElementById('logoImg').src = logoDoc.data().logoUrl;
-                }
-            } catch (error) {
-                console.error("Erro ao carregar logo: ", error);
+        function carregarProdutos() {
+            let dadosSalvos = localStorage.getItem('dicasdapolii_produtos');
+            if (dadosSalvos) {
+                produtos = JSON.parse(dadosSalvos);
+            } else {
+                produtos = produtosIniciais;
+                salvarNoLocalStorage();
             }
+            renderizarProdutos(produtos);
         }
 
-        // Salvar Logo na Nuvem
-        window.salvarLogoNaNuvem = async function() {
-            const novaLogoUrl = document.getElementById('newLogoUrl').value;
-            if(!novaLogoUrl) {
-                alert("Cole o link da nova imagem da logo!");
-                return;
-            }
-            try {
-                await setDoc(doc(db, "configuracoes", "geral"), { logoUrl: novaLogoUrl }, { merge: true });
-                document.getElementById('logoImg').src = novaLogoUrl;
-                document.getElementById('newLogoUrl').value = '';
-                alert("✅ Logo atualizada na nuvem com sucesso!");
-            } catch (error) {
-                console.error("Erro ao salvar logo: ", error);
-                alert("Erro ao atualizar a logo.");
-            }
+        function salvarNoLocalStorage() {
+            localStorage.setItem('dicasdapolii_produtos', JSON.stringify(produtos));
         }
 
-        // Carregar Produtos da Nuvem (com auto-popular no Firestore se estiver vazio)
-        window.carregarProdutosDaNuvem = async function() {
-            try {
-                const querySnapshot = await getDocs(collection(db, "produtos"));
-                
-                // Se o banco estiver vazio, grava os produtos iniciais diretamente na nuvem de uma vez
-                if (querySnapshot.empty) {
-                    for (let p of produtosIniciais) {
-                        await addDoc(collection(db, "produtos"), p);
-                    }
-                    return window.carregarProdutosDaNuvem(); // Recarrega com os IDs reais da nuvem
-                }
-
-                produtos = [];
-                querySnapshot.forEach((docSnap) => {
-                    let p = docSnap.data();
-                    p.firebaseId = docSnap.id;
-                    produtos.push(p);
-                });
-
-                window.renderizarProdutos(produtos);
-            } catch (error) {
-                console.error("Erro ao carregar do Firestore: ", error);
-                // Fallback de segurança visual caso ocorra bloqueio de rede
-                produtos = produtosIniciais.map((p, idx) => ({ ...p, firebaseId: "local_" + idx }));
-                window.renderizarProdutos(produtos);
-            }
-        }
-
-        window.renderizarProdutos = function(lista) {
+        function renderizarProdutos(lista) {
             const container = document.getElementById('productList');
             container.innerHTML = "";
 
             if(lista.length === 0) {
-                container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Nenhum produto encontrado.</p>";
+                container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Nenhum produto cadastrado.</p>";
                 return;
             }
 
@@ -115,8 +55,8 @@
             lista.forEach(p => {
                 let botoesAdmin = isAdminLogado ? `
                     <div class="card-admin-actions" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">
-                        <button class="btn-edit" onclick="carregarParaEditar('${p.firebaseId}')">✏️ Editar</button>
-                        <button class="btn-delete" onclick="excluirProduto('${p.firebaseId}')">🗑️ Excluir</button>
+                        <button class="btn-edit" onclick="carregarParaEditar(${p.id})">✏️ Editar</button>
+                        <button class="btn-delete" onclick="excluirProduto(${p.id})">🗑️ Excluir</button>
                         <button class="btn-share" onclick="compartilharProduto('${p.title.replace(/'/g, "")}', '${p.link}')">🔗 Copiar Link</button>
                     </div>
                 ` : '';
@@ -138,19 +78,33 @@
             });
         }
 
-        // Função de compartilhamento formatada
         window.compartilharProduto = function(titulo, linkAfiliado) {
             let textoCompartilhar = `✨ Confira essa super dica:\n*${titulo}* 🛒\n\n👇 Compre aqui:\n${linkAfiliado}`;
-            
             navigator.clipboard.writeText(textoCompartilhar).then(() => {
                 alert("✅ Mensagem formatada copiada com sucesso!");
-            }).catch(err => {
-                alert("Erro ao copiar link.");
             });
         }
 
-        // Salvar ou Atualizar Produto Diretamente no Firestore
-        window.salvarProdutoNaNuvem = async function() {
+        function filtrarProdutos() {
+            const termo = document.getElementById('searchInput').value.toLowerCase().trim();
+            const categoria = document.getElementById('categoryFilter').value;
+
+            const filtrados = produtos.filter(p => {
+                const matchCat = (categoria === 'todos' || p.cat === categoria);
+                let matchTexto = false;
+                if (/^\d+$/.test(termo)) {
+                    let numLimpo = p.num.replace("#", "");
+                    matchTexto = (numLimpo === termo);
+                } else {
+                    matchTexto = p.title.toLowerCase().includes(termo) || p.num.toLowerCase().includes(termo);
+                }
+                return matchCat && matchTexto;
+            });
+
+            renderizarProdutos(filtrados);
+        }
+
+        function salvarProduto() {
             const editId = document.getElementById('editId').value;
             const num = document.getElementById('newNum').value;
             const cat = document.getElementById('newCat').value;
@@ -164,53 +118,45 @@
                 return;
             }
 
-            try {
-                const dadosProduto = {
-                    num: "#" + num.replace("#",""),
-                    cat: cat,
-                    title: title,
-                    desc: desc,
-                    img: img,
-                    link: link
-                };
+            const dadosNovo = {
+                id: editId ? parseInt(editId) : Date.now(),
+                num: "#" + num.replace("#",""),
+                cat: cat,
+                title: title,
+                desc: desc,
+                img: img,
+                link: link
+            };
 
-                if(editId && !editId.startsWith("local_")) {
-                    const prodRef = doc(db, "produtos", editId);
-                    await updateDoc(prodRef, dadosProduto);
-                    alert("✅ Produto atualizado na nuvem com sucesso!");
-                } else {
-                    await addDoc(collection(db, "produtos"), dadosProduto);
-                    alert("✅ Produto salvo na nuvem com sucesso!");
+            if(editId) {
+                let index = produtos.findIndex(p => p.id === parseInt(editId));
+                if(index !== -1) {
+                    produtos[index] = dadosNovo;
                 }
-
-                limparFormulario();
-                carregarProdutosDaNuvem();
-            } catch (error) {
-                console.error("Erro ao salvar: ", error);
-                alert("❌ Erro ao salvar produto no banco de dados online.");
+                alert("✅ Produto atualizado com sucesso!");
+            } else {
+                produtos.push(dadosNovo);
+                alert("✅ Produto adicionado com sucesso!");
             }
+
+            salvarNoLocalStorage();
+            limparFormularioprincipal();
+            renderizarProdutos(produtos);
         }
 
-        // Excluir Produto
-        window.excluirProduto = async function(firebaseId) {
+        function excluirProduto(id) {
             if(confirm("Tem certeza que deseja excluir este produto?")) {
-                try {
-                    if(!firebaseId.startsWith("local_")) {
-                        await deleteDoc(doc(db, "produtos", firebaseId));
-                    }
-                    alert("🗑️ Produto excluído com sucesso!");
-                    carregarProdutosDaNuvem();
-                } catch (error) {
-                    console.error("Erro ao excluir: ", error);
-                    alert("Erro ao excluir produto.");
-                }
+                produtos = produtos.filter(p => p.id !== id);
+                salvarNoLocalStorage();
+                renderizarProdutos(produtos);
+                alert("🗑️ Produto excluído com sucesso!");
             }
         }
 
-        window.carregarParaEditar = function(firebaseId) {
-            let p = produtos.find(item => item.firebaseId === firebaseId);
+        function carregarParaEditar(id) {
+            let p = produtos.find(item => item.id === id);
             if(p) {
-                document.getElementById('editId').value = p.firebaseId;
+                document.getElementById('editId').value = p.id;
                 document.getElementById('newNum').value = p.num.replace("#","");
                 document.getElementById('newCat').value = p.cat;
                 document.getElementById('newTitle').value = p.title;
@@ -227,15 +173,47 @@
             }
         }
 
-        window.setIsAdmin = function(val) { 
-            isAdminLogado = val; 
-            renderizarProdutos(produtos); 
-        }
-        
-        window.getProdutos = function() { return produtos; }
+        function pedirSenhaAdmin() {
+            const senhaMestra = "018315"; 
+            const digitada = prompt("Digite a senha de administração:");
 
-        carregarLogoDaNuvem();
-        carregarProdutosDaNuvem();
+            if (digitada === senhaMestra) {
+                isAdminLogado = true;
+                renderizarProdutos(produtos);
+                document.getElementById('admin-panel').style.display = 'block';
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            } else if (digitada !== null) {
+                alert("Senha incorreta! Acesso negado.");
+            }
+        }
+
+        function sairDoAdmin() {
+            isAdminLogado = false;
+            renderizarProdutos(produtos);
+            document.getElementById('admin-panel').style.display = 'none';
+            limparFormularioprincipal();
+        }
+
+        function cancelarEdicao() {
+            limparFormularioprincipal();
+            document.getElementById('panel-title').innerText = "Adicionar Novo Produto";
+            document.getElementById('btnSalvar').innerText = "Salvar Produto na Vitrine";
+            document.getElementById('btnCancelar').style.display = "none";
+        }
+
+        function limparFormularioprincipal() {
+            document.getElementById('editId').value = '';
+            document.getElementById('newNum').value = '';
+            document.getElementById('newTitle').value = '';
+            document.getElementById('newDesc').value = '';
+            document.getElementById('newImg').value = '';
+            document.getElementById('newLink').value = '';
+            document.getElementById('panel-title').innerText = "Adicionar Novo Produto";
+            document.getElementById('btnSalvar').innerText = "Salvar Produto na Vitrine";
+            document.getElementById('btnCancelar').style.display = "none";
+        }
+
+        window.onload = carregarProdutos;
     </script>
 
     <style>
@@ -504,7 +482,7 @@
 <body>
 
     <div class="container">
-        <!-- Logo Dinâmica -->
+        <!-- Logo -->
         <img id="logoImg" src="logo.jpeg" alt="Logo Dicasdapoliii" class="profile-pic">
         
         <h1>Dicasdapoliii</h1>
@@ -525,7 +503,7 @@
 
         <!-- Filtros e Busca -->
         <div class="filter-section">
-            <select id="categoryFilter" onchange="filtrarProdutosLocal()">
+            <select id="categoryFilter" onchange="filtrarProdutos()">
                 <option value="todos">🛒 Todas as Categorias</option>
                 <option value="Alimentos e bebidas">Alimentos e bebidas</option>
                 <option value="Ar condicionado">Ar condicionado</option>
@@ -564,33 +542,24 @@
                 <option value="Seleção AliExpress">Seleção AliExpress</option>
                 <option value="Seleção Cama in Box">Seleção Cama in Box</option>
             </select>
-            <input type="text" id="searchInput" placeholder="🔍 Digite o número ou nome do produto..." onkeyup="filtrarProdutosLocal()">
+            <input type="text" id="searchInput" placeholder="🔍 Digite o número ou nome do produto..." onkeyup="filtrarProdutos()">
         </div>
 
         <!-- Lista Dinâmica de Produtos -->
         <div class="product-list" id="productList"></div>
 
         <!-- Botão Protegido por Senha para abrir o Painel -->
-        <a class="admin-link" onclick="pedirSenhaAdminLocal()">⚙️ Painel de Administração</a>
+        <a class="admin-link" onclick="pedirSenhaAdmin()">⚙️ Painel de Administração</a>
 
-        <!-- Painel Restrito de Administração (Produtos + Logo) -->
+        <!-- Painel Restrito de Administração -->
         <div id="admin-panel">
             <div class="admin-header">
                 <h3 id="panel-title">Adicionar Novo Produto</h3>
-                <button class="btn-close-admin" onclick="sairDoAdminLocal()">✕ Sair</button>
+                <button class="btn-close-admin" onclick="sairDoAdmin()">✕ Sair</button>
             </div>
-
-            <!-- Seção para Atualizar a Logo -->
-            <div style="background:#fff; padding:10px; border-radius:8px; margin-bottom:12px; border:1px solid #ddd;">
-                <p style="font-size:12px; font-weight:bold; margin-bottom:5px;">Alterar Imagem da Logo:</p>
-                <input type="text" id="newLogoUrl" placeholder="Cole o link da nova imagem da logo" style="margin-bottom:6px;">
-                <button class="btn-shopee" style="padding:6px; font-size:12px; margin-bottom:0;" onclick="salvarLogoNaNuvem()">Atualizar Logo</button>
-            </div>
-
-            <hr style="border:0; border-top:1px solid #ddd; margin:12px 0;">
 
             <input type="hidden" id="editId">
-            <input type="text" id="newNum" placeholder="Número (ex: 4)" style="margin-bottom: 8px;">
+            <input type="text" id="newNum" placeholder="Número (ex: 6)" style="margin-bottom: 8px;">
             <select id="newCat" style="margin-bottom: 8px;">
                 <option value="Alimentos e bebidas">Alimentos e bebidas</option>
                 <option value="Ar condicionado">Ar condicionado</option>
@@ -633,69 +602,9 @@
             <input type="text" id="newDesc" placeholder="Descrição curta (ex: CUPOM: NIKE20)" style="margin-bottom: 8px;">
             <input type="text" id="newImg" placeholder="Link direto da imagem (URL da web)" style="margin-bottom: 8px;">
             <input type="text" id="newLink" placeholder="Link de afiliado (URL)" style="margin-bottom: 8px;">
-            <button class="btn-shopee" id="btnSalvar" onclick="salvarProdutoNaNuvem()">Salvar Produto na Vitrine</button>
-            <button class="btn-copy" id="btnCancelar" onclick="cancelarEdicaoLocal()" style="display:none; background-color:#777; margin-top:5px;">Cancelar Edição</button>
+            <button class="btn-shopee" id="btnSalvar" onclick="salvarProduto()">Salvar Produto na Vitrine</button>
+            <button class="btn-buy" id="btnCancelar" onclick="cancelarEdicao()" style="display:none; background-color:#777; margin-top:5px;">Cancelar Edição</button>
         </div>
     </div>
-
-    <script>
-        function filtrarProdutosLocal() {
-            const termo = document.getElementById('searchInput').value.toLowerCase().trim();
-            const categoria = document.getElementById('categoryFilter').value;
-            let produtosAtuais = window.getProdutos();
-
-            const filtrados = produtosAtuais.filter(p => {
-                const matchCat = (categoria === 'todos' || p.cat === categoria);
-                let matchTexto = false;
-                if (/^\d+$/.test(termo)) {
-                    let numLimpo = p.num.replace("#", "");
-                    matchTexto = (numLimpo === termo);
-                } else {
-                    matchTexto = p.title.toLowerCase().includes(termo) || p.num.toLowerCase().includes(termo);
-                }
-                return matchCat && matchTexto;
-            });
-
-            window.renderizarProdutos(filtrados);
-        }
-
-        function pedirSenhaAdminLocal() {
-            const senhaMestra = "018315"; 
-            const digitada = prompt("Digite a senha de administração:");
-
-            if (digitada === senhaMestra) {
-                window.setIsAdmin(true);
-                document.getElementById('admin-panel').style.display = 'block';
-                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-            } else if (digitada !== null) {
-                alert("Senha incorreta! Acesso negado.");
-            }
-        }
-
-        function sairDoAdminLocal() {
-            window.setIsAdmin(false);
-            document.getElementById('admin-panel').style.display = 'none';
-            limparFormulario();
-        }
-
-        function cancelarEdicaoLocal() {
-            limparFormulario();
-            document.getElementById('panel-title').innerText = "Adicionar Novo Produto";
-            document.getElementById('btnSalvar').innerText = "Salvar Produto na Vitrine";
-            document.getElementById('btnCancelar').style.display = "none";
-        }
-
-        function limparFormulario() {
-            document.getElementById('editId').value = '';
-            document.getElementById('newNum').value = '';
-            document.getElementById('newTitle').value = '';
-            document.getElementById('newDesc').value = '';
-            document.getElementById('newImg').value = '';
-            document.getElementById('newLink').value = '';
-            document.getElementById('panel-title').innerText = "Adicionar Novo Produto";
-            document.getElementById('btnSalvar').innerText = "Salvar Produto na Vitrine";
-            document.getElementById('btnCancelar').style.display = "none";
-        }
-    </script>
 </body>
 </html>
