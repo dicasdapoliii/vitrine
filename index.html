@@ -19,9 +19,9 @@
             { id: 7, num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/exemplo" }
         ];
 
-        // Carrega do localStorage ou inicializa com a lista completa se estiver vazio
-        let produtos = JSON.parse(localStorage.getItem('vitrine_produtos'));
-        if (!produtos || produtos.length === 0) {
+        // Força a atualização para carregar todos os 7 produtos se a lista estiver menor que o esperado
+        let produtos = JSON.parse(localStorage.getItem('vitrine_produtos')) || [];
+        if (produtos.length < produtosIniciais.length) {
             produtos = produtosIniciais;
             localStorage.setItem('vitrine_produtos', JSON.stringify(produtos));
         }
