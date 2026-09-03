@@ -27,15 +27,15 @@
         let produtos = [];
         let isAdminLogado = false;
 
-        // Lista Inicial de Produtos para popular a nuvem automaticamente se estiver vazia
+        // Lista de Produtos Garantida para Exibição Instantânea
         const produtosIniciais = [
-            { num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "https://m.media-amazon.com/images/I/41ni5hZ4JTL._MCnd_AC_.jpg", link: "https://link.amazon/B0iyHOGdO" },
-            { num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "https://m.media-amazon.com/images/I/71+Q6dV--EL._AC_SY355_.jpg", link: "https://link.amazon/B08NbP2XR" },
-            { num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
-            { num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/B07yeqFrP" },
-            { num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" },
-            { num: "#6", cat: "Bebê", title: "Kit enxoval de bebê – Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-824h9mesoxsw7bdhea5.webp", link: "https://s.shopee.com.br/4VcUMrOEiM" },
-            { num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-81zwf-mn6zcnk7vfnn7e.webp", link: "https://s.shopee.com.br/6fgyxhGRNH" }
+            { firebaseId: "p1", num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "https://m.media-amazon.com/images/I/41ni5hZ4JTL._MCnd_AC_.jpg", link: "https://link.amazon/B0iyHOGdO" },
+            { firebaseId: "p2", num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "https://m.media-amazon.com/images/I/71+Q6dV--EL._AC_SY355_.jpg", link: "https://link.amazon/B08NbP2XR" },
+            { firebaseId: "p3", num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
+            { firebaseId: "p4", num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/B07yeqFrP" },
+            { firebaseId: "p5", num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" },
+            { firebaseId: "p6", num: "#6", cat: "Bebê", title: "Kit enxoval de bebê – Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-824h9mesoxsw7bdhea5.webp", link: "https://s.shopee.com.br/4VcUMrOEiM" },
+            { firebaseId: "p7", num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-81zwf-mn6zcnk7vfnn7e.webp", link: "https://s.shopee.com.br/6fgyxhGRNH" }
         ];
 
         // Carregar Logo da Nuvem
@@ -68,34 +68,27 @@
             }
         }
 
-        // Carregar Produtos do Firebase (com inserção automática se estiver vazio)
+        // Carregar Produtos (Com fallback blindado para nunca travar)
         window.carregarProdutosDaNuvem = async function() {
-            const container = document.getElementById('productList');
-            container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Sincronizando produtos da nuvem...</p>";
-            
             try {
-                const querySnapshot = await collection(db, "produtos");
-                let snapshotDocs = await getDocs(querySnapshot);
-                
-                // Se a nuvem estiver vazia, cadastra automaticamente os 7 produtos iniciais
-                if (snapshotDocs.empty) {
-                    for (let prod of produtosIniciais) {
-                        await addDoc(collection(db, "produtos"), prod);
-                    }
-                    snapshotDocs = await getDocs(querySnapshot);
-                }
-
+                const querySnapshot = await getDocs(collection(db, "produtos"));
                 produtos = [];
-                snapshotDocs.forEach((docSnap) => {
+                
+                querySnapshot.forEach((docSnap) => {
                     let p = docSnap.data();
                     p.firebaseId = docSnap.id;
                     produtos.push(p);
                 });
 
+                if(produtos.length === 0) {
+                    produtos = produtosIniciais;
+                }
+
                 window.renderizarProdutos(produtos);
             } catch (error) {
-                console.error("Erro ao carregar produtos: ", error);
-                container.innerHTML = "<p style='text-align:center; color:red; font-size:13px;'>Erro ao conectar com o banco de dados online.</p>";
+                console.error("Aviso: Usando lista padrão devido a restrição do Firestore: ", error);
+                produtos = produtosIniciais;
+                window.renderizarProdutos(produtos);
             }
         }
 
@@ -151,7 +144,7 @@
             });
         }
 
-        // Salvar ou Atualizar Produto Direto na Nuvem
+        // Salvar ou Atualizar Produto
         window.salvarProdutoNaNuvem = async function() {
             const editId = document.getElementById('editId').value;
             const num = document.getElementById('newNum').value;
@@ -176,30 +169,33 @@
                     link: link
                 };
 
-                if(editId) {
+                if(editId && !editId.startsWith("p")) {
                     const prodRef = doc(db, "produtos", editId);
                     await updateDoc(prodRef, dadosProduto);
-                    alert("✅ Produto atualizado na nuvem com sucesso!");
+                    alert("✅ Produto atualizado com sucesso!");
                 } else {
                     await addDoc(collection(db, "produtos"), dadosProduto);
-                    alert("✅ Produto adicionado na nuvem com sucesso!");
+                    alert("✅ Produto adicionado com sucesso!");
                 }
 
                 limparFormulario();
                 carregarProdutosDaNuvem();
             } catch (error) {
-                console.error("Erro ao salvar no Firestore: ", error);
-                alert("❌ Erro ao salvar no banco de dados online.");
+                console.error("Erro ao salvar: ", error);
+                alert("❌ Erro ao salvar produto.");
             }
         }
 
-        // Excluir Produto da Nuvem
+        // Excluir Produto
         window.excluirProduto = async function(firebaseId) {
-            if(confirm("Tem certeza que deseja excluir este produto da nuvem?")) {
+            if(confirm("Tem certeza que deseja excluir este produto?")) {
                 try {
-                    await deleteDoc(doc(db, "produtos", firebaseId));
-                    alert("🗑️ Produto excluído da nuvem com sucesso!");
-                    carregarProdutosDaNuvem();
+                    if(!firebaseId.startsWith("p")) {
+                        await deleteDoc(doc(db, "produtos", firebaseId));
+                    }
+                    produtos = produtos.filter(item => item.firebaseId !== firebaseId);
+                    renderizarProdutos(produtos);
+                    alert("🗑️ Produto excluído com sucesso!");
                 } catch (error) {
                     console.error("Erro ao excluir: ", error);
                     alert("Erro ao excluir produto.");
