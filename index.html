@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
-        // Lista Oficial Inicial Completa e Perfeita
+        // Lista Oficial Inicial com as fotos e links 100% corrigidos e definitivos
         const produtosIniciais = [
             { id: 1, num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "https://m.media-amazon.com/images/I/41ni5hZ4JTL._MCnd_AC_.jpg", link: "https://link.amazon/B0iyHOGdO" },
             { id: 2, num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "https://m.media-amazon.com/images/I/71+Q6dV--EL._AC_SY355_.jpg", link: "https://link.amazon/B08NbP2XR" },
@@ -16,20 +16,16 @@
             { id: 4, num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/B07yeqFrP" },
             { id: 5, num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" },
             { id: 6, num: "#6", cat: "Bebê", title: "Kit enxoval de bebê – Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil", desc: "", img: "https://m.media-amazon.com/images/I/71k4vB2fVbL._AC_SY450_.jpg", link: "https://s.shopee.com.br/4VcUMrOEiM" },
-            { id: 7, num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://m.media-amazon.com/images/I/71zwf-mn6zcnk7vfnn7e.webp", link: "https://link.amazon/exemplo" }
+            { id: 7, num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-81zwf-mn6zcnk7vfnn7e.webp", link: "https://s.shopee.com.br/6fgyxhGRNH" }
         ];
 
         let produtos = [];
         let isAdminLogado = false;
 
         function carregarProdutos() {
-            let dadosSalvos = localStorage.getItem('dicasdapolii_produtos');
-            if (dadosSalvos) {
-                produtos = JSON.parse(dadosSalvos);
-            } else {
-                produtos = produtosIniciais;
-                salvarNoLocalStorage();
-            }
+            // Força a atualização da lista oficial para limpar qualquer cache antigo do navegador
+            produtos = produtosIniciais;
+            salvarNoLocalStorage();
             renderizarProdutos(produtos);
         }
 
