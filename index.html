@@ -577,14 +577,25 @@
     </div>
 
     <script>
+        // Função de filtro corrigida para busca exata por número ou texto correspondente
         function filtrarProdutosLocal() {
-            const termo = document.getElementById('searchInput').value.toLowerCase();
+            const termo = document.getElementById('searchInput').value.toLowerCase().trim();
             const categoria = document.getElementById('categoryFilter').value;
             let produtosAtuais = window.getProdutos();
 
             const filtrados = produtosAtuais.filter(p => {
                 const matchCat = (categoria === 'todos' || p.cat === categoria);
-                const matchTexto = p.title.toLowerCase().includes(termo) || p.num.toLowerCase().includes(termo);
+                
+                // Se o usuário digitar apenas números (ex: "1"), faz a busca exata pelo número do produto
+                let matchTexto = false;
+                if (/^\d+$/.test(termo)) {
+                    let numLimpo = p.num.replace("#", "");
+                    matchTexto = (numLimpo === termo);
+                } else {
+                    // Se digitar texto, busca no título
+                    matchTexto = p.title.toLowerCase().includes(termo) || p.num.toLowerCase().includes(termo);
+                }
+
                 return matchCat && matchTexto;
             });
 
