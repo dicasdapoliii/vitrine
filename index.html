@@ -57,7 +57,7 @@
             }
         }
 
-        // Carregar Produtos da Nuvem
+        // Carregar Produtos da Nuvem (Atualizado e Otimizado)
         window.carregarProdutosDaNuvem = async function() {
             const container = document.getElementById('productList');
             container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Carregando produtos da nuvem...</p>";
@@ -65,6 +65,7 @@
             try {
                 const querySnapshot = await getDocs(collection(db, "produtos"));
                 produtos = [];
+                
                 querySnapshot.forEach((docSnap) => {
                     let p = docSnap.data();
                     p.firebaseId = docSnap.id;
