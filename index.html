@@ -13,24 +13,23 @@
         let produtos = [];
         let isAdminLogado = false;
 
-        // 1. Método Educativo: Carregar produtos da Nuvem em tempo real para todos os usuários
+        // 1. Método Educativo: Carregar produtos da Nuvem em tempo real
         async function carregarProdutosDaNuvem() {
             try {
-                let resposta = await fetch(NPOINT_URL + "?t=" + new Date().getTime()); // Evita cache do navegador
+                let resposta = await fetch(NPOINT_URL + "?t=" + new Date().getTime());
                 if (!resposta.ok) throw new Error("Erro ao conectar com a nuvem.");
                 
                 let resultado = await resposta.json();
                 produtos = resultado.produtos || resultado.record?.produtos || [];
                 renderizarProdutos(produtos);
 
-                // Verifica se o link foi aberto com um produto específico (ex: ?produto=3)
                 verificarProdutoDirecionado();
             } catch (erro) {
                 console.error("Erro ao carregar:", erro);
             }
         }
 
-        // 2. Método Educativo: Salvar produtos na Nuvem Npoint com garantia de sincronização global
+        // 2. Método Educativo: Salvar produtos na Nuvem Npoint
         async function salvarProdutosNaNuvem() {
             try {
                 let resposta = await fetch(NPOINT_URL, {
@@ -71,16 +70,20 @@
                     </div>
                 ` : '';
 
+                // Selo visual de Oferta Relâmpago
+                let seloRelampago = p.relampago === "sim" ? `<div class="badge-relampago">⚡ OFERTA RELÂMPAGO</div>` : '';
+
                 let infoPromocao = '';
                 if (p.cupom || p.precoFinal) {
                     let textoCupom = p.cupom ? `🎟️ Cupom: ${p.cupom}` : '';
                     let textoPreco = p.precoFinal ? `💰 Por: ${p.precoFinal}` : '';
                     let separador = (p.cupom && p.precoFinal) ? ' | ' : '';
-                    infoPromocao = `<div class="product-promo" style="margin-top: 5px; font-size: 11px; background: #e8f5e9; color: #2e7d32; padding: 3px 6px; border-radius: 4px; display: inline-block; font-weight: bold;">${textoPreco}${separador}${textoCupom}</div>`;
+                    infoPromocao = `<div class="product-promo">${textoPreco}${separador}${textoCupom}</div>`;
                 }
 
                 container.innerHTML += `
                     <div class="product-card" id="produto-${p.id}">
+                        ${seloRelampago}
                         <img src="${p.img}" alt="${p.title}">
                         <div class="product-info">
                             <div>
@@ -97,7 +100,6 @@
             });
         }
 
-        // Função para gerar o link inteligente incluindo preço final e cupom na mensagem do WhatsApp
         window.compartilharLinkDireto = function(idProduto, titulo, cupom, precoFinal) {
             let urlBase = window.location.origin + window.location.pathname;
             let linkInteligente = `${urlBase}?produto=${idProduto}`;
@@ -112,7 +114,6 @@
             });
         }
 
-        // Função automática otimizada que localiza e destaca o produto na tela
         function verificarProdutoDirecionado() {
             const parametros = new URLSearchParams(window.location.search);
             const idProduto = parametros.get('produto');
@@ -138,6 +139,11 @@
             const categoria = document.getElementById('categoryFilter').value;
 
             const filtrados = produtos.filter(p => {
+                // Filtro especial para Ofertas Relâmpago
+                if (categoria === 'relampago') {
+                    return p.relampago === "sim";
+                }
+
                 const matchCat = (categoria === 'todos' || p.cat === categoria);
                 let matchTexto = false;
                 if (/^\d+$/.test(termo)) {
@@ -160,6 +166,7 @@
             const desc = document.getElementById('newDesc').value;
             const cupom = document.getElementById('newCupom').value;
             const precoFinal = document.getElementById('newPrecoFinal').value;
+            const relampago = document.getElementById('newRelampago').value;
             const img = document.getElementById('newImg').value;
             const link = document.getElementById('newLink').value;
 
@@ -176,6 +183,7 @@
                 desc: desc,
                 cupom: cupom,
                 precoFinal: precoFinal,
+                relampago: relampago,
                 img: img,
                 link: link
             };
@@ -212,6 +220,7 @@
                 document.getElementById('newDesc').value = p.desc;
                 document.getElementById('newCupom').value = p.cupom || "";
                 document.getElementById('newPrecoFinal').value = p.precoFinal || "";
+                document.getElementById('newRelampago').value = p.relampago || "nao";
                 document.getElementById('newImg').value = p.img;
                 document.getElementById('newLink').value = p.link;
 
@@ -259,6 +268,7 @@
             document.getElementById('newDesc').value = '';
             document.getElementById('newCupom').value = '';
             document.getElementById('newPrecoFinal').value = '';
+            document.getElementById('newRelampago').value = 'nao';
             document.getElementById('newImg').value = '';
             document.getElementById('newLink').value = '';
             document.getElementById('panel-title').innerText = "Adicionar Novo Produto";
@@ -272,7 +282,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
         body { background-color: #fce4ec; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; }
-        .container { width: 100%; max-width: 480px; background: #ffffff; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { width: 100%; max-width: 480px; background: #ffffff; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; align-items: center; position: relative; }
         .profile-pic { width: 120px; height: 120px; border-radius: 50%; border: 3px solid #ff4081; padding: 3px; margin-bottom: 15px; object-fit: cover; }
         h1 { font-size: 22px; color: #333; margin-bottom: 5px; }
         .bio { font-size: 14px; color: #666; margin-bottom: 15px; text-align: center; }
@@ -290,6 +300,9 @@
         .product-number { font-size: 13px; font-weight: bold; color: #ff4081; }
         .product-title { font-size: 14px; font-weight: bold; color: #333; }
         .product-desc { font-size: 12px; color: #666; }
+        .product-promo { margin-top: 5px; font-size: 11px; background: #e8f5e9; color: #2e7d32; padding: 3px 6px; border-radius: 4px; display: inline-block; font-weight: bold; }
+        .badge-relampago { position: absolute; top: -8px; right: 10px; background: #ff3d00; color: white; font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
         .btn-buy { background-color: #e91e63; color: white; border: none; padding: 6px; border-radius: 5px; font-size: 13px; font-weight: bold; text-align: center; text-decoration: none; cursor: pointer; margin-top: 5px; }
         .card-admin-actions { display: none; gap: 5px; margin-top: 5px; }
         .btn-edit { background-color: #ff9800; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
@@ -302,6 +315,13 @@
         #admin-panel h3 { font-size: 15px; color: #333; margin: 0; }
         .btn-close-admin { background-color: #e0e0e0; color: #333; border: none; padding: 4px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer; }
         .btn-close-admin:hover { background-color: #ccc; }
+
+        /* Estilo dos Botões Flutuantes Duplos no rodapé */
+        .floating-buttons { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 999; }
+        .float-btn { width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 22px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); text-decoration: none; transition: transform 0.3s; }
+        .float-btn:hover { transform: scale(1.1); }
+        .float-zap { background-color: #25d366; }
+        .float-channel { background-color: #128c7e; }
     </style>
 </head>
 <body>
@@ -330,6 +350,7 @@
         <div class="filter-section">
             <select id="categoryFilter" onchange="filtrarProdutos()">
                 <option value="todos">🛒 Todas as Categorias</option>
+                <option value="relampago">⚡ Ofertas Relâmpago (Destaques)</option>
                 <option value="Alimentos e bebidas">Alimentos e bebidas</option>
                 <option value="Ar condicionado">Ar condicionado</option>
                 <option value="Automotivo e acessórios">Automotivo e acessórios</option>
@@ -427,11 +448,25 @@
             <input type="text" id="newDesc" placeholder="Descrição curta (ex: Frete Grátis)" style="margin-bottom: 8px;">
             <input type="text" id="newCupom" placeholder="🎟️ Nome do Cupom (ex: NIKE20)" style="margin-bottom: 8px;">
             <input type="text" id="newPrecoFinal" placeholder="💰 Preço Final c/ Desconto (ex: R$ 89,90)" style="margin-bottom: 8px;">
+            <select id="newRelampago" style="margin-bottom: 8px;">
+                <option value="nao">⚡ Oferta Relâmpago? Não</option>
+                <option value="sim">⚡ Oferta Relâmpago? SIM (Destaque)</option>
+            </select>
             <input type="text" id="newImg" placeholder="Link direto da imagem (URL da web)" style="margin-bottom: 8px;">
             <input type="text" id="newLink" placeholder="Link de afiliado (URL)" style="margin-bottom: 8px;">
             <button class="btn-shopee" id="btnSalvar" onclick="salvarProduto()">Salvar Produto na Nuvem</button>
             <button class="btn-buy" id="btnCancelar" onclick="cancelarEdicao()" style="display:none; background-color:#777; margin-top:5px;">Cancelar Edição</button>
         </div>
+    </div>
+
+    <!-- Botões Flutuantes Duplos no Rodapé da Tela -->
+    <div class="floating-buttons">
+        <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="float-btn float-channel" title="Entrar no Canal de Ofertas">
+            <i class="fa-solid fa-bullhorn"></i>
+        </a>
+        <a href="https://wa.me/5566999087449" target="_blank" class="float-btn float-zap" title="Falar com a Poli">
+            <i class="fa-brands fa-whatsapp"></i>
+        </a>
     </div>
 
     <script>
@@ -440,6 +475,10 @@
             const categoria = document.getElementById('categoryFilter').value;
 
             const filtrados = produtos.filter(p => {
+                if (categoria === 'relampago') {
+                    return p.relampago === "sim";
+                }
+
                 const matchCat = (categoria === 'todos' || p.cat === categoria);
                 let matchTexto = false;
                 if (/^\d+$/.test(termo)) {
