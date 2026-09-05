@@ -7,14 +7,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
-        // Configuração Oficial da Nuvem
-        const BIN_ID = "6a9b836bda38895dfe3ae1a9"; // ID da sua coleção criada
-        const API_KEY = "$2a$10$3pdBHeysEouhIfRQi7WpMuCsBrQz75T8lWnxwWiDMeu1Jlkodpyc6I"; // Cole aqui a Master Key que está em "Chaves de API"
+        // Configuração Oficial da Nuvem JSONBin
+        const BIN_ID = "6a9b836bda38895dfe3ae1a9"; 
+        const API_KEY = "$2a$10$3pdBHeysEouhIfRQi7WpMuCsBrQz75T8lWnxwWiDMeu1Jlkodpyc6"; 
 
         let produtos = [];
         let isAdminLogado = false;
 
-        // Lista de segurança caso a nuvem esteja vazia na primeira leitura
+        // Lista de Segurança Inicial Garantida
         const produtosIniciais = [
             { id: 1, num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "https://m.media-amazon.com/images/I/41ni5hZ4JTL._MCnd_AC_.jpg", link: "https://link.amazon/B0iyHOGdO" },
             { id: 2, num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "https://m.media-amazon.com/images/I/71+Q6dV--EL._AC_SY355_.jpg", link: "https://link.amazon/B08NbP2XR" },
@@ -25,7 +25,7 @@
             { id: 7, num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-81zwf-mn6zcnk7vfnn7e.webp", link: "https://s.shopee.com.br/6fgyxhGRNH" }
         ];
 
-        // 1. Carregar produtos direto da Nuvem
+        // 1. Carregar produtos da Nuvem com tratamento seguro de erros
         async function carregarProdutosDaNuvem() {
             try {
                 let resposta = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
@@ -37,7 +37,6 @@
                 let resultado = await resposta.json();
                 produtos = resultado.record.produtos || [];
 
-                // Se estiver vazio, popula automaticamente com os iniciais
                 if (produtos.length === 0) {
                     produtos = produtosIniciais;
                     await salvarProdutosNaNuvem();
@@ -45,13 +44,13 @@
 
                 renderizarProdutos(produtos);
             } catch (erro) {
-                console.error("Erro ao carregar:", erro);
+                console.error("Erro ao carregar da nuvem, usando base local de segurança:", erro);
                 produtos = produtosIniciais;
                 renderizarProdutos(produtos);
             }
         }
 
-        // 2. Salvar produtos na Nuvem (para sincronizar com sua esposa)
+        // 2. Salvar produtos na Nuvem otimizado para requisições PUT
         async function salvarProdutosNaNuvem() {
             try {
                 let resposta = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
@@ -62,10 +61,13 @@
                     },
                     body: JSON.stringify({ produtos: produtos })
                 });
-                if (!resposta.ok) throw new Error("Erro ao salvar.");
+                
+                if (!resposta.ok) {
+                    throw new Error("Falha HTTP: " + resposta.status);
+                }
             } catch (erro) {
-                console.error("Erro ao salvar na nuvem:", erro);
-                alert("Erro ao sincronizar com a nuvem.");
+                console.error("Erro detalhado ao salvar:", erro);
+                alert("⚠️ Aviso: As alterações foram salvas localmente nesta sessão, mas houve um bloqueio na nuvem. Verifique sua chave de API.");
             }
         }
 
@@ -171,16 +173,16 @@
                 alert("✅ Produto adicionado com sucesso!");
             }
 
+            renderizarProdutos(produtos);
             await salvarProdutosNaNuvem();
             limparFormularioprincipal();
-            renderizarProdutos(produtos);
         }
 
         async function excluirProduto(id) {
             if(confirm("Tem certeza que deseja excluir este produto?")) {
                 produtos = produtos.filter(p => p.id !== id);
-                await salvarProdutosNaNuvem();
                 renderizarProdutos(produtos);
+                await salvarProdutosNaNuvem();
                 alert("🗑️ Produto excluído com sucesso!");
             }
         }
