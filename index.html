@@ -13,7 +13,7 @@
         let produtos = [];
         let isAdminLogado = false;
 
-        // 1. Método Educativo: Carregar produtos da Nuvem em tempo real
+        // 1. Carregar produtos da Nuvem em tempo real
         async function carregarProdutosDaNuvem() {
             try {
                 let resposta = await fetch(NPOINT_URL + "?t=" + new Date().getTime());
@@ -29,7 +29,7 @@
             }
         }
 
-        // 2. Método Educativo: Salvar produtos na Nuvem Npoint
+        // 2. Salvar produtos na Nuvem Npoint
         async function salvarProdutosNaNuvem() {
             try {
                 let resposta = await fetch(NPOINT_URL, {
@@ -70,8 +70,8 @@
                     </div>
                 ` : '';
 
-                // Selo visual de Oferta Relâmpago
-                let seloRelampago = p.relampago === "sim" ? `<div class="badge-relampago">⚡ OFERTA RELÂMPAGO</div>` : '';
+                // Selo visual aprimorado com relógio e oferta relâmpago
+                let seloRelampago = p.relampago === "sim" ? `<div class="badge-relampago"><i class="fa-solid fa-clock"></i> ⚡ OFERTA RELÂMPAGO</div>` : '';
 
                 let infoPromocao = '';
                 if (p.cupom || p.precoFinal) {
@@ -139,7 +139,6 @@
             const categoria = document.getElementById('categoryFilter').value;
 
             const filtrados = produtos.filter(p => {
-                // Filtro especial para Ofertas Relâmpago
                 if (categoria === 'relampago') {
                     return p.relampago === "sim";
                 }
@@ -281,7 +280,7 @@
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
-        body { background-color: #fce4ec; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; }
+        body { background-color: #fce4ec; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; padding-bottom: 90px; }
         .container { width: 100%; max-width: 480px; background: #ffffff; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; align-items: center; position: relative; }
         .profile-pic { width: 120px; height: 120px; border-radius: 50%; border: 3px solid #ff4081; padding: 3px; margin-bottom: 15px; object-fit: cover; }
         h1 { font-size: 22px; color: #333; margin-bottom: 5px; }
@@ -301,14 +300,14 @@
         .product-title { font-size: 14px; font-weight: bold; color: #333; }
         .product-desc { font-size: 12px; color: #666; }
         .product-promo { margin-top: 5px; font-size: 11px; background: #e8f5e9; color: #2e7d32; padding: 3px 6px; border-radius: 4px; display: inline-block; font-weight: bold; }
-        .badge-relampago { position: absolute; top: -8px; right: 10px; background: #ff3d00; color: white; font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); animation: pulse 1.5s infinite; }
+        .badge-relampago { position: absolute; top: -9px; right: 10px; background: #ff3d00; color: white; font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
         .btn-buy { background-color: #e91e63; color: white; border: none; padding: 6px; border-radius: 5px; font-size: 13px; font-weight: bold; text-align: center; text-decoration: none; cursor: pointer; margin-top: 5px; }
         .card-admin-actions { display: none; gap: 5px; margin-top: 5px; }
         .btn-edit { background-color: #ff9800; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
         .btn-delete { background-color: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
         .btn-share { background-color: #2196F3; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
-        .admin-link { margin-top: 30px; font-size: 12px; color: #aaa; text-decoration: none; cursor: pointer; }
+        .admin-link { margin-top: 30px; font-size: 12px; color: #aaa; text-decoration: none; cursor: pointer; display: block; text-align: center; padding-bottom: 20px; }
         .admin-link:hover { color: #333; }
         #admin-panel { display: none; width: 100%; background: #f9f9f9; border: 1px solid #ddd; border-radius: 10px; padding: 15px; margin-top: 20px; }
         .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -316,10 +315,12 @@
         .btn-close-admin { background-color: #e0e0e0; color: #333; border: none; padding: 4px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer; }
         .btn-close-admin:hover { background-color: #ccc; }
 
-        /* Estilo dos Botões Flutuantes Duplos no rodapé */
-        .floating-buttons { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 999; }
-        .float-btn { width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 22px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); text-decoration: none; transition: transform 0.3s; }
-        .float-btn:hover { transform: scale(1.1); }
+        /* Estilo dos Botões Flutuantes com Texto Explicativo Pequeno */
+        .floating-container { position: fixed; bottom: 15px; right: 15px; display: flex; flex-direction: column; gap: 8px; z-index: 999; }
+        .floating-item { display: flex; align-items: center; gap: 8px; justify-content: flex-end; text-decoration: none; }
+        .floating-label { background: rgba(0, 0, 0, 0.75); color: white; font-size: 11px; font-weight: bold; padding: 4px 8px; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); white-space: nowrap; }
+        .floating-btn { width: 44px; height: 44px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.3s; flex-shrink: 0; }
+        .floating-btn:hover { transform: scale(1.1); }
         .float-zap { background-color: #25d366; }
         .float-channel { background-color: #128c7e; }
     </style>
@@ -449,8 +450,8 @@
             <input type="text" id="newCupom" placeholder="🎟️ Nome do Cupom (ex: NIKE20)" style="margin-bottom: 8px;">
             <input type="text" id="newPrecoFinal" placeholder="💰 Preço Final c/ Desconto (ex: R$ 89,90)" style="margin-bottom: 8px;">
             <select id="newRelampago" style="margin-bottom: 8px;">
-                <option value="nao">⚡ Oferta Relâmpago? Não</option>
-                <option value="sim">⚡ Oferta Relâmpago? SIM (Destaque)</option>
+                <option value="nao">⏳ ⚡ Oferta Relâmpago? Não</option>
+                <option value="sim">⏳ ⚡ Oferta Relâmpago? SIM (Com Relógio e Destaque)</option>
             </select>
             <input type="text" id="newImg" placeholder="Link direto da imagem (URL da web)" style="margin-bottom: 8px;">
             <input type="text" id="newLink" placeholder="Link de afiliado (URL)" style="margin-bottom: 8px;">
@@ -459,13 +460,19 @@
         </div>
     </div>
 
-    <!-- Botões Flutuantes Duplos no Rodapé da Tela -->
-    <div class="floating-buttons">
-        <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="float-btn float-channel" title="Entrar no Canal de Ofertas">
-            <i class="fa-solid fa-bullhorn"></i>
+    <!-- Botões Flutuantes Duplos com Texto Explicativo -->
+    <div class="floating-container">
+        <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="floating-item">
+            <span class="floating-label">Canal de Ofertas</span>
+            <div class="floating-btn float-channel">
+                <i class="fa-solid fa-bullhorn"></i>
+            </div>
         </a>
-        <a href="https://wa.me/5566999087449" target="_blank" class="float-btn float-zap" title="Falar com a Poli">
-            <i class="fa-brands fa-whatsapp"></i>
+        <a href="https://wa.me/5566999087449" target="_blank" class="floating-item">
+            <span class="floating-label">Falar com a Poli</span>
+            <div class="floating-btn float-zap">
+                <i class="fa-brands fa-whatsapp"></i>
+            </div>
         </a>
     </div>
 
