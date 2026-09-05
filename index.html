@@ -314,38 +314,48 @@
         .btn-close-admin { background-color: #e0e0e0; color: #333; border: none; padding: 4px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer; }
         .btn-close-admin:hover { background-color: #ccc; }
 
-        /* Estilo para fixar os botões em formato vertical na margem lateral direita exata */
+        /* Estilo Compacto Circular na Lateral com Rótulos "Ofertas" e "Ajuda" */
         .floating-container { 
             position: fixed; 
             top: 50%; 
             transform: translateY(-50%); 
-            right: 4px; 
+            right: 2px; 
             display: flex; 
             flex-direction: column; 
-            gap: 10px; 
+            gap: 12px; 
             z-index: 9999; 
-            align-items: flex-end; 
-        }
-        .floating-pill { 
-            display: flex; 
             align-items: center; 
-            gap: 5px; 
-            padding: 8px 10px; 
-            border-radius: 20px 0 0 20px; 
+        }
+        .floating-circle { 
+            width: 48px; 
+            height: 48px; 
+            border-radius: 50%; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
             color: white; 
-            font-size: 10px; 
-            font-weight: bold; 
-            box-shadow: -2px 3px 8px rgba(0,0,0,0.3); 
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3); 
             text-decoration: none; 
             transition: transform 0.3s; 
-            white-space: nowrap; 
+            text-align: center;
+            padding: 2px;
         }
-        .floating-pill:hover { 
-            transform: scale(1.05); 
+        .floating-circle:hover { 
+            transform: scale(1.1); 
         }
-        .pill-zap { background-color: #25d366; }
-        .pill-channel { background-color: #128c7e; }
-        .floating-pill i { font-size: 14px; flex-shrink: 0; }
+        .floating-circle i { 
+            font-size: 14px; 
+            margin-bottom: 1px; 
+        }
+        .floating-circle span { 
+            font-size: 6px; 
+            font-weight: bold; 
+            line-height: 1.1; 
+            text-transform: uppercase;
+        }
+        .circle-zap { background-color: #25d366; }
+        .circle-channel { background-color: #128c7e; }
     </style>
 </head>
 <body>
@@ -374,7 +384,7 @@
         <!-- Filtros e Busca -->
         <div class="filter-section">
             <select id="categoryFilter" onchange="filtrarProdutos()">
-                <option value="todos">🛒 Todas as Categorias</option>
+                <option value="todos">🛒 Toutes as Categorias</option>
                 <option value="relampago">⚡ Ofertas Relâmpago (Destaques)</option>
                 <option value="Alimentos e bebidas">Alimentos e bebidas</option>
                 <option value="Ar condicionado">Ar condicionado</option>
@@ -484,13 +494,15 @@
         </div>
     </div>
 
-    <!-- Botões Flutuantes em Formato Vertical Encaixados na Margem Lateral -->
+    <!-- Botões Circulares Compactos com os rótulos "Ofertas" e "Ajuda" -->
     <div class="floating-container">
-        <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="floating-pill pill-channel">
-            <i class="fa-solid fa-bullhorn"></i> Canal
+        <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="floating-circle circle-channel" title="Canal de Ofertas">
+            <i class="fa-solid fa-bullhorn"></i>
+            <span>Ofertas</span>
         </a>
-        <a href="https://wa.me/5566999087449" target="_blank" class="floating-pill pill-zap">
-            <i class="fa-brands fa-whatsapp"></i> WhatsApp
+        <a href="https://wa.me/5566999087449" target="_blank" class="floating-circle circle-zap" title="Ajuda via WhatsApp">
+            <i class="fa-brands fa-whatsapp"></i>
+            <span>Ajuda</span>
         </a>
     </div>
 
