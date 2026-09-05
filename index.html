@@ -11,10 +11,20 @@
         const NPOINT_URL = "https://api.npoint.io/fd32c904d4aafe739782"; 
 
         let produtos = [];
+        let categorias = [
+            "Alimentos e bebidas", "Ar condicionado", "Automotivo e acessórios", "Bebê", 
+            "Casa e Decoração", "Cama, mesa e banho", "Beleza", "Camping e jardim", 
+            "Celular e acessórios", "Computação e informática", "Eletrodoméstico", "Eletrônicos", 
+            "Ferramentas e construção", "Fitness e suplemento", "Games", "Infantil", 
+            "Internacional", "Lazer", "Perfumes e hidratantes", "Pet", "Saúde", 
+            "Saúde e beleza", "Segurança", "Seleção Hering", "Smartphones", "Ventilação", 
+            "Viagem", "Televisores", "Seleção Nike", "Seleção Adidas", "Seleção C&A", 
+            "Seleção Dafiti", "Seleção Kabum", "Seleção Stanley", "Seleção AliExpress", "Seleção Cama in Box"
+        ];
         let isAdminLogado = false;
 
-        // 1. Método Educativo: Carregar produtos da Nuvem com Cache Local de Segurança (Fallback)
-        async function carregarProdutosDaNuvem() {
+        // 1. Método Educativo: Carregar produtos e categorias da Nuvem com Cache Local de Segurança
+        async function carregarDadosDaNuvem() {
             try {
                 let resposta = await fetch(NPOINT_URL + "?t=" + new Date().getTime());
                 if (!resposta.ok) throw new Error("Erro ao conectar com a nuvem.");
@@ -22,44 +32,129 @@
                 let resultado = await resposta.json();
                 produtos = resultado.produtos || resultado.record?.produtos || [];
                 
+                // Se houver categorias salvas na nuvem, usamos elas. Senão, mantemos a lista padrão.
+                if (resultado.categorias && Array.isArray(resultado.categorias) && resultado.categorias.length > 0) {
+                    categorias = resultado.categorias;
+                }
+                
                 // Salva uma cópia de segurança na memória interna do navegador (localStorage)
-                localStorage.setItem('dicasdapoli_cache', JSON.stringify(produtos));
+                localStorage.setItem('dicasdapoli_produtos', JSON.stringify(produtos));
+                localStorage.setItem('dicasdapoli_categorias', JSON.stringify(categorias));
 
+                atualizarSelectsDeCategorias();
                 renderizarProdutos(produtos);
+                renderizarGerenciadorCategorias();
                 verificarProdutoDirecionado();
             } catch (erro) {
                 console.warn("⚠️ Nuvem instável. A carregar dados do Cache Local de Segurança...", erro);
                 
-                // Se a nuvem falhar, tenta recuperar os dados salvos anteriormente no navegador
-                let cacheSalvo = localStorage.getItem('dicasdapoli_cache');
-                if (cacheSalvo) {
-                    produtos = JSON.parse(cacheSalvo);
-                    renderizarProdutos(produtos);
-                    verificarProdutoDirecionado();
-                } else {
-                    document.getElementById('productList').innerHTML = "<p style='text-align:center; color:#d32f2f; font-size:13px;'>⚠️ Servidor temporariamente instável. Sem cache local disponível.</p>";
-                }
+                let cacheProd = localStorage.getItem('dicasdapoli_produtos');
+                let cacheCat = localStorage.getItem('dicasdapoli_categorias');
+                
+                if (cacheProd) produtos = JSON.parse(cacheProd);
+                if (cacheCat) categorias = JSON.parse(cacheCat);
+
+                atualizarSelectsDeCategorias();
+                renderizarProdutos(produtos);
+                renderizarGerenciadorCategorias();
+                verificarProdutoDirecionado();
             }
         }
 
-        // 2. Método Educativo: Salvar produtos na Nuvem Npoint e atualizar o Cache Local
-        async function salvarProdutosNaNuvem() {
+        // 2. Método Educativo: Salvar dados completos (Produtos + Categorias) na Nuvem Npoint
+        async function salvarDadosNaNuvem() {
             try {
                 let resposta = await fetch(NPOINT_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ produtos: produtos })
+                    body: JSON.stringify({ produtos: produtos, categorias: categorias })
                 });
 
                 if (!resposta.ok) throw new Error("Erro ao salvar na nuvem.");
                 
-                // Atualiza também o cache local com os novos dados gravados
-                localStorage.setItem('dicasdapoli_cache', JSON.stringify(produtos));
+                // Atualiza o cache local
+                localStorage.setItem('dicasdapoli_produtos', JSON.stringify(produtos));
+                localStorage.setItem('dicasdapoli_categorias', JSON.stringify(categorias));
 
                 alert("✅ Sincronizado com a nuvem com sucesso para todos!");
             } catch (erro) {
                 console.error("Erro ao salvar:", erro);
                 alert("⚠️ Erro ao gravar na nuvem do Npoint.");
+            }
+        }
+
+        // Atualiza dinamicamente todos os elementos <select> de categorias na tela
+        function atualizarSelectsDeCategorias() {
+            categorias.sort();
+
+            // 1. Select de Filtro Principal
+            const filtroSelect = document.getElementById('categoryFilter');
+            let filtroHtml = `<option value="todos">🛒 Todas as Categorias</option>
+                              <option value="relampago">⚡ Ofertas Relâmpago (Destaques)</option>`;
+            categorias.forEach(cat => {
+                filtroHtml += `<option value="${cat}">${cat}</option>`;
+            });
+            filtroSelect.innerHTML = filtroHtml;
+
+            // 2. Select do Painel Admin (Adicionar/Editar Produto)
+            const novoCatSelect = document.getElementById('newCat');
+            let adminCatHtml = '';
+            categorias.forEach(cat => {
+                adminCatHtml += `<option value="${cat}">${cat}</option>`;
+            });
+            novoCatSelect.innerHTML = adminCatHtml;
+        }
+
+        // Renderiza a lista de categorias no painel admin para gerenciamento
+        function renderizarGerenciadorCategorias() {
+            const container = document.getElementById('listaCategoriasAdmin');
+            if (!container) return;
+
+            container.innerHTML = "";
+            categorias.forEach(cat => {
+                container.innerHTML += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 10px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px;">
+                        <span>📂 ${cat}</span>
+                        <button onclick="excluirCategoria('${cat}')" style="background: #f44336; color: white; border: none; padding: 3px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">🗑️ Excluir</button>
+                    </div>
+                `;
+            });
+        }
+
+        async function adicionarNovaCategoria() {
+            const inputCat = document.getElementById('novaCategoriaInput');
+            const nomeNovaCat = inputCat.value.trim();
+
+            if (!nomeNovaCat) {
+                alert("Digite o nome da nova categoria!");
+                return;
+            }
+
+            if (categorias.includes(nomeNovaCat)) {
+                alert("Esta categoria já existe!");
+                return;
+            }
+
+            categorias.push(nomeNovaCat);
+            inputCat.value = "";
+
+            atualizarSelectsDeCategorias();
+            renderizarGerenciadorCategorias();
+            await salvarDadosNaNuvem();
+        }
+
+        async function excluirCategoria(nomeCat) {
+            if (categorias.length <= 1) {
+                alert("Você precisa manter pelo menos uma categoria.");
+                return;
+            }
+
+            if (confirm(`Tem certeza que deseja excluir a categoria "${nomeCat}"?`)) {
+                categorias = categorias.filter(c => c !== nomeCat);
+                
+                atualizarSelectsDeCategorias();
+                renderizarGerenciadorCategorias();
+                await salvarDadosNaNuvem();
             }
         }
 
@@ -213,7 +308,7 @@
             }
 
             renderizarProdutos(produtos);
-            await salvarProdutosNaNuvem();
+            await salvarDadosNaNuvem();
             limparFormularioprincipal();
         }
 
@@ -221,7 +316,7 @@
             if(confirm("Tem certeza que deseja excluir este produto?")) {
                 produtos = produtos.filter(p => String(p.id) !== String(id));
                 renderizarProdutos(produtos);
-                await salvarProdutosNaNuvem();
+                await salvarDadosNaNuvem();
             }
         }
 
@@ -291,7 +386,7 @@
             document.getElementById('btnCancelar').style.display = "none";
         }
 
-        window.onload = carregarProdutosDaNuvem;
+        window.onload = carregarDadosDaNuvem;
     </script>
 
     <style>
@@ -398,48 +493,9 @@
         <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="btn-whatsapp">💬 Entrar no Canal de Ofertas</a>
         <a href="https://wa.me/5566999087449" target="_blank" class="btn-whatsapp" style="background-color: #128c7e;">🟢 Falar com a Poli</a>
 
-        <!-- Filtros e Busca -->
+        <!-- Filtros e Busca (Preenchidos Dinamicamente) -->
         <div class="filter-section">
-            <select id="categoryFilter" onchange="filtrarProdutos()">
-                <option value="todos">🛒 Todas as Categorias</option>
-                <option value="relampago">⚡ Ofertas Relâmpago (Destaques)</option>
-                <option value="Alimentos e bebidas">Alimentos e bebidas</option>
-                <option value="Ar condicionado">Ar condicionado</option>
-                <option value="Automotivo e acessórios">Automotivo e acessórios</option>
-                <option value="Bebê">Bebê</option>
-                <option value="Casa e Decoração">Casa e Decoração</option>
-                <option value="Cama, mesa e banho">Cama, mesa e banho</option>
-                <option value="Beleza">Beleza</option>
-                <option value="Camping e jardim">Camping e jardim</option>
-                <option value="Celular e acessórios">Celular e acessórios</option>
-                <option value="Computação e informática">Computação e informática</option>
-                <option value="Eletrodoméstico">Eletrodoméstico</option>
-                <option value="Eletrônicos">Eletrônicos</option>
-                <option value="Ferramentas e construção">Ferramentas e construção</option>
-                <option value="Fitness e suplemento">Fitness e suplemento</option>
-                <option value="Games">Games</option>
-                <option value="Infantil">Infantil</option>
-                <option value="Internacional">Internacional</option>
-                <option value="Lazer">Lazer</option>
-                <option value="Perfumes e hidratantes">Perfumes e hidratantes</option>
-                <option value="Pet">Pet</option>
-                <option value="Saúde">Saúde</option>
-                <option value="Saúde e beleza">Saúde e beleza</option>
-                <option value="Segurança">Segurança</option>
-                <option value="Seleção Hering">Seleção Hering</option>
-                <option value="Smartphones">Smartphones</option>
-                <option value="Ventilação">Ventilação</option>
-                <option value="Viagem">Viagem</option>
-                <option value="Televisores">Televisores</option>
-                <option value="Seleção Nike">Seleção Nike</option>
-                <option value="Seleção Adidas">Seleção Adidas</option>
-                <option value="Seleção C&A">Seleção C&A</option>
-                <option value="Seleção Dafiti">Seleção Dafiti</option>
-                <option value="Seleção Kabum">Seleção Kabum</option>
-                <option value="Seleção Stanley">Seleção Stanley</option>
-                <option value="Seleção AliExpress">Seleção AliExpress</option>
-                <option value="Seleção Cama in Box">Seleção Cama in Box</option>
-            </select>
+            <select id="categoryFilter" onchange="filtrarProdutos()"></select>
             <input type="text" id="searchInput" placeholder="🔍 Digite o número ou nome do produto..." onkeyup="filtrarProdutos()">
         </div>
 
@@ -449,53 +505,28 @@
         <!-- Botão Protegido por Senha para abrir o Painel -->
         <a class="admin-link" onclick="pedirSenhaAdmin()">⚙️ Painel de Administração</a>
 
-        <!-- Painel Restrito de Administração -->
+        <!-- Painel Restrito de Administração (Gerenciamento de Produtos e Categorias) -->
         <div id="admin-panel">
             <div class="admin-header">
                 <h3 id="panel-title">Adicionar Novo Produto</h3>
                 <button class="btn-close-admin" onclick="sairDoAdmin()">✕ Sair</button>
             </div>
 
+            <!-- Seção de Gerenciamento de Categorias -->
+            <div style="background: #eee; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                <h4 style="font-size: 13px; color: #333; margin-bottom: 6px;">📂 Gerenciar Categorias da Vitrine</h4>
+                <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+                    <input type="text" id="novaCategoriaInput" placeholder="Nova Categoria (ex: Promoções)" style="margin-bottom: 0;">
+                    <button onclick="adicionarNovaCategoria()" style="background: #4CAF50; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; white-space: nowrap;">Adicionar</button>
+                </div>
+                <div id="listaCategoriasAdmin" style="display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto;"></div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #ddd; margin-bottom: 15px;">
+
             <input type="hidden" id="editId">
-            <input type="text" id="newNum" placeholder="Número (ex: 8)" style="margin-bottom: 8px;">
-            <select id="newCat" style="margin-bottom: 8px;">
-                <option value="Alimentos e bebidas">Alimentos e bebidas</option>
-                <option value="Ar condicionado">Ar condicionado</option>
-                <option value="Automotivo e acessórios">Automotivo e acessórios</option>
-                <option value="Bebê">Bebê</option>
-                <option value="Casa e Decoração">Casa e Decoração</option>
-                <option value="Cama, mesa e banho">Cama, mesa e banho</option>
-                <option value="Beleza">Beleza</option>
-                <option value="Camping e jardim">Camping e jardim</option>
-                <option value="Celular e acessórios">Celular e acessórios</option>
-                <option value="Computação e informática">Computação e informática</option>
-                <option value="Eletrodoméstico">Eletrodoméstico</option>
-                <option value="Eletrônicos">Eletrônicos</option>
-                <option value="Ferramentas e construção">Ferramentas e construção</option>
-                <option value="Fitness e suplemento">Fitness e suplemento</option>
-                <option value="Games">Games</option>
-                <option value="Infantil">Infantil</option>
-                <option value="Internacional">Internacional</option>
-                <option value="Lazer">Lazer</option>
-                <option value="Perfumes e hidratantes">Perfumes e hidratantes</option>
-                <option value="Pet">Pet</option>
-                <option value="Saúde">Saúde</option>
-                <option value="Saúde e beleza">Saúde e beleza</option>
-                <option value="Segurança">Segurança</option>
-                <option value="Seleção Hering">Seleção Hering</option>
-                <option value="Smartphones">Smartphones</option>
-                <option value="Ventilação">Ventilação</option>
-                <option value="Viagem">Viagem</option>
-                <option value="Televisores">Televisores</option>
-                <option value="Seleção Nike">Seleção Nike</option>
-                <option value="Seleção Adidas">Seleção Adidas</option>
-                <option value="Seleção C&A">Seleção C&A</option>
-                <option value="Seleção Dafiti">Seleção Dafiti</option>
-                <option value="Seleção Kabum">Seleção Kabum</option>
-                <option value="Seleção Stanley">Seleção Stanley</option>
-                <option value="Seleção AliExpress">Seleção AliExpress</option>
-                <option value="Seleção Cama in Box">Seleção Cama in Box</option>
-            </select>
+            <input type="text" id="newNum" placeholder="Número do Produto (ex: 8)" style="margin-bottom: 8px;">
+            <select id="newCat" style="margin-bottom: 8px;"></select>
             <input type="text" id="newTitle" placeholder="Título do Produto" style="margin-bottom: 8px;">
             <input type="text" id="newDesc" placeholder="Descrição curta (ex: Frete Grátis)" style="margin-bottom: 8px;">
             <input type="text" id="newCupom" placeholder="🎟️ Nome do Cupom (ex: NIKE20)" style="margin-bottom: 8px;">
@@ -511,7 +542,7 @@
         </div>
     </div>
 
-    <!-- Botões Circulares Compactos com os rótulos "Canal Ofertas" e "Ajuda" -->
+    <!-- Botões Circulares Compactos Laterais -->
     <div class="floating-container">
         <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="floating-circle circle-channel" title="Canal Ofertas">
             <i class="fa-solid fa-bullhorn"></i>
@@ -524,7 +555,6 @@
     </div>
 
     <script>
-        // Função para filtrar os produtos na tela
         function filtrarProdutos() {
             const termo = document.getElementById('searchInput').value.toLowerCase().trim();
             const categoria = document.getElementById('categoryFilter').value;
