@@ -13,21 +13,24 @@
         let produtos = [];
         let isAdminLogado = false;
 
-        // 1. Método Educativo: Carregar produtos da Nuvem Npoint em tempo real
+        // 1. Método Educativo: Carregar produtos da Nuvem e verificar se há produto direcionado
         async function carregarProdutosDaNuvem() {
             try {
                 let resposta = await fetch(NPOINT_URL);
                 if (!resposta.ok) throw new Error("Erro ao conectar com a nuvem.");
                 
                 let resultado = await resposta.json();
-                produtos = resultado.produtos || [];
+                produtos = resultado.record?.produtos || resultado.produtos || [];
                 renderizarProdutos(produtos);
+
+                // Verifica se o link foi aberto com um produto específico (ex: ?produto=3)
+                verificarProdutoDirecionado();
             } catch (erro) {
                 console.error("Erro ao carregar:", erro);
             }
         }
 
-        // 2. Método Educativo: Salvar produtos na Nuvem Npoint para sincronizar com sua esposa
+        // 2. Método Educativo: Salvar produtos na Nuvem Npoint
         async function salvarProdutosNaNuvem() {
             try {
                 let resposta = await fetch(NPOINT_URL, {
@@ -64,12 +67,12 @@
                     <div class="card-admin-actions" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">
                         <button class="btn-edit" onclick="carregarParaEditar(${p.id})">✏️ Editar</button>
                         <button class="btn-delete" onclick="excluirProduto(${p.id})">🗑️ Excluir</button>
-                        <button class="btn-share" onclick="compartilharProduto('${p.title.replace(/'/g, "")}', '${p.link}')">🔗 Copiar Link</button>
+                        <button class="btn-share" onclick="compartilharLinkDireto(${p.id}, '${p.title.replace(/'/g, "")}')">🔗 Copiar Link Direto</button>
                     </div>
                 ` : '';
 
                 container.innerHTML += `
-                    <div class="product-card">
+                    <div class="product-card" id="produto-${p.id}">
                         <img src="${p.img}" alt="${p.title}">
                         <div class="product-info">
                             <div>
@@ -85,11 +88,37 @@
             });
         }
 
-        window.compartilharProduto = function(titulo, linkAfiliado) {
-            let textoCompartilhar = `✨ Confira essa super dica:\n*${titulo}* 🛒\n\n👇 Compre aqui:\n${linkAfiliado}`;
+        // Função para gerar o link inteligente contornando o bloqueio do WhatsApp
+        window.compartilharLinkDireto = function(idProduto, titulo) {
+            let urlBase = window.location.origin + window.location.pathname;
+            let linkInteligente = `${urlBase}?produto=${idProduto}`;
+            
+            let textoCompartilhar = `✨ Olá! Você pediu sobre este item:\n*${titulo}* 🛒\n\nAcesse direto na minha vitrine:\n${linkInteligente}`;
+            
             navigator.clipboard.writeText(textoCompartilhar).then(() => {
-                alert("✅ Mensagem formatada copiada com sucesso!");
+                alert("✅ Link inteligente copiado! Pode enviar no WhatsApp sem bloqueio.");
             });
+        }
+
+        // Função automática que localiza e destaca o produto na tela se houver parâmetro na URL
+        function verificarProdutoDirecionado() {
+            const parametros = new URLSearchParams(window.location.search);
+            const idProduto = parametros.get('produto');
+
+            if (idProduto) {
+                setTimeout(() => {
+                    const card = document.getElementById(`produto-${idProduto}`);
+                    if (card) {
+                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        card.style.border = "2px solid #ff4081";
+                        card.style.boxShadow = "0 0 15px rgba(255, 64, 129, 0.4)";
+                        setTimeout(() => {
+                            card.style.border = "1px solid #eee";
+                            card.style.boxShadow = "0 2px 5px rgba(0,0,0,0.05)";
+                        }, 4000);
+                    }
+                }, 500);
+            }
         }
 
         function filtrarProdutos() {
@@ -235,7 +264,7 @@
         .filter-section { width: 100%; margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
         select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
         .product-list { width: 100%; margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .product-card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 12px; display: flex; gap: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative; }
+        .product-card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 12px; display: flex; gap: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative; transition: all 0.5s ease; }
         .product-card img { width: 90px; height: 90px; border-radius: 8px; object-fit: cover; }
         .product-info { display: flex; flex-direction: column; justify-content: space-between; flex: 1; }
         .product-number { font-size: 13px; font-weight: bold; color: #ff4081; }
