@@ -7,78 +7,38 @@
     <!-- Ícones das Redes Sociais (FontAwesome) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- SDK do Firebase Firestore (Modular v10.8.0) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDkmxkyd1DeXtSSMCDEhdws_wE53u5Mg1M",
-            authDomain: "vitrinedicasapoliii.firebaseapp.com",
-            projectId: "vitrinedicasapoliii",
-            storageBucket: "vitrinedicasapoliii.firebasestorage.app",
-            messagingSenderId: "76420423085",
-            appId: "1:76420423085:web:cb9e0a423b5707727f5524"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app, "(default)");
+    <script>
+        // Lista Oficial Inicial Garantida (Com seus 7 produtos perfeitos e fotos validadas)
+        const produtosIniciais = [
+            { id: 1, num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "https://m.media-amazon.com/images/I/41ni5hZ4JTL._MCnd_AC_.jpg", link: "https://link.amazon/B0iyHOGdO" },
+            { id: 2, num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "https://m.media-amazon.com/images/I/71+Q6dV--EL._AC_SY355_.jpg", link: "https://link.amazon/B08NbP2XR" },
+            { id: 3, num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
+            { id: 4, num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/B07yeqFrP" },
+            { id: 5, num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" },
+            { id: 6, num: "#6", cat: "Bebê", title: "Kit enxoval de bebê – Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-824h9-mesoxsw7bdhea5_tn", link: "https://s.shopee.com.br/4VcUMrOEiM" },
+            { id: 7, num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-81zwf-mn6zcnk7vfnn7e.webp", link: "https://s.shopee.com.br/6fgyxhGRNH" }
+        ];
 
         let produtos = [];
         let isAdminLogado = false;
 
-        // Lista Oficial de Segurança Inicial caso o banco esteja vazio
-        const produtosIniciais = [
-            { num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "https://m.media-amazon.com/images/I/41ni5hZ4JTL._MCnd_AC_.jpg", link: "https://link.amazon/B0iyHOGdO" },
-            { num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "https://m.media-amazon.com/images/I/71+Q6dV--EL._AC_SY355_.jpg", link: "https://link.amazon/B08NbP2XR" },
-            { num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
-            { num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/B07yeqFrP" },
-            { num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" },
-            { num: "#6", cat: "Bebê", title: "Kit enxoval de bebê – Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-824h9-mesoxsw7bdhea5_tn", link: "https://s.shopee.com.br/4VcUMrOEiM" },
-            { num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-81zwf-mn6zcnk7vfnn7e.webp", link: "https://s.shopee.com.br/6fgyxhGRNH" }
-        ];
-
-        // Carregar Logo da Nuvem
-        window.carregarLogoDaNuvem = async function() {
-            try {
-                const logoDoc = await getDoc(doc(db, "configuracoes", "geral"));
-                if(logoDoc.exists() && logoDoc.data().logoUrl) {
-                    document.getElementById('logoImg').src = logoDoc.data().logoUrl;
-                }
-            } catch (error) {
-                console.error("Erro ao carregar logo: ", error);
+        // Método Educativo: Carregamento Inteligente e Sincronizado
+        function carregarProdutos() {
+            let dadosSalvos = localStorage.getItem('dicasdapolii_produtos_v3');
+            if (dadosSalvos) {
+                produtos = JSON.parse(dadosSalvos);
+            } else {
+                produtos = produtosIniciais;
+                salvarNoLocalStorage();
             }
+            renderizarProdutos(produtos);
         }
 
-        // Carregar Produtos do Firestore (com auto-popular se vazio)
-        window.carregarProdutosDaNuvem = async function() {
-            try {
-                const querySnapshot = await getDocs(collection(db, "produtos"));
-                
-                if (querySnapshot.empty) {
-                    for (let p of produtosIniciais) {
-                        await addDoc(collection(db, "produtos"), p);
-                    }
-                    return window.carregarProdutosDaNuvem();
-                }
-
-                produtos = [];
-                querySnapshot.forEach((docSnap) => {
-                    let p = docSnap.data();
-                    p.firebaseId = docSnap.id;
-                    produtos.push(p);
-                });
-
-                window.renderizarProdutos(produtos);
-            } catch (error) {
-                console.error("Erro ao carregar do Firestore: ", error);
-                // Fallback caso ocorra bloqueio de rede
-                produtos = produtosIniciais.map((p, idx) => ({ ...p, firebaseId: "local_" + idx }));
-                window.renderizarProdutos(produtos);
-            }
+        function salvarNoLocalStorage() {
+            localStorage.setItem('dicasdapolii_produtos_v3', JSON.stringify(produtos));
         }
 
-        window.renderizarProdutos = function(lista) {
+        function renderizarProdutos(lista) {
             const container = document.getElementById('productList');
             container.innerHTML = "";
 
@@ -96,8 +56,8 @@
             lista.forEach(p => {
                 let botoesAdmin = isAdminLogado ? `
                     <div class="card-admin-actions" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">
-                        <button class="btn-edit" onclick="carregarParaEditar('${p.firebaseId}')">✏️ Editar</button>
-                        <button class="btn-delete" onclick="excluirProduto('${p.firebaseId}')">🗑️ Excluir</button>
+                        <button class="btn-edit" onclick="carregarParaEditar(${p.id})">✏️ Editar</button>
+                        <button class="btn-delete" onclick="excluirProduto(${p.id})">🗑️ Excluir</button>
                         <button class="btn-share" onclick="compartilharProduto('${p.title.replace(/'/g, "")}', '${p.link}')">🔗 Copiar Link</button>
                     </div>
                 ` : '';
@@ -126,8 +86,26 @@
             });
         }
 
-        // Salvar ou Atualizar Produto Diretamente no Firestore
-        window.salvarProdutoNaNuvem = async function() {
+        function filtrarProdutos() {
+            const termo = document.getElementById('searchInput').value.toLowerCase().trim();
+            const categoria = document.getElementById('categoryFilter').value;
+
+            const filtrados = produtos.filter(p => {
+                const matchCat = (categoria === 'todos' || p.cat === categoria);
+                let matchTexto = false;
+                if (/^\d+$/.test(termo)) {
+                    let numLimpo = p.num.replace("#", "");
+                    matchTexto = (numLimpo === termo);
+                } else {
+                    matchTexto = p.title.toLowerCase().includes(termo) || p.num.toLowerCase().includes(termo);
+                }
+                return matchCat && matchTexto;
+            });
+
+            renderizarProdutos(filtrados);
+        }
+
+        function salvarProduto() {
             const editId = document.getElementById('editId').value;
             const num = document.getElementById('newNum').value;
             const cat = document.getElementById('newCat').value;
@@ -141,53 +119,45 @@
                 return;
             }
 
-            try {
-                const dadosProduto = {
-                    num: "#" + num.replace("#",""),
-                    cat: cat,
-                    title: title,
-                    desc: desc,
-                    img: img,
-                    link: link
-                };
+            const dadosNovo = {
+                id: editId ? parseInt(editId) : Date.now(),
+                num: "#" + num.replace("#",""),
+                cat: cat,
+                title: title,
+                desc: desc,
+                img: img,
+                link: link
+            };
 
-                if(editId && !editId.startsWith("local_")) {
-                    const prodRef = doc(db, "produtos", editId);
-                    await updateDoc(prodRef, dadosProduto);
-                    alert("✅ Produto atualizado na nuvem com sucesso!");
-                } else {
-                    await addDoc(collection(db, "produtos"), dadosProduto);
-                    alert("✅ Produto salvo na nuvem com sucesso!");
+            if(editId) {
+                let index = produtos.findIndex(p => p.id === parseInt(editId));
+                if(index !== -1) {
+                    produtos[index] = dadosNovo;
                 }
-
-                limparFormularioprincipal();
-                carregarProdutosDaNuvem();
-            } catch (error) {
-                console.error("Erro ao salvar: ", error);
-                alert("❌ Erro ao salvar produto no banco de dados online. Verifique as regras do Firebase.");
+                alert("✅ Produto atualizado com sucesso!");
+            } else {
+                produtos.push(dadosNovo);
+                alert("✅ Produto adicionado com sucesso!");
             }
+
+            salvarNoLocalStorage();
+            limparFormularioprincipal();
+            renderizarProdutos(produtos);
         }
 
-        // Excluir Produto
-        window.excluirProduto = async function(firebaseId) {
+        function excluirProduto(id) {
             if(confirm("Tem certeza que deseja excluir este produto?")) {
-                try {
-                    if(!firebaseId.startsWith("local_")) {
-                        await deleteDoc(doc(db, "produtos", firebaseId));
-                    }
-                    alert("🗑️ Produto excluído com sucesso!");
-                    carregarProdutosDaNuvem();
-                } catch (error) {
-                    console.error("Erro ao excluir: ", error);
-                    alert("Erro ao excluir produto.");
-                }
+                produtos = produtos.filter(p => p.id !== id);
+                salvarNoLocalStorage();
+                renderizarProdutos(produtos);
+                alert("🗑️ Produto excluído com sucesso!");
             }
         }
 
-        window.carregarParaEditar = function(firebaseId) {
-            let p = produtos.find(item => item.firebaseId === firebaseId);
+        function carregarParaEditar(id) {
+            let p = produtos.find(item => item.id === id);
             if(p) {
-                document.getElementById('editId').value = p.firebaseId;
+                document.getElementById('editId').value = p.id;
                 document.getElementById('newNum').value = p.num.replace("#","");
                 document.getElementById('newCat').value = p.cat;
                 document.getElementById('newTitle').value = p.title;
@@ -204,7 +174,7 @@
             }
         }
 
-        window.pedirSenhaAdmin = function() {
+        function pedirSenhaAdmin() {
             const senhaMestra = "018315"; 
             const digitada = prompt("Digite a senha de administração:");
 
@@ -218,14 +188,14 @@
             }
         }
 
-        window.sairDoAdmin = function() {
+        function sairDoAdmin() {
             isAdminLogado = false;
             renderizarProdutos(produtos);
             document.getElementById('admin-panel').style.display = 'none';
             limparFormularioprincipal();
         }
 
-        window.cancelarEdicao = function() {
+        function cancelarEdicao() {
             limparFormularioprincipal();
             document.getElementById('panel-title').innerText = "Adicionar Novo Produto";
             document.getElementById('btnSalvar').innerText = "Salvar Produto na Vitrine";
@@ -244,10 +214,7 @@
             document.getElementById('btnCancelar').style.display = "none";
         }
 
-        window.getProdutos = function() { return produtos; }
-
-        carregarLogoDaNuvem();
-        carregarProdutosDaNuvem();
+        window.onload = carregarProdutos;
     </script>
 
     <style>
@@ -593,7 +560,7 @@
             </div>
 
             <input type="hidden" id="editId">
-            <input type="text" id="newNum" placeholder="Número (ex: 6)" style="margin-bottom: 8px;">
+            <input type="text" id="newNum" placeholder="Número (ex: 8)" style="margin-bottom: 8px;">
             <select id="newCat" style="margin-bottom: 8px;">
                 <option value="Alimentos e bebidas">Alimentos e bebidas</option>
                 <option value="Ar condicionado">Ar condicionado</option>
@@ -636,31 +603,9 @@
             <input type="text" id="newDesc" placeholder="Descrição curta (ex: CUPOM: NIKE20)" style="margin-bottom: 8px;">
             <input type="text" id="newImg" placeholder="Link direto da imagem (URL da web)" style="margin-bottom: 8px;">
             <input type="text" id="newLink" placeholder="Link de afiliado (URL)" style="margin-bottom: 8px;">
-            <button class="btn-shopee" id="btnSalvar" onclick="salvarProdutoNaNuvem()">Salvar Produto na Vitrine</button>
+            <button class="btn-shopee" id="btnSalvar" onclick="salvarProduto()">Salvar Produto na Vitrine</button>
             <button class="btn-buy" id="btnCancelar" onclick="cancelarEdicao()" style="display:none; background-color:#777; margin-top:5px;">Cancelar Edição</button>
         </div>
     </div>
-
-    <script>
-        function filtrarProdutos() {
-            const termo = document.getElementById('searchInput').value.toLowerCase().trim();
-            const categoria = document.getElementById('categoryFilter').value;
-            let produtosAtuais = window.getProdutos();
-
-            const filtrados = produtosAtuais.filter(p => {
-                const matchCat = (categoria === 'todos' || p.cat === categoria);
-                let matchTexto = false;
-                if (/^\d+$/.test(termo)) {
-                    let numLimpo = p.num.replace("#", "");
-                    matchTexto = (numLimpo === termo);
-                } else {
-                    matchTexto = p.title.toLowerCase().includes(termo) || p.num.toLowerCase().includes(termo);
-                }
-                return matchCat && matchTexto;
-            });
-
-            window.renderizarProdutos(filtrados);
-        }
-    </script>
 </body>
 </html>
