@@ -7,38 +7,63 @@
     <!-- Ícones das Redes Sociais (FontAwesome) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <script>
-        // Lista Oficial Inicial Garantida (Com seus 7 produtos perfeitos e fotos validadas)
-        const produtosIniciais = [
-            { id: 1, num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "https://m.media-amazon.com/images/I/41ni5hZ4JTL._MCnd_AC_.jpg", link: "https://link.amazon/B0iyHOGdO" },
-            { id: 2, num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "https://m.media-amazon.com/images/I/71+Q6dV--EL._AC_SY355_.jpg", link: "https://link.amazon/B08NbP2XR" },
-            { id: 3, num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
-            { id: 4, num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/B07yeqFrP" },
-            { id: 5, num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" },
-            { id: 6, num: "#6", cat: "Bebê", title: "Kit enxoval de bebê – Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-824h9-mesoxsw7bdhea5_tn", link: "https://s.shopee.com.br/4VcUMrOEiM" },
-            { id: 7, num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-81zwf-mn6zcnk7vfnn7e.webp", link: "https://s.shopee.com.br/6fgyxhGRNH" }
-        ];
+    <!-- SDK do Firebase Firestore (Conexão Real com a Nuvem) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDkmxkyd1DeXtSSMCDEhdws_wE53u5Mg1M",
+            authDomain: "vitrinedicasapoliii.firebaseapp.com",
+            projectId: "vitrinedicasapoliii",
+            storageBucket: "vitrinedicasapoliii.firebasestorage.app",
+            messagingSenderId: "76420423085",
+            appId: "1:76420423085:web:cb9e0a423b5707727f5524"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
         let produtos = [];
         let isAdminLogado = false;
 
-        // Método Educativo: Carregamento Inteligente e Sincronizado
-        function carregarProdutos() {
-            let dadosSalvos = localStorage.getItem('dicasdapolii_produtos_v3');
-            if (dadosSalvos) {
-                produtos = JSON.parse(dadosSalvos);
-            } else {
-                produtos = produtosIniciais;
-                salvarNoLocalStorage();
+        // 1. Função para carregar os produtos direto da Nuvem do Google
+        window.carregarProdutosDaNuvem = async function() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "produtos"));
+                produtos = [];
+                
+                querySnapshot.forEach((docSnap) => {
+                    let p = docSnap.data();
+                    p.firebaseId = docSnap.id; // ID único gerado pelo Firebase
+                    produtos.push(p);
+                });
+
+                // Se o banco online estiver totalmente vazio, insere os 7 iniciais automaticamente na nuvem
+                if (produtos.length === 0) {
+                    const iniciais = [
+                        { num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "https://m.media-amazon.com/images/I/41ni5hZ4JTL._MCnd_AC_.jpg", link: "https://link.amazon/B0iyHOGdO" },
+                        { num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "https://m.media-amazon.com/images/I/71+Q6dV--EL._AC_SY355_.jpg", link: "https://link.amazon/B08NbP2XR" },
+                        { num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
+                        { num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/B07yeqFrP" },
+                        { num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" },
+                        { num: "#6", cat: "Bebê", title: "Kit enxoval de bebê – Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-824h9-mesoxsw7bdhea5_tn", link: "https://s.shopee.com.br/4VcUMrOEiM" },
+                        { num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-81zwf-mn6zcnk7vfnn7e.webp", link: "https://s.shopee.com.br/6fgyxhGRNH" }
+                    ];
+                    for (let prod of iniciais) {
+                        await addDoc(collection(db, "produtos"), prod);
+                    }
+                    return window.carregarProdutosDaNuvem();
+                }
+
+                window.renderizarProdutos(produtos);
+            } catch (error) {
+                console.error("Erro ao carregar do Firebase: ", error);
+                alert("Erro ao conectar com o banco de dados online. Verifique sua internet.");
             }
-            renderizarProdutos(produtos);
         }
 
-        function salvarNoLocalStorage() {
-            localStorage.setItem('dicasdapolii_produtos_v3', JSON.stringify(produtos));
-        }
-
-        function renderizarProdutos(lista) {
+        window.renderizarProdutos = function(lista) {
             const container = document.getElementById('productList');
             container.innerHTML = "";
 
@@ -56,8 +81,8 @@
             lista.forEach(p => {
                 let botoesAdmin = isAdminLogado ? `
                     <div class="card-admin-actions" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">
-                        <button class="btn-edit" onclick="carregarParaEditar(${p.id})">✏️ Editar</button>
-                        <button class="btn-delete" onclick="excluirProduto(${p.id})">🗑️ Excluir</button>
+                        <button class="btn-edit" onclick="carregarParaEditar('${p.firebaseId}')">✏️ Editar</button>
+                        <button class="btn-delete" onclick="excluirProduto('${p.firebaseId}')">🗑️ Excluir</button>
                         <button class="btn-share" onclick="compartilharProduto('${p.title.replace(/'/g, "")}', '${p.link}')">🔗 Copiar Link</button>
                     </div>
                 ` : '';
@@ -86,26 +111,8 @@
             });
         }
 
-        function filtrarProdutos() {
-            const termo = document.getElementById('searchInput').value.toLowerCase().trim();
-            const categoria = document.getElementById('categoryFilter').value;
-
-            const filtrados = produtos.filter(p => {
-                const matchCat = (categoria === 'todos' || p.cat === categoria);
-                let matchTexto = false;
-                if (/^\d+$/.test(termo)) {
-                    let numLimpo = p.num.replace("#", "");
-                    matchTexto = (numLimpo === termo);
-                } else {
-                    matchTexto = p.title.toLowerCase().includes(termo) || p.num.toLowerCase().includes(termo);
-                }
-                return matchCat && matchTexto;
-            });
-
-            renderizarProdutos(filtrados);
-        }
-
-        function salvarProduto() {
+        // 2. Função para Salvar ou Atualizar direto na Nuvem do Google
+        window.salvarProdutoNaNuvem = async function() {
             const editId = document.getElementById('editId').value;
             const num = document.getElementById('newNum').value;
             const cat = document.getElementById('newCat').value;
@@ -119,45 +126,51 @@
                 return;
             }
 
-            const dadosNovo = {
-                id: editId ? parseInt(editId) : Date.now(),
-                num: "#" + num.replace("#",""),
-                cat: cat,
-                title: title,
-                desc: desc,
-                img: img,
-                link: link
-            };
+            try {
+                const dadosProduto = {
+                    num: "#" + num.replace("#",""),
+                    cat: cat,
+                    title: title,
+                    desc: desc,
+                    img: img,
+                    link: link
+                };
 
-            if(editId) {
-                let index = produtos.findIndex(p => p.id === parseInt(editId));
-                if(index !== -1) {
-                    produtos[index] = dadosNovo;
+                if(editId) {
+                    const prodRef = doc(db, "produtos", editId);
+                    await updateDoc(prodRef, dadosProduto);
+                    alert("✅ Produto atualizado na nuvem com sucesso!");
+                } else {
+                    await addDoc(collection(db, "produtos"), dadosProduto);
+                    alert("✅ Produto salvo na nuvem com sucesso!");
                 }
-                alert("✅ Produto atualizado com sucesso!");
-            } else {
-                produtos.push(dadosNovo);
-                alert("✅ Produto adicionado com sucesso!");
-            }
 
-            salvarNoLocalStorage();
-            limparFormularioprincipal();
-            renderizarProdutos(produtos);
-        }
-
-        function excluirProduto(id) {
-            if(confirm("Tem certeza que deseja excluir este produto?")) {
-                produtos = produtos.filter(p => p.id !== id);
-                salvarNoLocalStorage();
-                renderizarProdutos(produtos);
-                alert("🗑️ Produto excluído com sucesso!");
+                limparFormularioprincipal();
+                window.carregarProdutosDaNuvem();
+            } catch (error) {
+                console.error("Erro ao salvar no Firebase: ", error);
+                alert("❌ Erro ao salvar na nuvem. Verifique sua conexão.");
             }
         }
 
-        function carregarParaEditar(id) {
-            let p = produtos.find(item => item.id === id);
+        // 3. Função para Excluir da Nuvem
+        window.excluirProduto = async function(firebaseId) {
+            if(confirm("Tem certeza que deseja excluir este produto do sistema online?")) {
+                try {
+                    await deleteDoc(doc(db, "produtos", firebaseId));
+                    alert("🗑️ Produto excluído com sucesso!");
+                    window.carregarProdutosDaNuvem();
+                } catch (error) {
+                    console.error("Erro ao excluir: ", error);
+                    alert("Erro ao excluir produto.");
+                }
+            }
+        }
+
+        window.carregarParaEditar = function(firebaseId) {
+            let p = produtos.find(item => item.firebaseId === firebaseId);
             if(p) {
-                document.getElementById('editId').value = p.id;
+                document.getElementById('editId').value = p.firebaseId;
                 document.getElementById('newNum').value = p.num.replace("#","");
                 document.getElementById('newCat').value = p.cat;
                 document.getElementById('newTitle').value = p.title;
@@ -174,7 +187,7 @@
             }
         }
 
-        function pedirSenhaAdmin() {
+        window.pedirSenhaAdmin = function() {
             const senhaMestra = "018315"; 
             const digitada = prompt("Digite a senha de administração:");
 
@@ -188,14 +201,14 @@
             }
         }
 
-        function sairDoAdmin() {
+        window.sairDoAdmin = function() {
             isAdminLogado = false;
             renderizarProdutos(produtos);
             document.getElementById('admin-panel').style.display = 'none';
             limparFormularioprincipal();
         }
 
-        function cancelarEdicao() {
+        window.cancelarEdicao = function() {
             limparFormularioprincipal();
             document.getElementById('panel-title').innerText = "Adicionar Novo Produto";
             document.getElementById('btnSalvar').innerText = "Salvar Produto na Vitrine";
@@ -214,270 +227,47 @@
             document.getElementById('btnCancelar').style.display = "none";
         }
 
-        window.onload = carregarProdutos;
+        window.getProdutos = function() { return produtos; }
+
+        // Inicializa buscando os dados do Google
+        window.onload = function() {
+            window.carregarProdutosDaNuvem();
+        }
     </script>
 
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
-
-        body {
-            background-color: #fce4ec;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 480px;
-            background: #ffffff;
-            border-radius: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .profile-pic {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            border: 3px solid #ff4081;
-            padding: 3px;
-            margin-bottom: 15px;
-            object-fit: cover;
-        }
-
-        h1 {
-            font-size: 22px;
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .bio {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .social-icons {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .social-icons a {
-            font-size: 20px;
-            color: #333;
-            transition: color 0.3s;
-        }
-
-        .social-icons a:hover {
-            color: #ff4081;
-        }
-
-        .btn-shopee {
-            width: 100%;
-            background-color: #ff5722;
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 15px;
-            cursor: pointer;
-            margin-bottom: 10px;
-            text-align: center;
-            text-decoration: none;
-            display: block;
-        }
-
-        .btn-whatsapp {
-            width: 100%;
-            background-color: #25d366;
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 15px;
-            cursor: pointer;
-            margin-bottom: 10px;
-            text-align: center;
-            text-decoration: none;
-            display: block;
-        }
-
-        .filter-section {
-            width: 100%;
-            margin-top: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        select, input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-            outline: none;
-        }
-
-        .product-list {
-            width: 100%;
-            margin-top: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .product-card {
-            background: #fff;
-            border: 1px solid #eee;
-            border-radius: 10px;
-            padding: 12px;
-            display: flex;
-            gap: 12px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            position: relative;
-        }
-
-        .product-card img {
-            width: 90px;
-            height: 90px;
-            border-radius: 8px;
-            object-fit: cover;
-        }
-
-        .product-info {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            flex: 1;
-        }
-
-        .product-number {
-            font-size: 13px;
-            font-weight: bold;
-            color: #ff4081;
-        }
-
-        .product-title {
-            font-size: 14px;
-            font-weight: bold;
-            color: #333;
-        }
-
-        .product-desc {
-            font-size: 12px;
-            color: #666;
-        }
-
-        .btn-buy {
-            background-color: #e91e63;
-            color: white;
-            border: none;
-            padding: 6px;
-            border-radius: 5px;
-            font-size: 13px;
-            font-weight: bold;
-            text-align: center;
-            text-decoration: none;
-            cursor: pointer;
-            margin-top: 5px;
-        }
-
-        .card-admin-actions {
-            display: none;
-            gap: 5px;
-            margin-top: 5px;
-        }
-        .btn-edit {
-            background-color: #ff9800;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .btn-delete {
-            background-color: #f44336;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .btn-share {
-            background-color: #2196F3;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .admin-link {
-            margin-top: 30px;
-            font-size: 12px;
-            color: #aaa;
-            text-decoration: none;
-            cursor: pointer;
-        }
-        .admin-link:hover {
-            color: #333;
-        }
-
-        #admin-panel {
-            display: none;
-            width: 100%;
-            background: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 20px;
-        }
-        .admin-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        #admin-panel h3 {
-            font-size: 15px;
-            color: #333;
-            margin: 0;
-        }
-        .btn-close-admin {
-            background-color: #e0e0e0;
-            color: #333;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 5px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .btn-close-admin:hover {
-            background-color: #ccc;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { background-color: #fce4ec; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; }
+        .container { width: 100%; max-width: 480px; background: #ffffff; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .profile-pic { width: 120px; height: 120px; border-radius: 50%; border: 3px solid #ff4081; padding: 3px; margin-bottom: 15px; object-fit: cover; }
+        h1 { font-size: 22px; color: #333; margin-bottom: 5px; }
+        .bio { font-size: 14px; color: #666; margin-bottom: 15px; text-align: center; }
+        .social-icons { display: flex; gap: 15px; margin-bottom: 20px; }
+        .social-icons a { font-size: 20px; color: #333; transition: color 0.3s; }
+        .social-icons a:hover { color: #ff4081; }
+        .btn-shopee { width: 100%; background-color: #ff5722; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-align: center; text-decoration: none; display: block; }
+        .btn-whatsapp { width: 100%; background-color: #25d366; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-align: center; text-decoration: none; display: block; }
+        .filter-section { width: 100%; margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
+        .product-list { width: 100%; margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .product-card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 12px; display: flex; gap: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative; }
+        .product-card img { width: 90px; height: 90px; border-radius: 8px; object-fit: cover; }
+        .product-info { display: flex; flex-direction: column; justify-content: space-between; flex: 1; }
+        .product-number { font-size: 13px; font-weight: bold; color: #ff4081; }
+        .product-title { font-size: 14px; font-weight: bold; color: #333; }
+        .product-desc { font-size: 12px; color: #666; }
+        .btn-buy { background-color: #e91e63; color: white; border: none; padding: 6px; border-radius: 5px; font-size: 13px; font-weight: bold; text-align: center; text-decoration: none; cursor: pointer; margin-top: 5px; }
+        .card-admin-actions { display: none; gap: 5px; margin-top: 5px; }
+        .btn-edit { background-color: #ff9800; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
+        .btn-delete { background-color: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
+        .btn-share { background-color: #2196F3; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
+        .admin-link { margin-top: 30px; font-size: 12px; color: #aaa; text-decoration: none; cursor: pointer; }
+        .admin-link:hover { color: #333; }
+        #admin-panel { display: none; width: 100%; background: #f9f9f9; border: 1px solid #ddd; border-radius: 10px; padding: 15px; margin-top: 20px; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        #admin-panel h3 { font-size: 15px; color: #333; margin: 0; }
+        .btn-close-admin { background-color: #e0e0e0; color: #333; border: none; padding: 4px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .btn-close-admin:hover { background-color: #ccc; }
     </style>
 </head>
 <body>
@@ -603,9 +393,31 @@
             <input type="text" id="newDesc" placeholder="Descrição curta (ex: CUPOM: NIKE20)" style="margin-bottom: 8px;">
             <input type="text" id="newImg" placeholder="Link direto da imagem (URL da web)" style="margin-bottom: 8px;">
             <input type="text" id="newLink" placeholder="Link de afiliado (URL)" style="margin-bottom: 8px;">
-            <button class="btn-shopee" id="btnSalvar" onclick="salvarProduto()">Salvar Produto na Vitrine</button>
+            <button class="btn-shopee" id="btnSalvar" onclick="salvarProdutoNaNuvem()">Salvar Produto na Vitrine</button>
             <button class="btn-buy" id="btnCancelar" onclick="cancelarEdicao()" style="display:none; background-color:#777; margin-top:5px;">Cancelar Edição</button>
         </div>
     </div>
+
+    <script>
+        function filtrarProdutos() {
+            const termo = document.getElementById('searchInput').value.toLowerCase().trim();
+            const categoria = document.getElementById('categoryFilter').value;
+            let produtosAtuais = window.getProdutos ? window.getProdutos() : [];
+
+            const filtrados = produtosAtuais.filter(p => {
+                const matchCat = (categoria === 'todos' || p.cat === categoria);
+                let matchTexto = false;
+                if (/^\d+$/.test(termo)) {
+                    let numLimpo = p.num.replace("#", "");
+                    matchTexto = (numLimpo === termo);
+                } else {
+                    matchTexto = p.title.toLowerCase().includes(termo) || p.num.toLowerCase().includes(termo);
+                }
+                return matchCat && matchTexto;
+            });
+
+            window.renderizarProdutos(filtrados);
+        }
+    </script>
 </body>
 </html>
