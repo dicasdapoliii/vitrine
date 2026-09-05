@@ -7,67 +7,40 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
-        // Configuração Oficial da Nuvem JSONBin
-        const BIN_ID = "6a9b836bda38895dfe3ae1a9"; 
-        const API_KEY = "$2a$10$3pdBHeysEouhIfRQi7WpMuCsBrQz75T8lWnxwWiDMeu1Jlkodpyc6"; 
+        // Endpoint oficial da sua nuvem Npoint
+        const NPOINT_URL = "https://api.npoint.io/fd32c904d4aafe739782"; 
 
         let produtos = [];
         let isAdminLogado = false;
 
-        // Lista de Segurança Inicial Garantida
-        const produtosIniciais = [
-            { id: 1, num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "https://m.media-amazon.com/images/I/41ni5hZ4JTL._MCnd_AC_.jpg", link: "https://link.amazon/B0iyHOGdO" },
-            { id: 2, num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "https://m.media-amazon.com/images/I/71+Q6dV--EL._AC_SY355_.jpg", link: "https://link.amazon/B08NbP2XR" },
-            { id: 3, num: "#3", cat: "Seleção Nike", title: "Tênis Nike Court Legacy", desc: "CUPOM DISPONIVEL: NIKE20", img: "https://imgnike-a.akamaihd.net/768x768/02182951A2.jpg", link: "https://tidd.ly/4yiYAnZ" },
-            { id: 4, num: "#4", cat: "Eletrônicos", title: "JBL, Caixa de Som, Grip, 16 W RMS, Com Playtime Boost, IP68, Portátil - Preto", desc: "", img: "https://m.media-amazon.com/images/I/61v5T6gMkjL._AC_SY450_._.jpg", link: "https://link.amazon/B07yeqFrP" },
-            { id: 5, num: "#5", cat: "Casa e Decoração", title: "Jogo Panelas 13 Peças Tramontina Turim Com Frigideiras Antiaderentes E Panela Pressão", desc: "", img: "https://m.media-amazon.com/images/I/71S5N3FsWxL._AC_SY450_._.jpg", link: "https://link.amazon/B02qKAmV1" },
-            { id: 6, num: "#6", cat: "Bebê", title: "Kit enxoval de bebê – Almofada de Amamentação + Ninho Redutor de Berço + Trocador Portátil", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-824h9-mesoxsw7bdhea5_tn", link: "https://s.shopee.com.br/4VcUMrOEiM" },
-            { id: 7, num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-81zwf-mn6zcnk7vfnn7e.webp", link: "https://s.shopee.com.br/6fgyxhGRNH" }
-        ];
-
-        // 1. Carregar produtos da Nuvem com tratamento seguro de erros
+        // 1. Método Educativo: Carregar produtos da Nuvem Npoint em tempo real
         async function carregarProdutosDaNuvem() {
             try {
-                let resposta = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY }
-                });
-                
-                if (!resposta.ok) throw new Error("Erro ao acessar a nuvem.");
+                let resposta = await fetch(NPOINT_URL);
+                if (!resposta.ok) throw new Error("Erro ao conectar com a nuvem.");
                 
                 let resultado = await resposta.json();
-                produtos = resultado.record.produtos || [];
-
-                if (produtos.length === 0) {
-                    produtos = produtosIniciais;
-                    await salvarProdutosNaNuvem();
-                }
-
+                produtos = resultado.produtos || [];
                 renderizarProdutos(produtos);
             } catch (erro) {
-                console.error("Erro ao carregar da nuvem, usando base local de segurança:", erro);
-                produtos = produtosIniciais;
-                renderizarProdutos(produtos);
+                console.error("Erro ao carregar:", erro);
             }
         }
 
-        // 2. Salvar produtos na Nuvem otimizado para requisições PUT
+        // 2. Método Educativo: Salvar produtos na Nuvem Npoint para sincronizar com sua esposa
         async function salvarProdutosNaNuvem() {
             try {
-                let resposta = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Master-Key': API_KEY
-                    },
+                let resposta = await fetch(NPOINT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ produtos: produtos })
                 });
-                
-                if (!resposta.ok) {
-                    throw new Error("Falha HTTP: " + resposta.status);
-                }
+
+                if (!resposta.ok) throw new Error("Erro ao salvar na nuvem.");
+                alert("✅ Sincronizado com a nuvem com sucesso para todos!");
             } catch (erro) {
-                console.error("Erro detalhado ao salvar:", erro);
-                alert("⚠️ Aviso: As alterações foram salvas localmente nesta sessão, mas houve um bloqueio na nuvem. Verifique sua chave de API.");
+                console.error("Erro ao salvar:", erro);
+                alert("⚠️ Erro ao gravar na nuvem do Npoint.");
             }
         }
 
@@ -167,10 +140,8 @@
                 if(index !== -1) {
                     produtos[index] = dadosNovo;
                 }
-                alert("✅ Produto atualizado com sucesso!");
             } else {
                 produtos.push(dadosNovo);
-                alert("✅ Produto adicionado com sucesso!");
             }
 
             renderizarProdutos(produtos);
@@ -183,7 +154,6 @@
                 produtos = produtos.filter(p => p.id !== id);
                 renderizarProdutos(produtos);
                 await salvarProdutosNaNuvem();
-                alert("🗑️ Produto excluído com sucesso!");
             }
         }
 
