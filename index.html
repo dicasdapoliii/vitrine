@@ -7,7 +7,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
-        // Lista Base de Segurança Inicial
+        // Configuração Oficial da Nuvem
+        const BIN_ID = "6a9b836bda38895dfe3ae1a9"; // ID da sua coleção criada
+        const API_KEY = "$2a$10$3pdBHeysEouhIfRQi7WpMuCsBrQz75T8lWnxwWiDMeu1Jlkodpyc6I"; // Cole aqui a Master Key que está em "Chaves de API"
+
+        let produtos = [];
+        let isAdminLogado = false;
+
+        // Lista de segurança caso a nuvem esteja vazia na primeira leitura
         const produtosIniciais = [
             { id: 1, num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "https://m.media-amazon.com/images/I/41ni5hZ4JTL._MCnd_AC_.jpg", link: "https://link.amazon/B0iyHOGdO" },
             { id: 2, num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "https://m.media-amazon.com/images/I/71+Q6dV--EL._AC_SY355_.jpg", link: "https://link.amazon/B08NbP2XR" },
@@ -18,28 +25,48 @@
             { id: 7, num: "#7", cat: "Lazer", title: "Skate Elétrico Potente 750W×2 Longo Alcance Com Controle Remoto Versões PU/Cloud Wheel", desc: "", img: "https://down-br.img.susercontent.com/file/sg-11134201-81zwf-mn6zcnk7vfnn7e.webp", link: "https://s.shopee.com.br/6fgyxhGRNH" }
         ];
 
-        let produtos = [];
-        let isAdminLogado = false;
+        // 1. Carregar produtos direto da Nuvem
+        async function carregarProdutosDaNuvem() {
+            try {
+                let resposta = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY }
+                });
+                
+                if (!resposta.ok) throw new Error("Erro ao acessar a nuvem.");
+                
+                let resultado = await resposta.json();
+                produtos = resultado.record.produtos || [];
 
-        // Método Educativo: Carregamento robusto otimizado para nuvem
-        function carregarProdutos() {
-            // Utilizamos o armazenamento local temporário integrado com fallback seguro enquanto configuramos o endpoint da nuvem pura
-            let dadosSalvos = localStorage.getItem('dicasdapolii_produtos_nuvem');
-            if (dadosSalvos) {
-                try {
-                    produtos = JSON.parse(dadosSalvos);
-                } catch (e) {
+                // Se estiver vazio, popula automaticamente com os iniciais
+                if (produtos.length === 0) {
                     produtos = produtosIniciais;
+                    await salvarProdutosNaNuvem();
                 }
-            } else {
+
+                renderizarProdutos(produtos);
+            } catch (erro) {
+                console.error("Erro ao carregar:", erro);
                 produtos = produtosIniciais;
-                salvarNaNuvemLocal();
+                renderizarProdutos(produtos);
             }
-            renderizarProdutos(produtos);
         }
 
-        function salvarNaNuvemLocal() {
-            localStorage.setItem('dicasdapolii_produtos_nuvem', JSON.stringify(produtos));
+        // 2. Salvar produtos na Nuvem (para sincronizar com sua esposa)
+        async function salvarProdutosNaNuvem() {
+            try {
+                let resposta = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY
+                    },
+                    body: JSON.stringify({ produtos: produtos })
+                });
+                if (!resposta.ok) throw new Error("Erro ao salvar.");
+            } catch (erro) {
+                console.error("Erro ao salvar na nuvem:", erro);
+                alert("Erro ao sincronizar com a nuvem.");
+            }
         }
 
         function renderizarProdutos(lista) {
@@ -109,7 +136,7 @@
             renderizarProdutos(filtrados);
         }
 
-        function salvarProduto() {
+        async function salvarProduto() {
             const editId = document.getElementById('editId').value;
             const num = document.getElementById('newNum').value;
             const cat = document.getElementById('newCat').value;
@@ -119,7 +146,7 @@
             const link = document.getElementById('newLink').value;
 
             if(!num || !title || !link || !img) {
-                alert("Preencha todos os campos obrigatórios (Número, Título, Imagem e Link)!");
+                alert("Preencha todos os campos obrigatórios!");
                 return;
             }
 
@@ -144,15 +171,15 @@
                 alert("✅ Produto adicionado com sucesso!");
             }
 
-            salvarNaNuvemLocal();
+            await salvarProdutosNaNuvem();
             limparFormularioprincipal();
             renderizarProdutos(produtos);
         }
 
-        function excluirProduto(id) {
+        async function excluirProduto(id) {
             if(confirm("Tem certeza que deseja excluir este produto?")) {
                 produtos = produtos.filter(p => p.id !== id);
-                salvarNaNuvemLocal();
+                await salvarProdutosNaNuvem();
                 renderizarProdutos(produtos);
                 alert("🗑️ Produto excluído com sucesso!");
             }
@@ -218,7 +245,7 @@
             document.getElementById('btnCancelar').style.display = "none";
         }
 
-        window.onload = carregarProdutos;
+        window.onload = carregarProdutosDaNuvem;
     </script>
 
     <style>
@@ -379,9 +406,30 @@
             <input type="text" id="newDesc" placeholder="Descrição curta (ex: CUPOM: NIKE20)" style="margin-bottom: 8px;">
             <input type="text" id="newImg" placeholder="Link direto da imagem (URL da web)" style="margin-bottom: 8px;">
             <input type="text" id="newLink" placeholder="Link de afiliado (URL)" style="margin-bottom: 8px;">
-            <button class="btn-shopee" id="btnSalvar" onclick="salvarProduto()">Salvar Produto na Vitrine</button>
+            <button class="btn-shopee" id="btnSalvar" onclick="salvarProduto()">Salvar Produto na Nuvem</button>
             <button class="btn-buy" id="btnCancelar" onclick="cancelarEdicao()" style="display:none; background-color:#777; margin-top:5px;">Cancelar Edição</button>
         </div>
     </div>
+
+    <script>
+        function filtrarProdutos() {
+            const termo = document.getElementById('searchInput').value.toLowerCase().trim();
+            const categoria = document.getElementById('categoryFilter').value;
+
+            const filtrados = produtos.filter(p => {
+                const matchCat = (categoria === 'todos' || p.cat === categoria);
+                let matchTexto = false;
+                if (/^\d+$/.test(termo)) {
+                    let numLimpo = p.num.replace("#", "");
+                    matchTexto = (numLimpo === termo);
+                } else {
+                    matchTexto = p.title.toLowerCase().includes(termo) || p.num.toLowerCase().includes(termo);
+                }
+                return matchCat && matchTexto;
+            });
+
+            renderizarProdutos(filtrados);
+        }
+    </script>
 </body>
 </html>
