@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+´<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -32,12 +32,10 @@
                 let resultado = await resposta.json();
                 produtos = resultado.produtos || resultado.record?.produtos || [];
                 
-                // Se houver categorias salvas na nuvem, usamos elas. Senão, mantemos a lista padrão.
                 if (resultado.categorias && Array.isArray(resultado.categorias) && resultado.categorias.length > 0) {
                     categorias = resultado.categorias;
                 }
                 
-                // Salva uma cópia de segurança na memória interna do navegador (localStorage)
                 localStorage.setItem('dicasdapoli_produtos', JSON.stringify(produtos));
                 localStorage.setItem('dicasdapoli_categorias', JSON.stringify(categorias));
 
@@ -61,7 +59,7 @@
             }
         }
 
-        // 2. Método Educativo: Salvar dados completos (Produtos + Categorias) na Nuvem Npoint
+        // 2. Método Educativo: Salvar dados completos na Nuvem Npoint
         async function salvarDadosNaNuvem() {
             try {
                 let resposta = await fetch(NPOINT_URL, {
@@ -72,7 +70,6 @@
 
                 if (!resposta.ok) throw new Error("Erro ao salvar na nuvem.");
                 
-                // Atualiza o cache local
                 localStorage.setItem('dicasdapoli_produtos', JSON.stringify(produtos));
                 localStorage.setItem('dicasdapoli_categorias', JSON.stringify(categorias));
 
@@ -83,11 +80,9 @@
             }
         }
 
-        // Atualiza dinamicamente todos os elementos <select> de categorias na tela
         function atualizarSelectsDeCategorias() {
             categorias.sort();
 
-            // 1. Select de Filtro Principal
             const filtroSelect = document.getElementById('categoryFilter');
             let filtroHtml = `<option value="todos">🛒 Todas as Categorias</option>
                               <option value="relampago">⚡ Ofertas Relâmpago (Destaques)</option>`;
@@ -96,7 +91,6 @@
             });
             filtroSelect.innerHTML = filtroHtml;
 
-            // 2. Select do Painel Admin (Adicionar/Editar Produto)
             const novoCatSelect = document.getElementById('newCat');
             let adminCatHtml = '';
             categorias.forEach(cat => {
@@ -105,7 +99,6 @@
             novoCatSelect.innerHTML = adminCatHtml;
         }
 
-        // Renderiza a lista de categorias no painel admin para gerenciamento
         function renderizarGerenciadorCategorias() {
             const container = document.getElementById('listaCategoriasAdmin');
             if (!container) return;
@@ -115,7 +108,10 @@
                 container.innerHTML += `
                     <div style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 10px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px;">
                         <span>📂 ${cat}</span>
-                        <button onclick="excluirCategoria('${cat}')" style="background: #f44336; color: white; border: none; padding: 3px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">🗑️ Excluir</button>
+                        <div style="display: flex; gap: 4px;">
+                            <button onclick="editarCategoria('${cat}')" style="background: #ff9800; color: white; border: none; padding: 3px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">✏️ Editar</button>
+                            <button onclick="excluirCategoria('${cat}')" style="background: #f44336; color: white; border: none; padding: 3px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">🗑️ Excluir</button>
+                        </div>
                     </div>
                 `;
             });
@@ -143,13 +139,45 @@
             await salvarDadosNaNuvem();
         }
 
+        // Nova Função: Editar o nome de uma categoria existente e atualizar os produtos vinculados
+        async function editarCategoria(nomeAntigo) {
+            let novoNome = prompt(`Editar nome da categoria:\n"${nomeAntigo}"`, nomeAntigo);
+            if (!novoNome) return; // Se cancelar ou deixar vazio
+
+            novoNome = novoNome.trim();
+            if (novoNome === nomeAntigo) return; // Sem alterações
+
+            if (categorias.includes(novoNome)) {
+                alert("Já existe uma categoria com este nome!");
+                return;
+            }
+
+            // 1. Atualiza o nome na lista de categorias
+            let index = categorias.indexOf(nomeAntigo);
+            if (index !== -1) {
+                categorias[index] = novoNome;
+            }
+
+            // 2. Atualiza automaticamente os produtos que pertenciam a esta categoria
+            produtos.forEach(p => {
+                if (p.cat === nomeAntigo) {
+                    p.cat = novoNome;
+                }
+            });
+
+            atualizarSelectsDeCategorias();
+            renderizarGerenciadorCategorias();
+            renderizarProdutos(produtos);
+            await salvarDadosNaNuvem();
+        }
+
         async function excluirCategoria(nomeCat) {
             if (categorias.length <= 1) {
                 alert("Você precisa manter pelo menos uma categoria.");
                 return;
             }
 
-            if (confirm(`Tem certeza que deseja excluir a categoria "${nomeCat}"?`)) {
+            if (confirm(`Tem certeza que deseja excluir a categoria "${nomeCat}"?\n(Atenção: verifique se há produtos nela).`)) {
                 categorias = categorias.filter(c => c !== nomeCat);
                 
                 atualizarSelectsDeCategorias();
@@ -493,7 +521,7 @@
         <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="btn-whatsapp">💬 Entrar no Canal de Ofertas</a>
         <a href="https://wa.me/5566999087449" target="_blank" class="btn-whatsapp" style="background-color: #128c7e;">🟢 Falar com a Poli</a>
 
-        <!-- Filtros e Busca (Preenchidos Dinamicamente) -->
+        <!-- Filtros e Busca -->
         <div class="filter-section">
             <select id="categoryFilter" onchange="filtrarProdutos()"></select>
             <input type="text" id="searchInput" placeholder="🔍 Digite o número ou nome do produto..." onkeyup="filtrarProdutos()">
@@ -505,14 +533,14 @@
         <!-- Botão Protegido por Senha para abrir o Painel -->
         <a class="admin-link" onclick="pedirSenhaAdmin()">⚙️ Painel de Administração</a>
 
-        <!-- Painel Restrito de Administração (Gerenciamento de Produtos e Categorias) -->
+        <!-- Painel Restrito de Administração -->
         <div id="admin-panel">
             <div class="admin-header">
                 <h3 id="panel-title">Adicionar Novo Produto</h3>
                 <button class="btn-close-admin" onclick="sairDoAdmin()">✕ Sair</button>
             </div>
 
-            <!-- Seção de Gerenciamento de Categorias -->
+            <!-- Seção de Gerenciamento de Categorias com Editar e Excluir -->
             <div style="background: #eee; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
                 <h4 style="font-size: 13px; color: #333; margin-bottom: 6px;">📂 Gerenciar Categorias da Vitrine</h4>
                 <div style="display: flex; gap: 5px; margin-bottom: 8px;">
