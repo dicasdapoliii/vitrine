@@ -13,7 +13,7 @@
         let produtos = [];
         let isAdminLogado = false;
 
-        // 1. Método Educativo: Carregar produtos da Nuvem em tempo real
+        // 1. Método Educativo: Carregar produtos da Nuvem com Cache Local de Segurança (Fallback)
         async function carregarProdutosDaNuvem() {
             try {
                 let resposta = await fetch(NPOINT_URL + "?t=" + new Date().getTime());
@@ -21,15 +21,28 @@
                 
                 let resultado = await resposta.json();
                 produtos = resultado.produtos || resultado.record?.produtos || [];
-                renderizarProdutos(produtos);
+                
+                // Salva uma cópia de segurança na memória interna do navegador (localStorage)
+                localStorage.setItem('dicasdapoli_cache', JSON.stringify(produtos));
 
+                renderizarProdutos(produtos);
                 verificarProdutoDirecionado();
             } catch (erro) {
-                console.error("Erro ao carregar:", erro);
+                console.warn("⚠️ Nuvem instável. A carregar dados do Cache Local de Segurança...", erro);
+                
+                // Se a nuvem falhar, tenta recuperar os dados salvos anteriormente no navegador
+                let cacheSalvo = localStorage.getItem('dicasdapoli_cache');
+                if (cacheSalvo) {
+                    produtos = JSON.parse(cacheSalvo);
+                    renderizarProdutos(produtos);
+                    verificarProdutoDirecionado();
+                } else {
+                    document.getElementById('productList').innerHTML = "<p style='text-align:center; color:#d32f2f; font-size:13px;'>⚠️ Servidor temporariamente instável. Sem cache local disponível.</p>";
+                }
             }
         }
 
-        // 2. Método Educativo: Salvar produtos na Nuvem Npoint
+        // 2. Método Educativo: Salvar produtos na Nuvem Npoint e atualizar o Cache Local
         async function salvarProdutosNaNuvem() {
             try {
                 let resposta = await fetch(NPOINT_URL, {
@@ -39,6 +52,10 @@
                 });
 
                 if (!resposta.ok) throw new Error("Erro ao salvar na nuvem.");
+                
+                // Atualiza também o cache local com os novos dados gravados
+                localStorage.setItem('dicasdapoli_cache', JSON.stringify(produtos));
+
                 alert("✅ Sincronizado com a nuvem com sucesso para todos!");
             } catch (erro) {
                 console.error("Erro ao salvar:", erro);
@@ -507,6 +524,7 @@
     </div>
 
     <script>
+        // Função para filtrar os produtos na tela
         function filtrarProdutos() {
             const termo = document.getElementById('searchInput').value.toLowerCase().trim();
             const categoria = document.getElementById('categoryFilter').value;
