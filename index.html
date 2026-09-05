@@ -67,9 +67,18 @@
                     <div class="card-admin-actions" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">
                         <button class="btn-edit" onclick="carregarParaEditar(${p.id})">✏️ Editar</button>
                         <button class="btn-delete" onclick="excluirProduto(${p.id})">🗑️ Excluir</button>
-                        <button class="btn-share" onclick="compartilharLinkDireto(${p.id}, '${p.title.replace(/'/g, "")}')">🔗 Copiar Link Direto</button>
+                        <button class="btn-share" onclick="compartilharLinkDireto(${p.id}, '${p.title.replace(/'/g, "")}', '${p.cupom || ''}', '${p.precoFinal || ''}')">🔗 Copiar Link Direto</button>
                     </div>
                 ` : '';
+
+                // Exibe badges de cupom e preço final visualmente no card se estiverem preenchidos
+                let infoPromocao = '';
+                if (p.cupom || p.precoFinal) {
+                    let textoCupom = p.cupom ? `🎟️ Cupom: ${p.cupom}` : '';
+                    let textoPreco = p.precoFinal ? `💰 Por: ${p.precoFinal}` : '';
+                    let separador = (p.cupom && p.precoFinal) ? ' | ' : '';
+                    infoPromocao = `<div class="product-promo" style="margin-top: 5px; font-size: 11px; background: #e8f5e9; color: #2e7d32; padding: 3px 6px; border-radius: 4px; display: inline-block; font-weight: bold;">${textoPreco}${separador}${textoCupom}</div>`;
+                }
 
                 container.innerHTML += `
                     <div class="product-card" id="produto-${p.id}">
@@ -79,6 +88,7 @@
                                 <span class="product-number">${p.num}</span>
                                 <div class="product-title">${p.title}</div>
                                 <div class="product-desc">${p.desc}</div>
+                                ${infoPromocao}
                                 ${botoesAdmin}
                             </div>
                             <a href="${p.link}" target="_blank" class="btn-buy">Comprar Agora</a>
@@ -88,15 +98,18 @@
             });
         }
 
-        // Função para gerar o link inteligente contornando o bloqueio do WhatsApp
-        window.compartilharLinkDireto = function(idProduto, titulo) {
+        // Função atualizada para gerar o link incluindo preço final e cupom na mensagem do WhatsApp
+        window.compartilharLinkDireto = function(idProduto, titulo, cupom, precoFinal) {
             let urlBase = window.location.origin + window.location.pathname;
             let linkInteligente = `${urlBase}?produto=${idProduto}`;
             
-            let textoCompartilhar = `✨ Olá! Você pediu sobre este item:\n*${titulo}* 🛒\n\nAcesse direto na minha vitrine:\n${linkInteligente}`;
+            let textoPreco = precoFinal ? `\n💰 *Preço Final c/ Desconto:* *${precoFinal}*` : '';
+            let textoCupom = cupom ? `\n🎟️ *Cupom:* \`${cupom}\`` : '';
+            
+            let textoCompartilhar = `✨ Olá! Veja os detalhes deste item:\n*${titulo}* 🛒${textoPreco}${textoCupom}\n\nAcesse direto na minha vitrine:\n${linkInteligente}`;
             
             navigator.clipboard.writeText(textoCompartilhar).then(() => {
-                alert("✅ Link inteligente copiado! Pode enviar no WhatsApp sem bloqueio.");
+                alert("✅ Mensagem com preço final e cupom copiada para o WhatsApp!");
             });
         }
 
@@ -146,6 +159,8 @@
             const cat = document.getElementById('newCat').value;
             const title = document.getElementById('newTitle').value;
             const desc = document.getElementById('newDesc').value;
+            const cupom = document.getElementById('newCupom').value;
+            const precoFinal = document.getElementById('newPrecoFinal').value;
             const img = document.getElementById('newImg').value;
             const link = document.getElementById('newLink').value;
 
@@ -160,6 +175,8 @@
                 cat: cat,
                 title: title,
                 desc: desc,
+                cupom: cupom,
+                precoFinal: precoFinal,
                 img: img,
                 link: link
             };
@@ -194,6 +211,8 @@
                 document.getElementById('newCat').value = p.cat;
                 document.getElementById('newTitle').value = p.title;
                 document.getElementById('newDesc').value = p.desc;
+                document.getElementById('newCupom').value = p.cupom || "";
+                document.getElementById('newPrecoFinal').value = p.precoFinal || "";
                 document.getElementById('newImg').value = p.img;
                 document.getElementById('newLink').value = p.link;
 
@@ -239,6 +258,8 @@
             document.getElementById('newNum').value = '';
             document.getElementById('newTitle').value = '';
             document.getElementById('newDesc').value = '';
+            document.getElementById('newCupom').value = '';
+            document.getElementById('newPrecoFinal').value = '';
             document.getElementById('newImg').value = '';
             document.getElementById('newLink').value = '';
             document.getElementById('panel-title').innerText = "Adicionar Novo Produto";
@@ -404,7 +425,9 @@
                 <option value="Seleção Cama in Box">Seleção Cama in Box</option>
             </select>
             <input type="text" id="newTitle" placeholder="Título do Produto" style="margin-bottom: 8px;">
-            <input type="text" id="newDesc" placeholder="Descrição curta (ex: CUPOM: NIKE20)" style="margin-bottom: 8px;">
+            <input type="text" id="newDesc" placeholder="Descrição curta (ex: Frete Grátis)" style="margin-bottom: 8px;">
+            <input type="text" id="newCupom" placeholder="🎟️ Nome do Cupom (ex: NIKE20)" style="margin-bottom: 8px;">
+            <input type="text" id="newPrecoFinal" placeholder="💰 Preço Final c/ Desconto (ex: R$ 89,90)" style="margin-bottom: 8px;">
             <input type="text" id="newImg" placeholder="Link direto da imagem (URL da web)" style="margin-bottom: 8px;">
             <input type="text" id="newLink" placeholder="Link de afiliado (URL)" style="margin-bottom: 8px;">
             <button class="btn-shopee" id="btnSalvar" onclick="salvarProduto()">Salvar Produto na Nuvem</button>
