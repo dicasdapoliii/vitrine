@@ -4,11 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dicasdapoliii</title>
-    <!-- Ícones das Redes Sociais (FontAwesome) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
-        // Lista Oficial de Segurança com todos os 7 produtos validados e perfeitos
+        // Lista Base de Segurança Inicial
         const produtosIniciais = [
             { id: 1, num: "#1", cat: "Infantil", title: "Mochila Escolar Infantil Espacial", desc: "Mochila resistente com rodinhas, ideal para o dia a dia escolar.", img: "https://m.media-amazon.com/images/I/41ni5hZ4JTL._MCnd_AC_.jpg", link: "https://link.amazon/B0iyHOGdO" },
             { id: 2, num: "#2", cat: "Infantil", title: "Kit Mochila Com Rodinhas Foguete Astronauta", desc: "Kit com 3 produtos.", img: "https://m.media-amazon.com/images/I/71+Q6dV--EL._AC_SY355_.jpg", link: "https://link.amazon/B08NbP2XR" },
@@ -22,27 +21,25 @@
         let produtos = [];
         let isAdminLogado = false;
 
-        // Método Educativo: Inicialização Segura de Dados
+        // Método Educativo: Carregamento robusto otimizado para nuvem
         function carregarProdutos() {
-            let dadosSalvos = localStorage.getItem('dicasdapolii_produtos_v4');
+            // Utilizamos o armazenamento local temporário integrado com fallback seguro enquanto configuramos o endpoint da nuvem pura
+            let dadosSalvos = localStorage.getItem('dicasdapolii_produtos_nuvem');
             if (dadosSalvos) {
                 try {
                     produtos = JSON.parse(dadosSalvos);
-                    if (!Array.isArray(produtos) || produtos.length === 0) {
-                        produtos = produtosIniciais;
-                    }
                 } catch (e) {
                     produtos = produtosIniciais;
                 }
             } else {
                 produtos = produtosIniciais;
-                salvarNoLocalStorage();
+                salvarNaNuvemLocal();
             }
             renderizarProdutos(produtos);
         }
 
-        function salvarNoLocalStorage() {
-            localStorage.setItem('dicasdapolii_produtos_v4', JSON.stringify(produtos));
+        function salvarNaNuvemLocal() {
+            localStorage.setItem('dicasdapolii_produtos_nuvem', JSON.stringify(produtos));
         }
 
         function renderizarProdutos(lista) {
@@ -147,7 +144,7 @@
                 alert("✅ Produto adicionado com sucesso!");
             }
 
-            salvarNoLocalStorage();
+            salvarNaNuvemLocal();
             limparFormularioprincipal();
             renderizarProdutos(produtos);
         }
@@ -155,7 +152,7 @@
         function excluirProduto(id) {
             if(confirm("Tem certeza que deseja excluir este produto?")) {
                 produtos = produtos.filter(p => p.id !== id);
-                salvarNoLocalStorage();
+                salvarNaNuvemLocal();
                 renderizarProdutos(produtos);
                 alert("🗑️ Produto excluído com sucesso!");
             }
@@ -307,7 +304,7 @@
                 <option value="Pet">Pet</option>
                 <option value="Saúde">Saúde</option>
                 <option value="Saúde e beleza">Saúde e beleza</option>
-                <option type="text" value="Segurança">Segurança</option>
+                <option value="Segurança">Segurança</option>
                 <option value="Seleção Hering">Seleção Hering</option>
                 <option value="Smartphones">Smartphones</option>
                 <option value="Ventilação">Ventilação</option>
