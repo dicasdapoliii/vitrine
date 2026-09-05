@@ -67,11 +67,10 @@
                     <div class="card-admin-actions" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">
                         <button class="btn-edit" onclick="carregarParaEditar(${p.id})">✏️ Editar</button>
                         <button class="btn-delete" onclick="excluirProduto(${p.id})">🗑️ Excluir</button>
-                        <button class="btn-share" onclick="compartilharLinkDireto(${p.id}, '${p.title.replace(/'/g, "")}', '${p.cupom || ''}', '${p.precoFinal || ''}')">🔗 Copiar Link Direto</button>
+                        <button class="btn-share" onclick="compartilharLinkDireto('${p.id}', '${p.title.replace(/'/g, "")}', '${p.cupom || ''}', '${p.precoFinal || ''}')">🔗 Copiar Link Direto</button>
                     </div>
                 ` : '';
 
-                // Exibe badges de cupom e preço final visualmente no card se estiverem preenchidos
                 let infoPromocao = '';
                 if (p.cupom || p.precoFinal) {
                     let textoCupom = p.cupom ? `🎟️ Cupom: ${p.cupom}` : '';
@@ -113,13 +112,14 @@
             });
         }
 
-        // Função automática que localiza e destaca o produto na tela se houver parâmetro na URL
+        // Função automática otimizada que localiza e destaca o produto na tela
         function verificarProdutoDirecionado() {
             const parametros = new URLSearchParams(window.location.search);
             const idProduto = parametros.get('produto');
 
             if (idProduto) {
                 setTimeout(() => {
+                    // Tenta encontrar pelo ID exato ou convertendo para string
                     const card = document.getElementById(`produto-${idProduto}`);
                     if (card) {
                         card.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -130,7 +130,7 @@
                             card.style.boxShadow = "0 2px 5px rgba(0,0,0,0.05)";
                         }, 4000);
                     }
-                }, 500);
+                }, 600);
             }
         }
 
@@ -170,7 +170,7 @@
             }
 
             const dadosNovo = {
-                id: editId ? parseInt(editId) : Date.now(),
+                id: editId ? String(editId) : String(Date.now()), // Garante que o ID seja salvo como texto para evitar falhas de busca
                 num: "#" + num.replace("#",""),
                 cat: cat,
                 title: title,
@@ -182,7 +182,7 @@
             };
 
             if(editId) {
-                let index = produtos.findIndex(p => p.id === parseInt(editId));
+                let index = produtos.findIndex(p => String(p.id) === String(editId));
                 if(index !== -1) {
                     produtos[index] = dadosNovo;
                 }
@@ -197,14 +197,14 @@
 
         async function excluirProduto(id) {
             if(confirm("Tem certeza que deseja excluir este produto?")) {
-                produtos = produtos.filter(p => p.id !== id);
+                produtos = produtos.filter(p => String(p.id) !== String(id));
                 renderizarProdutos(produtos);
                 await salvarProdutosNaNuvem();
             }
         }
 
         function carregarParaEditar(id) {
-            let p = produtos.find(item => item.id === id);
+            let p = produtos.find(item => String(item.id) === String(id));
             if(p) {
                 document.getElementById('editId').value = p.id;
                 document.getElementById('newNum').value = p.num.replace("#","");
