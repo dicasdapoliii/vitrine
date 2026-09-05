@@ -13,14 +13,14 @@
         let produtos = [];
         let isAdminLogado = false;
 
-        // 1. Método Educativo: Carregar produtos da Nuvem e verificar se há produto direcionado
+        // 1. Método Educativo: Carregar produtos da Nuvem em tempo real para todos os usuários
         async function carregarProdutosDaNuvem() {
             try {
-                let resposta = await fetch(NPOINT_URL);
+                let resposta = await fetch(NPOINT_URL + "?t=" + new Date().getTime()); // Evita cache do navegador
                 if (!resposta.ok) throw new Error("Erro ao conectar com a nuvem.");
                 
                 let resultado = await resposta.json();
-                produtos = resultado.record?.produtos || resultado.produtos || [];
+                produtos = resultado.produtos || resultado.record?.produtos || [];
                 renderizarProdutos(produtos);
 
                 // Verifica se o link foi aberto com um produto específico (ex: ?produto=3)
@@ -30,7 +30,7 @@
             }
         }
 
-        // 2. Método Educativo: Salvar produtos na Nuvem Npoint
+        // 2. Método Educativo: Salvar produtos na Nuvem Npoint com garantia de sincronização global
         async function salvarProdutosNaNuvem() {
             try {
                 let resposta = await fetch(NPOINT_URL, {
@@ -65,8 +65,8 @@
             lista.forEach(p => {
                 let botoesAdmin = isAdminLogado ? `
                     <div class="card-admin-actions" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">
-                        <button class="btn-edit" onclick="carregarParaEditar(${p.id})">✏️ Editar</button>
-                        <button class="btn-delete" onclick="excluirProduto(${p.id})">🗑️ Excluir</button>
+                        <button class="btn-edit" onclick="carregarParaEditar('${p.id}')">✏️ Editar</button>
+                        <button class="btn-delete" onclick="excluirProduto('${p.id}')">🗑️ Excluir</button>
                         <button class="btn-share" onclick="compartilharLinkDireto('${p.id}', '${p.title.replace(/'/g, "")}', '${p.cupom || ''}', '${p.precoFinal || ''}')">🔗 Copiar Link Direto</button>
                     </div>
                 ` : '';
@@ -97,7 +97,7 @@
             });
         }
 
-        // Função atualizada para gerar o link incluindo preço final e cupom na mensagem do WhatsApp
+        // Função para gerar o link inteligente incluindo preço final e cupom na mensagem do WhatsApp
         window.compartilharLinkDireto = function(idProduto, titulo, cupom, precoFinal) {
             let urlBase = window.location.origin + window.location.pathname;
             let linkInteligente = `${urlBase}?produto=${idProduto}`;
@@ -119,7 +119,6 @@
 
             if (idProduto) {
                 setTimeout(() => {
-                    // Tenta encontrar pelo ID exato ou convertendo para string
                     const card = document.getElementById(`produto-${idProduto}`);
                     if (card) {
                         card.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -170,7 +169,7 @@
             }
 
             const dadosNovo = {
-                id: editId ? String(editId) : String(Date.now()), // Garante que o ID seja salvo como texto para evitar falhas de busca
+                id: editId ? String(editId) : String(Date.now()),
                 num: "#" + num.replace("#",""),
                 cat: cat,
                 title: title,
