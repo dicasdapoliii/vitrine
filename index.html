@@ -3,7 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dicasdapoliii</title>
+    <title>Dicas da Poliii - Guia de Compras</title>
+    
+    <!-- Metadados de Pré-visualização (Open Graph para WhatsApp, Facebook e Redes Sociais) -->
+    <meta property="og:title" content="Dicas da Poliii - Seleção Especial de Ofertas">
+    <meta property="og:description" content="Confira os melhores achados e produtos recomendados para você!">
+    <meta property="og:image" content="https://vitrine-sage-two.vercel.app/logo.jpeg">
+    <meta property="og:url" content="https://vitrine-sage-two.vercel.app/">
+    <meta property="og:type" content="website">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
@@ -214,7 +222,6 @@
                     infoPromocao = `<div class="product-promo">${textoPreco}${separador}${textoCupom}</div>`;
                 }
 
-                // O botão de Adicionar à Sacola só aparece se o Administrador estiver logado
                 let botaoSacolaHtml = '';
                 if (isAdminLogado) {
                     let estaNaSacola = produtosSelecionadosSacola.includes(String(p.id));
@@ -283,6 +290,7 @@
             }
         }
 
+        // TEXTO PERSONALIZADO AO GERAR LINK DA SACOLA
         window.gerarLinkSacolaSelecionada = function() {
             if (produtosSelecionadosSacola.length === 0) {
                 alert("Nenhum produto selecionado!");
@@ -292,11 +300,14 @@
             let urlBase = window.location.origin + window.location.pathname;
             let linkLista = `${urlBase}?lista=${produtosSelecionadosSacola.join(',')}`;
 
-            navigator.clipboard.writeText(linkLista).then(() => {
-                alert("✅ Link da sacola personalizada copiado com sucesso! Agora basta colar para o cliente.");
+            let mensagemPersonalizada = `✨ Olá! Preparei uma lista especial de achados para você:\n👉 Veja os produtos na lista abaixo:\n${linkLista}`;
+
+            navigator.clipboard.writeText(mensagemPersonalizada).then(() => {
+                alert("✅ Link da sacola copiado com o texto personalizado! Pronto para colar no WhatsApp.");
             });
         }
 
+        // TEXTO PERSONALIZADO AO PARTILHAR CATEGORIA
         window.compartilharCategoriaAtual = function() {
             const categoriaSelecionada = document.getElementById('categoryFilter').value;
 
@@ -316,8 +327,10 @@
             let urlBase = window.location.origin + window.location.pathname;
             let linkCategoria = `${urlBase}?lista=${idsCategoria.join(',')}`;
 
-            navigator.clipboard.writeText(linkCategoria).then(() => {
-                alert(`✅ Link da categoria "${categoriaSelecionada}" (${produtosDaCategoria.length} produtos) copiado com sucesso!`);
+            let mensagemPersonalizada = `🎄✨ Confira os melhores produtos da categoria *${categoriaSelecionada}* que separei para você:\n👉 Veja os produtos na lista abaixo:\n${linkCategoria}`;
+
+            navigator.clipboard.writeText(mensagemPersonalizada).then(() => {
+                alert(`✅ Link da categoria "${categoriaSelecionada}" copiado com o texto personalizado!`);
             });
         }
 
@@ -527,7 +540,6 @@
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
-        /* ALTERADO: Fundo da página em tom lilás suave */
         body { background-color: #d1c4e9; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; padding-bottom: 140px; }
         .container { width: 100%; max-width: 480px; background: #ffffff; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; align-items: center; position: relative; }
         .profile-pic { width: 120px; height: 120px; border-radius: 50%; border: 3px solid #ff4081; padding: 3px; margin-bottom: 15px; object-fit: cover; }
@@ -620,7 +632,6 @@
             flex-direction: column;
             gap: 8px;
         }
-        /* ALTERADO: Botões de subir e descer em vermelho para combinar com o fundo lilás */
         .scroll-btn {
             background-color: #d32f2f;
             color: white;
