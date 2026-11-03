@@ -214,9 +214,22 @@
                     infoPromocao = `<div class="product-promo">${textoPreco}${separador}${textoCupom}</div>`;
                 }
 
-                let estaNaSacola = produtosSelecionadosSacola.includes(String(p.id));
-                let textoBtnSacola = estaNaSacola ? "✅ Na Sacola" : "➕ Adicionar à Sacola";
-                let corBtnSacola = estaNaSacola ? "#4CAF50" : "#ff4081";
+                // O botão de Adicionar à Sacola só aparece se o Administrador estiver logado
+                let botaoSacolaHtml = '';
+                if (isAdminLogado) {
+                    let estaNaSacola = produtosSelecionadosSacola.includes(String(p.id));
+                    let textoBtnSacola = estaNaSacola ? "✅ Na Sacola" : "➕ Adicionar à Sacola";
+                    let corBtnSacola = estaNaSacola ? "#4CAF50" : "#d32f2f";
+                    
+                    botaoSacolaHtml = `
+                        <div style="display: flex; gap: 6px; margin-top: 6px;">
+                            <a href="${p.link}" target="_blank" class="btn-buy" style="flex: 1;">Comprar</a>
+                            <button onclick="toggleProdutoSacola('${p.id}')" id="btn-sacola-${p.id}" style="background-color: ${corBtnSacola}; color: white; border: none; padding: 6px 10px; border-radius: 5px; font-size: 11px; font-weight: bold; cursor: pointer;">${textoBtnSacola}</button>
+                        </div>
+                    `;
+                } else {
+                    botaoSacolaHtml = `<a href="${p.link}" target="_blank" class="btn-buy">Comprar Agora</a>`;
+                }
 
                 container.innerHTML += `
                     <div class="product-card" id="produto-${p.id}">
@@ -230,10 +243,7 @@
                                 ${infoPromocao}
                                 ${botoesAdmin}
                             </div>
-                            <div style="display: flex; gap: 6px; margin-top: 6px;">
-                                <a href="${p.link}" target="_blank" class="btn-buy" style="flex: 1;">Comprar</a>
-                                <button onclick="toggleProdutoSacola('${p.id}')" id="btn-sacola-${p.id}" style="background-color: ${corBtnSacola}; color: white; border: none; padding: 6px 10px; border-radius: 5px; font-size: 11px; font-weight: bold; cursor: pointer;">${textoBtnSacola}</button>
-                            </div>
+                            ${botaoSacolaHtml}
                         </div>
                     </div>
                 `;
@@ -247,7 +257,7 @@
             if (index > -1) {
                 produtosSelecionadosSacola.splice(index, 1);
                 if (btn) {
-                    btn.style.backgroundColor = "#ff4081";
+                    btn.style.backgroundColor = "#d32f2f";
                     btn.innerText = "➕ Adicionar à Sacola";
                 }
             } else {
@@ -265,7 +275,7 @@
             let barra = document.getElementById('barraSacolaFlutuante');
             let contador = document.getElementById('contadorSacola');
 
-            if (produtosSelecionadosSacola.length > 0) {
+            if (isAdminLogado && produtosSelecionadosSacola.length > 0) {
                 contador.innerText = produtosSelecionadosSacola.length;
                 barra.style.display = "flex";
             } else {
@@ -287,16 +297,14 @@
             });
         }
 
-        // NOVO: Função para gerar link de partilha direto de toda a categoria selecionada
         window.compartilharCategoriaAtual = function() {
             const categoriaSelecionada = document.getElementById('categoryFilter').value;
 
             if (categoriaSelecionada === 'todos' || categoriaSelecionada === 'relampago') {
-                alert("Por favor, selecione uma categoria específica no filtro para partilhar (ex: Decoração de Natal, Cama e Mesa, etc.).");
+                alert("Por favor, selecione uma categoria específica no filtro para partilhar.");
                 return;
             }
 
-            // Filtra todos os produtos que pertencem a esta categoria
             let produtosDaCategoria = produtos.filter(p => p.cat === categoriaSelecionada);
 
             if (produtosDaCategoria.length === 0) {
@@ -366,9 +374,8 @@
             const termo = document.getElementById('searchInput').value.toLowerCase().trim();
             const categoria = document.getElementById('categoryFilter').value;
 
-            // Mostra ou esconde o botão de partilhar categoria dependendo se escolheu uma categoria válida
             const btnCompartilharCat = document.getElementById('btnCompartilharCategoria');
-            if (categoria !== 'todos' && categoria !== 'relampago') {
+            if (isAdminLogado && categoria !== 'todos' && categoria !== 'relampago') {
                 btnCompartilharCat.style.display = "block";
             } else {
                 btnCompartilharCat.style.display = "none";
@@ -475,6 +482,7 @@
             if (digitada === senhaMestra) {
                 isAdminLogado = true;
                 renderizarProdutos(produtos);
+                filtrarProdutos();
                 document.getElementById('admin-panel').style.display = 'block';
                 window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
             } else if (digitada !== null) {
@@ -484,7 +492,10 @@
 
         function sairDoAdmin() {
             isAdminLogado = false;
+            produtosSelecionadosSacola = [];
+            atualizarBarraSacolaFlutuante();
             renderizarProdutos(produtos);
+            filtrarProdutos();
             document.getElementById('admin-panel').style.display = 'none';
             limparFormularioprincipal();
         }
@@ -516,7 +527,8 @@
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
-        body { background-color: #fce4ec; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; padding-bottom: 140px; }
+        /* ALTERADO: Fundo da página em tom lilás suave */
+        body { background-color: #d1c4e9; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; padding-bottom: 140px; }
         .container { width: 100%; max-width: 480px; background: #ffffff; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; align-items: center; position: relative; }
         .profile-pic { width: 120px; height: 120px; border-radius: 50%; border: 3px solid #ff4081; padding: 3px; margin-bottom: 15px; object-fit: cover; }
         h1 { font-size: 22px; color: #333; margin-bottom: 5px; text-align: center; }
@@ -529,7 +541,6 @@
         .filter-section { width: 100%; margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
         select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
         
-        /* NOVO: Botão de Compartilhar Categoria que aparece ao escolher uma categoria */
         #btnCompartilharCategoria {
             display: none;
             width: 100%;
@@ -568,7 +579,6 @@
         .btn-close-admin { background-color: #e0e0e0; color: #333; border: none; padding: 4px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer; }
         .btn-close-admin:hover { background-color: #ccc; }
 
-        /* Estilo Compacto Circular na Lateral Direita */
         .floating-container { 
             position: fixed; 
             top: 50%; 
@@ -601,7 +611,6 @@
         .circle-zap { background-color: #25d366; }
         .circle-channel { background-color: #128c7e; }
 
-        /* Botões de Navegação Vertical (Subir e Descer) na Lateral Esquerda */
         .scroll-buttons-container {
             position: fixed;
             bottom: 25px;
@@ -611,8 +620,9 @@
             flex-direction: column;
             gap: 8px;
         }
+        /* ALTERADO: Botões de subir e descer em vermelho para combinar com o fundo lilás */
         .scroll-btn {
-            background-color: #ff4081;
+            background-color: #d32f2f;
             color: white;
             border: none;
             width: 42px;
@@ -628,7 +638,6 @@
         }
         .scroll-btn:hover { transform: scale(1.1); }
 
-        /* Barra Flutuante para Sacola Personalizada */
         #barraSacolaFlutuante {
             display: none;
             position: fixed;
@@ -684,7 +693,6 @@
         <!-- Filtros e Busca -->
         <div class="filter-section">
             <select id="categoryFilter" onchange="filtrarProdutos()"></select>
-            <!-- Botão para partilhar instantaneamente toda a categoria selecionada -->
             <button id="btnCompartilharCategoria" onclick="compartilharCategoriaAtual()">🔗 Compartilhar Esta Categoria</button>
             <input type="text" id="searchInput" placeholder="🔍 Digite o número ou nome do produto..." onkeyup="filtrarProdutos()">
         </div>
@@ -761,7 +769,6 @@
     </div>
 
     <script>
-        // Funções de Rolagem Suave (Subir e Descer)
         function voltarAoTopo() {
             window.scrollTo({
                 top: 0,
