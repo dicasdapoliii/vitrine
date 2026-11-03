@@ -1,4 +1,4 @@
-´<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -23,7 +23,7 @@
         ];
         let isAdminLogado = false;
 
-        // 1. Método Educativo: Carregar produtos e categorias da Nuvem com Cache Local de Segurança
+        // 1. Carregar produtos e categorias da Nuvem com Cache Local de Segurança
         async function carregarDadosDaNuvem() {
             try {
                 let resposta = await fetch(NPOINT_URL + "?t=" + new Date().getTime());
@@ -40,9 +40,8 @@
                 localStorage.setItem('dicasdapoli_categorias', JSON.stringify(categorias));
 
                 atualizarSelectsDeCategorias();
-                renderizarProdutos(produtos);
+                verificarModoListaOuProduto();
                 renderizarGerenciadorCategorias();
-                verificarProdutoDirecionado();
             } catch (erro) {
                 console.warn("⚠️ Nuvem instável. A carregar dados do Cache Local de Segurança...", erro);
                 
@@ -53,13 +52,12 @@
                 if (cacheCat) categorias = JSON.parse(cacheCat);
 
                 atualizarSelectsDeCategorias();
-                renderizarProdutos(produtos);
+                verificarModoListaOuProduto();
                 renderizarGerenciadorCategorias();
-                verificarProdutoDirecionado();
             }
         }
 
-        // 2. Método Educativo: Salvar dados completos na Nuvem Npoint
+        // 2. Salvar dados completos na Nuvem Npoint
         async function salvarDadosNaNuvem() {
             try {
                 let resposta = await fetch(NPOINT_URL, {
@@ -139,26 +137,23 @@
             await salvarDadosNaNuvem();
         }
 
-        // Nova Função: Editar o nome de uma categoria existente e atualizar os produtos vinculados
         async function editarCategoria(nomeAntigo) {
             let novoNome = prompt(`Editar nome da categoria:\n"${nomeAntigo}"`, nomeAntigo);
-            if (!novoNome) return; // Se cancelar ou deixar vazio
+            if (!novoNome) return;
 
             novoNome = novoNome.trim();
-            if (novoNome === nomeAntigo) return; // Sem alterações
+            if (novoNome === nomeAntigo) return;
 
             if (categorias.includes(novoNome)) {
                 alert("Já existe uma categoria com este nome!");
                 return;
             }
 
-            // 1. Atualiza o nome na lista de categorias
             let index = categorias.indexOf(nomeAntigo);
             if (index !== -1) {
                 categorias[index] = novoNome;
             }
 
-            // 2. Atualiza automaticamente os produtos que pertenciam a esta categoria
             produtos.forEach(p => {
                 if (p.cat === nomeAntigo) {
                     p.cat = novoNome;
@@ -191,7 +186,7 @@
             container.innerHTML = "";
 
             if(lista.length === 0) {
-                container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Nenhum produto cadastrado.</p>";
+                container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Nenhum produto cadastrado nesta seleção.</p>";
                 return;
             }
 
@@ -253,23 +248,54 @@
             });
         }
 
-        function verificarProdutoDirecionado() {
+        // Nova função para criar e copiar Link de Lista (Sacola de Vários Produtos)
+        window.gerarLinkLista = function() {
+            let idsInput = prompt("Digite os IDs ou números dos produtos separados por vírgula (ex: 1, 5, 12):");
+            if (!idsInput) return;
+
+            let idsArray = idsInput.split(',').map(i => i.trim());
+            let urlBase = window.location.origin + window.location.pathname;
+            let linkLista = `${urlBase}?lista=${idsArray.join(',')}`;
+
+            navigator.clipboard.writeText(linkLista).then(() => {
+                alert("✅ Link da lista/sacola copiado com sucesso! Agora podes enviar este link único para o cliente.");
+            });
+        }
+
+        function verificarModoListaOuProduto() {
             const parametros = new URLSearchParams(window.location.search);
             const idProduto = parametros.get('produto');
+            const listaIds = parametros.get('lista');
 
-            if (idProduto) {
-                setTimeout(() => {
-                    const card = document.getElementById(`produto-${idProduto}`);
-                    if (card) {
-                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        card.style.border = "2px solid #ff4081";
-                        card.style.boxShadow = "0 0 15px rgba(255, 64, 129, 0.4)";
-                        setTimeout(() => {
-                            card.style.border = "1px solid #eee";
-                            card.style.boxShadow = "0 2px 5px rgba(0,0,0,0.05)";
-                        }, 4000);
-                    }
-                }, 600);
+            if (listaIds) {
+                // Modo Lista / Sacola: filtra apenas os produtos cujos IDs ou números estão na lista
+                let arrayIds = listaIds.split(',').map(i => i.trim());
+                let produtosDaLista = produtos.filter(p => {
+                    let numLimpo = p.num.replace("#", "");
+                    return arrayIds.includes(String(p.id)) || arrayIds.includes(numLimpo);
+                });
+
+                // Altera o título visual da vitrine para indicar que é uma sacola especial
+                document.querySelector('h1').innerText = "🛍️ Sacola de Ofertas da Poli";
+                document.querySelector('.bio').innerText = "Seleção especial de produtos recomendados para você";
+                
+                renderizarProdutos(produtosDaLista);
+            } else {
+                renderizarProdutos(produtos);
+                if (idProduto) {
+                    setTimeout(() => {
+                        const card = document.getElementById(`produto-${idProduto}`);
+                        if (card) {
+                            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            card.style.border = "2px solid #ff4081";
+                            card.style.boxShadow = "0 0 15px rgba(255, 64, 129, 0.4)";
+                            setTimeout(() => {
+                                card.style.border = "1px solid #eee";
+                                card.style.boxShadow = "0 2px 5px rgba(0,0,0,0.05)";
+                            }, 4000);
+                        }
+                    }, 600);
+                }
             }
         }
 
@@ -422,7 +448,7 @@
         body { background-color: #fce4ec; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; padding-bottom: 120px; }
         .container { width: 100%; max-width: 480px; background: #ffffff; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; align-items: center; position: relative; }
         .profile-pic { width: 120px; height: 120px; border-radius: 50%; border: 3px solid #ff4081; padding: 3px; margin-bottom: 15px; object-fit: cover; }
-        h1 { font-size: 22px; color: #333; margin-bottom: 5px; }
+        h1 { font-size: 22px; color: #333; margin-bottom: 5px; text-align: center; }
         .bio { font-size: 14px; color: #666; margin-bottom: 15px; text-align: center; }
         .social-icons { display: flex; gap: 15px; margin-bottom: 20px; }
         .social-icons a { font-size: 20px; color: #333; transition: color 0.3s; }
@@ -496,6 +522,30 @@
         }
         .circle-zap { background-color: #25d366; }
         .circle-channel { background-color: #128c7e; }
+
+        /* NOVO: Botão Voltar ao Topo Flutuante */
+        #btnVoltarTopo {
+            display: none;
+            position: fixed;
+            bottom: 25px;
+            left: 20px;
+            z-index: 9999;
+            background-color: #ff4081;
+            color: white;
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+            font-size: 16px;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s;
+        }
+        #btnVoltarTopo:hover {
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body>
@@ -540,6 +590,13 @@
                 <button class="btn-close-admin" onclick="sairDoAdmin()">✕ Sair</button>
             </div>
 
+            <!-- Botão extra no Admin para Criar Sacola / Lista de Produtos -->
+            <div style="background: #e1f5fe; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #b3e5fc;">
+                <h4 style="font-size: 13px; color: #0277bd; margin-bottom: 6px;">🛍️ Criar Sacola / Lista de Vários Produtos</h4>
+                <p style="font-size: 11px; color: #555; margin-bottom: 8px;">Gere um link único contendo vários produtos para enviar direto ao cliente.</p>
+                <button onclick="gerarLinkLista()" style="background: #0288d1; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; width: 100%;">🔗 Gerar Link de Lista Personalizada</button>
+            </div>
+
             <!-- Seção de Gerenciamento de Categorias com Editar e Excluir -->
             <div style="background: #eee; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
                 <h4 style="font-size: 13px; color: #333; margin-bottom: 6px;">📂 Gerenciar Categorias da Vitrine</h4>
@@ -579,31 +636,30 @@
         <a href="https://wa.me/5566999087449" target="_blank" class="floating-circle circle-zap" title="Ajuda">
             <i class="fa-brands fa-whatsapp"></i>
             <span>Ajuda</span>
-        </a>
+        </a>    
     </div>
 
+    <!-- Botão Voltar ao Topo -->
+    <button id="btnVoltarTopo" onclick="voltarAoTopo()" title="Voltar ao topo">
+        <i class="fa-solid fa-arrow-up"></i>
+    </button>
+
     <script>
-        function filtrarProdutos() {
-            const termo = document.getElementById('searchInput').value.toLowerCase().trim();
-            const categoria = document.getElementById('categoryFilter').value;
+        // Script de funcionamento do Botão Voltar ao Topo
+        window.onscroll = function() {
+            let botao = document.getElementById("btnVoltarTopo");
+            if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                botao.style.display = "flex";
+            } else {
+                botao.style.display = "none";
+            }
+        };
 
-            const filtrados = produtos.filter(p => {
-                if (categoria === 'relampago') {
-                    return p.relampago === "sim";
-                }
-
-                const matchCat = (categoria === 'todos' || p.cat === categoria);
-                let matchTexto = false;
-                if (/^\d+$/.test(termo)) {
-                    let numLimpo = p.num.replace("#", "");
-                    matchTexto = (numLimpo === termo);
-                } else {
-                    matchTexto = p.title.toLowerCase().includes(termo) || p.num.toLowerCase().includes(termo);
-                }
-                return matchCat && matchTexto;
+        function voltarAoTopo() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
             });
-
-            renderizarProdutos(filtrados);
         }
     </script>
 </body>
