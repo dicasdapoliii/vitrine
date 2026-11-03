@@ -290,7 +290,7 @@
             }
         }
 
-        // TEXTO PERSONALIZADO AO GERAR LINK DA SACOLA
+        // TEXTO PERSONALIZADO ATUALIZADO PARA SACOLA DE PRODUTOS SELECIONADOS
         window.gerarLinkSacolaSelecionada = function() {
             if (produtosSelecionadosSacola.length === 0) {
                 alert("Nenhum produto selecionado!");
@@ -300,14 +300,14 @@
             let urlBase = window.location.origin + window.location.pathname;
             let linkLista = `${urlBase}?lista=${produtosSelecionadosSacola.join(',')}`;
 
-            let mensagemPersonalizada = `✨ Olá! Preparei uma lista especial de achados para você:\n👉 Veja os produtos na lista abaixo:\n${linkLista}`;
+            let mensagemPersonalizada = `Olá, confira a lista dos produtos com os melhores preços.\n\nVeja os produtos na lista abaixo:\n${linkLista}`;
 
             navigator.clipboard.writeText(mensagemPersonalizada).then(() => {
-                alert("✅ Link da sacola copiado com o texto personalizado! Pronto para colar no WhatsApp.");
+                alert("✅ Link da sacola copiado com o texto personalizado formatado!");
             });
         }
 
-        // TEXTO PERSONALIZADO AO PARTILHAR CATEGORIA
+        // TEXTO PERSONALIZADO ATUALIZADO PARA PARTILHA DE CATEGORIA
         window.compartilharCategoriaAtual = function() {
             const categoriaSelecionada = document.getElementById('categoryFilter').value;
 
@@ -327,10 +327,10 @@
             let urlBase = window.location.origin + window.location.pathname;
             let linkCategoria = `${urlBase}?lista=${idsCategoria.join(',')}`;
 
-            let mensagemPersonalizada = `🎄✨ Confira os melhores produtos da categoria *${categoriaSelecionada}* que separei para você:\n👉 Veja os produtos na lista abaixo:\n${linkCategoria}`;
+            let mensagemPersonalizada = `🎄✨ Confira os melhores produtos da categoria *${categoriaSelecionada}*:\n\nSeparei para você:\n\nVeja os produtos na lista abaixo:\n${linkCategoria}`;
 
             navigator.clipboard.writeText(mensagemPersonalizada).then(() => {
-                alert(`✅ Link da categoria "${categoriaSelecionada}" copiado com o texto personalizado!`);
+                alert(`✅ Link da categoria "${categoriaSelecionada}" copiado com o texto personalizado formatado!`);
             });
         }
 
@@ -496,303 +496,3 @@
                 isAdminLogado = true;
                 renderizarProdutos(produtos);
                 filtrarProdutos();
-                document.getElementById('admin-panel').style.display = 'block';
-                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-            } else if (digitada !== null) {
-                alert("Senha incorreta! Acesso negado.");
-            }
-        }
-
-        function sairDoAdmin() {
-            isAdminLogado = false;
-            produtosSelecionadosSacola = [];
-            atualizarBarraSacolaFlutuante();
-            renderizarProdutos(produtos);
-            filtrarProdutos();
-            document.getElementById('admin-panel').style.display = 'none';
-            limparFormularioprincipal();
-        }
-
-        function cancelarEdicao() {
-            limparFormularioprincipal();
-            document.getElementById('panel-title').innerText = "Adicionar Novo Produto";
-            document.getElementById('btnSalvar').innerText = "Salvar Produto na Vitrine";
-            document.getElementById('btnCancelar').style.display = "none";
-        }
-
-        function limparFormularioprincipal() {
-            document.getElementById('editId').value = '';
-            document.getElementById('newNum').value = '';
-            document.getElementById('newTitle').value = '';
-            document.getElementById('newDesc').value = '';
-            document.getElementById('newCupom').value = '';
-            document.getElementById('newPrecoFinal').value = '';
-            document.getElementById('newRelampago').value = 'nao';
-            document.getElementById('newImg').value = '';
-            document.getElementById('newLink').value = '';
-            document.getElementById('panel-title').innerText = "Adicionar Novo Produto";
-            document.getElementById('btnSalvar').innerText = "Salvar Produto na Vitrine";
-            document.getElementById('btnCancelar').style.display = "none";
-        }
-
-        window.onload = carregarDadosDaNuvem;
-    </script>
-
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
-        body { background-color: #d1c4e9; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; padding-bottom: 140px; }
-        .container { width: 100%; max-width: 480px; background: #ffffff; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; align-items: center; position: relative; }
-        .profile-pic { width: 120px; height: 120px; border-radius: 50%; border: 3px solid #ff4081; padding: 3px; margin-bottom: 15px; object-fit: cover; }
-        h1 { font-size: 22px; color: #333; margin-bottom: 5px; text-align: center; }
-        .bio { font-size: 14px; color: #666; margin-bottom: 15px; text-align: center; }
-        .social-icons { display: flex; gap: 15px; margin-bottom: 20px; }
-        .social-icons a { font-size: 20px; color: #333; transition: color 0.3s; }
-        .social-icons a:hover { color: #ff4081; }
-        .btn-shopee { width: 100%; background-color: #ff5722; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-align: center; text-decoration: none; display: block; }
-        .btn-whatsapp { width: 100%; background-color: #25d366; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-align: center; text-decoration: none; display: block; }
-        .filter-section { width: 100%; margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
-        select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
-        
-        #btnCompartilharCategoria {
-            display: none;
-            width: 100%;
-            background-color: #1976d2;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 13px;
-            cursor: pointer;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .product-list { width: 100%; margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .product-card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 12px; display: flex; gap: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative; transition: all 0.5s ease; }
-        .product-card img { width: 90px; height: 90px; border-radius: 8px; object-fit: cover; }
-        .product-info { display: flex; flex-direction: column; justify-content: space-between; flex: 1; }
-        .product-number { font-size: 13px; font-weight: bold; color: #ff4081; }
-        .product-title { font-size: 14px; font-weight: bold; color: #333; }
-        .product-desc { font-size: 12px; color: #666; }
-        .product-promo { margin-top: 5px; font-size: 11px; background: #e8f5e9; color: #2e7d32; padding: 3px 6px; border-radius: 4px; display: inline-block; font-weight: bold; }
-        .badge-relampago { position: absolute; top: -9px; right: 10px; background: #ff3d00; color: white; font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
-        .btn-buy { background-color: #e91e63; color: white; border: none; padding: 6px 10px; border-radius: 5px; font-size: 11px; font-weight: bold; text-align: center; text-decoration: none; cursor: pointer; }
-        .card-admin-actions { display: none; gap: 5px; margin-top: 5px; }
-        .btn-edit { background-color: #ff9800; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
-        .btn-delete { background-color: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
-        .btn-share { background-color: #2196F3; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
-        .admin-link { margin-top: 30px; font-size: 12px; color: #aaa; text-decoration: none; cursor: pointer; display: block; text-align: center; padding-bottom: 20px; }
-        .admin-link:hover { color: #333; }
-        #admin-panel { display: none; width: 100%; background: #f9f9f9; border: 1px solid #ddd; border-radius: 10px; padding: 15px; margin-top: 20px; }
-        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        #admin-panel h3 { font-size: 15px; color: #333; margin: 0; }
-        .btn-close-admin { background-color: #e0e0e0; color: #333; border: none; padding: 4px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer; }
-        .btn-close-admin:hover { background-color: #ccc; }
-
-        .floating-container { 
-            position: fixed; 
-            top: 50%; 
-            transform: translateY(-50%); 
-            right: 2px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 12px; 
-            z-index: 9999; 
-            align-items: center; 
-        }
-        .floating-circle { 
-            width: 48px; 
-            height: 48px; 
-            border-radius: 50%; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
-            align-items: center; 
-            color: white; 
-            box-shadow: 0 3px 8px rgba(0,0,0,0.3); 
-            text-decoration: none; 
-            transition: transform 0.3s; 
-            text-align: center;
-            padding: 2px;
-        }
-        .floating-circle:hover { transform: scale(1.1); }
-        .floating-circle i { font-size: 13px; margin-bottom: 1px; }
-        .floating-circle span { font-size: 5.5px; font-weight: bold; line-height: 1; text-transform: uppercase; }
-        .circle-zap { background-color: #25d366; }
-        .circle-channel { background-color: #128c7e; }
-
-        .scroll-buttons-container {
-            position: fixed;
-            bottom: 25px;
-            left: 15px;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .scroll-btn {
-            background-color: #d32f2f;
-            color: white;
-            border: none;
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.3s;
-        }
-        .scroll-btn:hover { transform: scale(1.1); }
-
-        #barraSacolaFlutuante {
-            display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: #2e7d32;
-            color: white;
-            padding: 12px 20px;
-            z-index: 99998;
-            box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
-            justify-content: space-between;
-            align-items: center;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        .btn-gerar-sacola {
-            background-color: white;
-            color: #2e7d32;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 13px;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-    </style>
-</head>
-<body>
-
-    <div class="container">
-        <!-- Logo -->
-        <img id="logoImg" src="logo.jpeg" alt="Logo Dicasdapoliii" class="profile-pic">
-        
-        <h1>Dicasdapoliii</h1>
-        <p class="bio">Seu guia de compras online</p>
-
-        <!-- Redes Sociais com o Facebook -->
-        <div class="social-icons">
-            <a href="https://www.facebook.com/share/1GKAczQjX4/" target="_blank"><i class="fa-brands fa-facebook"></i></a>
-            <a href="https://www.tiktok.com" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
-            <a href="https://www.instagram.com" target="_blank"><i class="fa-brands fa-instagram"></i></a>
-            <a href="https://www.youtube.com" target="_blank"><i class="fa-brands fa-youtube"></i></a>
-            <a href="https://www.pinterest.com" target="_blank"><i class="fa-brands fa-pinterest"></i></a>
-        </div>
-
-        <!-- Botões de Conversão -->
-        <a href="https://s.shopee.com.br/8ANLneMzRi" target="_blank" class="btn-shopee">🛍️ Resgatar Cupons Shopee</a>
-        <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="btn-whatsapp">💬 Entrar no Canal de Ofertas</a>
-        <a href="https://wa.me/5566999087449" target="_blank" class="btn-whatsapp" style="background-color: #128c7e;">🟢 Falar com a Poli</a>
-
-        <!-- Filtros e Busca -->
-        <div class="filter-section">
-            <select id="categoryFilter" onchange="filtrarProdutos()"></select>
-            <button id="btnCompartilharCategoria" onclick="compartilharCategoriaAtual()">🔗 Compartilhar Esta Categoria</button>
-            <input type="text" id="searchInput" placeholder="🔍 Digite o número ou nome do produto..." onkeyup="filtrarProdutos()">
-        </div>
-
-        <!-- Lista Dinâmica de Produtos -->
-        <div class="product-list" id="productList"></div>
-
-        <!-- Botão Protegido por Senha para abrir o Painel -->
-        <a class="admin-link" onclick="pedirSenhaAdmin()">⚙️ Painel de Administração</a>
-
-        <!-- Painel Restrito de Administração -->
-        <div id="admin-panel">
-            <div class="admin-header">
-                <h3 id="panel-title">Adicionar Novo Produto</h3>
-                <button class="btn-close-admin" onclick="sairDoAdmin()">✕ Sair</button>
-            </div>
-
-            <!-- Seção de Gerenciamento de Categorias com Editar e Excluir -->
-            <div style="background: #eee; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
-                <h4 style="font-size: 13px; color: #333; margin-bottom: 6px;">📂 Gerenciar Categorias da Vitrine</h4>
-                <div style="display: flex; gap: 5px; margin-bottom: 8px;">
-                    <input type="text" id="novaCategoriaInput" placeholder="Nova Categoria (ex: Promoções)" style="margin-bottom: 0;">
-                    <button onclick="adicionarNovaCategoria()" style="background: #4CAF50; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; white-space: nowrap;">Adicionar</button>
-                </div>
-                <div id="listaCategoriasAdmin" style="display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto;"></div>
-            </div>
-
-            <hr style="border: 0; border-top: 1px solid #ddd; margin-bottom: 15px;">
-
-            <input type="hidden" id="editId">
-            <input type="text" id="newNum" placeholder="Número do Produto (ex: 8)" style="margin-bottom: 8px;">
-            <select id="newCat" style="margin-bottom: 8px;"></select>
-            <input type="text" id="newTitle" placeholder="Título do Produto" style="margin-bottom: 8px;">
-            <input type="text" id="newDesc" placeholder="Descrição curta (ex: Frete Grátis)" style="margin-bottom: 8px;">
-            <input type="text" id="newCupom" placeholder="🎟️ Nome do Cupom (ex: NIKE20)" style="margin-bottom: 8px;">
-            <input type="text" id="newPrecoFinal" placeholder="💰 Preço Final c/ Desconto (ex: R$ 89,90)" style="margin-bottom: 8px;">
-            <select id="newRelampago" style="margin-bottom: 8px;">
-                <option value="nao">⏳ ⚡ Oferta Relâmpago? Não</option>
-                <option value="sim">⏳ ⚡ Oferta Relâmpago? SIM (Com Relógio e Destaque)</option>
-            </select>
-            <input type="text" id="newImg" placeholder="Link direto da imagem (URL da web)" style="margin-bottom: 8px;">
-            <input type="text" id="newLink" placeholder="Link de afiliado (URL)" style="margin-bottom: 8px;">
-            <button class="btn-shopee" id="btnSalvar" onclick="salvarProduto()">Salvar Produto na Nuvem</button>
-            <button class="btn-buy" id="btnCancelar" onclick="cancelarEdicao()" style="display:none; background-color:#777; margin-top:5px;">Cancelar Edição</button>
-        </div>
-    </div>
-
-    <!-- Barra Flutuante para Sacola Personalizada -->
-    <div id="barraSacolaFlutuante">
-        <span>🛍️ <span id="contadorSacola">0</span> produto(s) na sacola</span>
-        <button class="btn-gerar-sacola" onclick="gerarLinkSacolaSelecionada()">🔗 Gerar Link da Sacola</button>
-    </div>
-
-    <!-- Botões Circulares Compactos Laterais Direitos -->
-    <div class="floating-container">
-        <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="floating-circle circle-channel" title="Canal Ofertas">
-            <i class="fa-solid fa-bullhorn"></i>
-            <span>Canal Ofertas</span>
-        </a>
-        <a href="https://wa.me/5566999087449" target="_blank" class="floating-circle circle-zap" title="Ajuda">
-            <i class="fa-brands fa-whatsapp"></i>
-            <span>Ajuda</span>
-        </a>    
-    </div>
-
-    <!-- Botões de Navegação Rápida (Subir e Descer) na Lateral Esquerda -->
-    <div class="scroll-buttons-container">
-        <button class="scroll-btn" onclick="voltarAoTopo()" title="Ir para o topo">
-            <i class="fa-solid fa-arrow-up"></i>
-        </button>
-        <button class="scroll-btn" onclick="irParaBaixo()" title="Ir para o fim">
-            <i class="fa-solid fa-arrow-down"></i>
-        </button>
-    </div>
-
-    <script>
-        function voltarAoTopo() {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        }
-
-        function irParaBaixo() {
-            window.scrollTo({
-                top: document.body.scrollHeight,
-                behavior: 'smooth'
-            });
-        }
-    </script>
-</body>
-</html>
