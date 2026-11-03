@@ -22,8 +22,8 @@
             "Seleção Dafiti", "Seleção Kabum", "Seleção Stanley", "Seleção AliExpress", "Seleção Cama in Box"
         ];
         let isAdminLogado = false;
+        let produtosSelecionadosSacola = [];
 
-        // 1. Carregar produtos e categorias da Nuvem com Cache Local de Segurança
         async function carregarDadosDaNuvem() {
             try {
                 let resposta = await fetch(NPOINT_URL + "?t=" + new Date().getTime());
@@ -57,7 +57,6 @@
             }
         }
 
-        // 2. Salvar dados completos na Nuvem Npoint
         async function salvarDadosNaNuvem() {
             try {
                 let resposta = await fetch(NPOINT_URL, {
@@ -215,6 +214,10 @@
                     infoPromocao = `<div class="product-promo">${textoPreco}${separador}${textoCupom}</div>`;
                 }
 
+                let estaNaSacola = produtosSelecionadosSacola.includes(String(p.id));
+                let textoBtnSacola = estaNaSacola ? "✅ Na Sacola" : "➕ Adicionar à Sacola";
+                let corBtnSacola = estaNaSacola ? "#4CAF50" : "#ff4081";
+
                 container.innerHTML += `
                     <div class="product-card" id="produto-${p.id}">
                         ${seloRelampago}
@@ -227,10 +230,60 @@
                                 ${infoPromocao}
                                 ${botoesAdmin}
                             </div>
-                            <a href="${p.link}" target="_blank" class="btn-buy">Comprar Agora</a>
+                            <div style="display: flex; gap: 6px; margin-top: 6px;">
+                                <a href="${p.link}" target="_blank" class="btn-buy" style="flex: 1;">Comprar</a>
+                                <button onclick="toggleProdutoSacola('${p.id}')" id="btn-sacola-${p.id}" style="background-color: ${corBtnSacola}; color: white; border: none; padding: 6px 10px; border-radius: 5px; font-size: 11px; font-weight: bold; cursor: pointer;">${textoBtnSacola}</button>
+                            </div>
                         </div>
                     </div>
                 `;
+            });
+        }
+
+        window.toggleProdutoSacola = function(id) {
+            let index = produtosSelecionadosSacola.indexOf(String(id));
+            let btn = document.getElementById(`btn-sacola-${id}`);
+
+            if (index > -1) {
+                produtosSelecionadosSacola.splice(index, 1);
+                if (btn) {
+                    btn.style.backgroundColor = "#ff4081";
+                    btn.innerText = "➕ Adicionar à Sacola";
+                }
+            } else {
+                produtosSelecionadosSacola.push(String(id));
+                if (btn) {
+                    btn.style.backgroundColor = "#4CAF50";
+                    btn.innerText = "✅ Na Sacola";
+                }
+            }
+
+            atualizarBarraSacolaFlutuante();
+        }
+
+        function atualizarBarraSacolaFlutuante() {
+            let barra = document.getElementById('barraSacolaFlutuante');
+            let contador = document.getElementById('contadorSacola');
+
+            if (produtosSelecionadosSacola.length > 0) {
+                contador.innerText = produtosSelecionadosSacola.length;
+                barra.style.display = "flex";
+            } else {
+                barra.style.display = "none";
+            }
+        }
+
+        window.gerarLinkSacolaSelecionada = function() {
+            if (produtosSelecionadosSacola.length === 0) {
+                alert("Nenhum produto selecionado!");
+                return;
+            }
+
+            let urlBase = window.location.origin + window.location.pathname;
+            let linkLista = `${urlBase}?lista=${produtosSelecionadosSacola.join(',')}`;
+
+            navigator.clipboard.writeText(linkLista).then(() => {
+                alert("✅ Link da sacola personalizada copiado com sucesso! Agora basta colar para o cliente.");
             });
         }
 
@@ -248,34 +301,18 @@
             });
         }
 
-        // Nova função para criar e copiar Link de Lista (Sacola de Vários Produtos)
-        window.gerarLinkLista = function() {
-            let idsInput = prompt("Digite os IDs ou números dos produtos separados por vírgula (ex: 1, 5, 12):");
-            if (!idsInput) return;
-
-            let idsArray = idsInput.split(',').map(i => i.trim());
-            let urlBase = window.location.origin + window.location.pathname;
-            let linkLista = `${urlBase}?lista=${idsArray.join(',')}`;
-
-            navigator.clipboard.writeText(linkLista).then(() => {
-                alert("✅ Link da lista/sacola copiado com sucesso! Agora podes enviar este link único para o cliente.");
-            });
-        }
-
         function verificarModoListaOuProduto() {
             const parametros = new URLSearchParams(window.location.search);
             const idProduto = parametros.get('produto');
             const listaIds = parametros.get('lista');
 
             if (listaIds) {
-                // Modo Lista / Sacola: filtra apenas os produtos cujos IDs ou números estão na lista
                 let arrayIds = listaIds.split(',').map(i => i.trim());
                 let produtosDaLista = produtos.filter(p => {
                     let numLimpo = p.num.replace("#", "");
                     return arrayIds.includes(String(p.id)) || arrayIds.includes(numLimpo);
                 });
 
-                // Altera o título visual da vitrine para indicar que é uma sacola especial
                 document.querySelector('h1').innerText = "🛍️ Sacola de Ofertas da Poli";
                 document.querySelector('.bio').innerText = "Seleção especial de produtos recomendados para você";
                 
@@ -445,7 +482,7 @@
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
-        body { background-color: #fce4ec; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; padding-bottom: 120px; }
+        body { background-color: #fce4ec; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; padding-bottom: 140px; }
         .container { width: 100%; max-width: 480px; background: #ffffff; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; align-items: center; position: relative; }
         .profile-pic { width: 120px; height: 120px; border-radius: 50%; border: 3px solid #ff4081; padding: 3px; margin-bottom: 15px; object-fit: cover; }
         h1 { font-size: 22px; color: #333; margin-bottom: 5px; text-align: center; }
@@ -467,7 +504,7 @@
         .product-promo { margin-top: 5px; font-size: 11px; background: #e8f5e9; color: #2e7d32; padding: 3px 6px; border-radius: 4px; display: inline-block; font-weight: bold; }
         .badge-relampago { position: absolute; top: -9px; right: 10px; background: #ff3d00; color: white; font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
-        .btn-buy { background-color: #e91e63; color: white; border: none; padding: 6px; border-radius: 5px; font-size: 13px; font-weight: bold; text-align: center; text-decoration: none; cursor: pointer; margin-top: 5px; }
+        .btn-buy { background-color: #e91e63; color: white; border: none; padding: 6px 10px; border-radius: 5px; font-size: 11px; font-weight: bold; text-align: center; text-decoration: none; cursor: pointer; }
         .card-admin-actions { display: none; gap: 5px; margin-top: 5px; }
         .btn-edit { background-color: #ff9800; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
         .btn-delete { background-color: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
@@ -480,7 +517,7 @@
         .btn-close-admin { background-color: #e0e0e0; color: #333; border: none; padding: 4px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer; }
         .btn-close-admin:hover { background-color: #ccc; }
 
-        /* Estilo Compacto Circular na Lateral com Rótulos "Canal Ofertas" e "Ajuda" */
+        /* Estilo Compacto Circular na Lateral Direita */
         .floating-container { 
             position: fixed; 
             top: 50%; 
@@ -507,29 +544,23 @@
             text-align: center;
             padding: 2px;
         }
-        .floating-circle:hover { 
-            transform: scale(1.1); 
-        }
-        .floating-circle i { 
-            font-size: 13px; 
-            margin-bottom: 1px; 
-        }
-        .floating-circle span { 
-            font-size: 5.5px; 
-            font-weight: bold; 
-            line-height: 1; 
-            text-transform: uppercase;
-        }
+        .floating-circle:hover { transform: scale(1.1); }
+        .floating-circle i { font-size: 13px; margin-bottom: 1px; }
+        .floating-circle span { font-size: 5.5px; font-weight: bold; line-height: 1; text-transform: uppercase; }
         .circle-zap { background-color: #25d366; }
         .circle-channel { background-color: #128c7e; }
 
-        /* NOVO: Botão Voltar ao Topo Flutuante */
-        #btnVoltarTopo {
-            display: none;
+        /* NOVO: Botões de Navegação Vertical (Subir e Descer) na Lateral Esquerda */
+        .scroll-buttons-container {
             position: fixed;
             bottom: 25px;
-            left: 20px;
+            left: 15px;
             z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .scroll-btn {
             background-color: #ff4081;
             color: white;
             border: none;
@@ -539,12 +570,40 @@
             cursor: pointer;
             box-shadow: 0 3px 8px rgba(0,0,0,0.3);
             font-size: 16px;
+            display: flex;
             align-items: center;
             justify-content: center;
             transition: transform 0.3s;
         }
-        #btnVoltarTopo:hover {
-            transform: scale(1.1);
+        .scroll-btn:hover { transform: scale(1.1); }
+
+        /* Barra Flutuante para Sacola Personalizada */
+        #barraSacolaFlutuante {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #2e7d32;
+            color: white;
+            padding: 12px 20px;
+            z-index: 99998;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .btn-gerar-sacola {
+            background-color: white;
+            color: #2e7d32;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
     </style>
 </head>
@@ -590,13 +649,6 @@
                 <button class="btn-close-admin" onclick="sairDoAdmin()">✕ Sair</button>
             </div>
 
-            <!-- Botão extra no Admin para Criar Sacola / Lista de Produtos -->
-            <div style="background: #e1f5fe; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #b3e5fc;">
-                <h4 style="font-size: 13px; color: #0277bd; margin-bottom: 6px;">🛍️ Criar Sacola / Lista de Vários Produtos</h4>
-                <p style="font-size: 11px; color: #555; margin-bottom: 8px;">Gere um link único contendo vários produtos para enviar direto ao cliente.</p>
-                <button onclick="gerarLinkLista()" style="background: #0288d1; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; width: 100%;">🔗 Gerar Link de Lista Personalizada</button>
-            </div>
-
             <!-- Seção de Gerenciamento de Categorias com Editar e Excluir -->
             <div style="background: #eee; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
                 <h4 style="font-size: 13px; color: #333; margin-bottom: 6px;">📂 Gerenciar Categorias da Vitrine</h4>
@@ -627,7 +679,13 @@
         </div>
     </div>
 
-    <!-- Botões Circulares Compactos Laterais -->
+    <!-- Barra Flutuante para Sacola Personalizada -->
+    <div id="barraSacolaFlutuante">
+        <span>🛍️ <span id="contadorSacola">0</span> produto(s) na sacola</span>
+        <button class="btn-gerar-sacola" onclick="gerarLinkSacolaSelecionada()">🔗 Gerar Link da Sacola</button>
+    </div>
+
+    <!-- Botões Circulares Compactos Laterais Direitos -->
     <div class="floating-container">
         <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="floating-circle circle-channel" title="Canal Ofertas">
             <i class="fa-solid fa-bullhorn"></i>
@@ -639,25 +697,28 @@
         </a>    
     </div>
 
-    <!-- Botão Voltar ao Topo -->
-    <button id="btnVoltarTopo" onclick="voltarAoTopo()" title="Voltar ao topo">
-        <i class="fa-solid fa-arrow-up"></i>
-    </button>
+    <!-- Botões de Navegação Rápida (Subir e Descer) na Lateral Esquerda -->
+    <div class="scroll-buttons-container">
+        <button class="scroll-btn" onclick="voltarAoTopo()" title="Ir para o topo">
+            <i class="fa-solid fa-arrow-up"></i>
+        </button>
+        <button class="scroll-btn" onclick="irParaBaixo()" title="Ir para o fim">
+            <i class="fa-solid fa-arrow-down"></i>
+        </button>
+    </div>
 
     <script>
-        // Script de funcionamento do Botão Voltar ao Topo
-        window.onscroll = function() {
-            let botao = document.getElementById("btnVoltarTopo");
-            if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
-                botao.style.display = "flex";
-            } else {
-                botao.style.display = "none";
-            }
-        };
-
+        // Funções de Rolagem Suave (Subir e Descer)
         function voltarAoTopo() {
             window.scrollTo({
                 top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        function irParaBaixo() {
+            window.scrollTo({
+                top: document.body.scrollHeight,
                 behavior: 'smooth'
             });
         }
