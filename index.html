@@ -287,6 +287,32 @@
             });
         }
 
+        // NOVO: Função para gerar link de partilha direto de toda a categoria selecionada
+        window.compartilharCategoriaAtual = function() {
+            const categoriaSelecionada = document.getElementById('categoryFilter').value;
+
+            if (categoriaSelecionada === 'todos' || categoriaSelecionada === 'relampago') {
+                alert("Por favor, selecione uma categoria específica no filtro para partilhar (ex: Decoração de Natal, Cama e Mesa, etc.).");
+                return;
+            }
+
+            // Filtra todos os produtos que pertencem a esta categoria
+            let produtosDaCategoria = produtos.filter(p => p.cat === categoriaSelecionada);
+
+            if (produtosDaCategoria.length === 0) {
+                alert(`Não há produtos cadastrados na categoria "${categoriaSelecionada}".`);
+                return;
+            }
+
+            let idsCategoria = produtosDaCategoria.map(p => p.id);
+            let urlBase = window.location.origin + window.location.pathname;
+            let linkCategoria = `${urlBase}?lista=${idsCategoria.join(',')}`;
+
+            navigator.clipboard.writeText(linkCategoria).then(() => {
+                alert(`✅ Link da categoria "${categoriaSelecionada}" (${produtosDaCategoria.length} produtos) copiado com sucesso!`);
+            });
+        }
+
         window.compartilharLinkDireto = function(idProduto, titulo, cupom, precoFinal) {
             let urlBase = window.location.origin + window.location.pathname;
             let linkInteligente = `${urlBase}?produto=${idProduto}`;
@@ -339,6 +365,14 @@
         function filtrarProdutos() {
             const termo = document.getElementById('searchInput').value.toLowerCase().trim();
             const categoria = document.getElementById('categoryFilter').value;
+
+            // Mostra ou esconde o botão de partilhar categoria dependendo se escolheu uma categoria válida
+            const btnCompartilharCat = document.getElementById('btnCompartilharCategoria');
+            if (categoria !== 'todos' && categoria !== 'relampago') {
+                btnCompartilharCat.style.display = "block";
+            } else {
+                btnCompartilharCat.style.display = "none";
+            }
 
             const filtrados = produtos.filter(p => {
                 if (categoria === 'relampago') {
@@ -494,6 +528,23 @@
         .btn-whatsapp { width: 100%; background-color: #25d366; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-align: center; text-decoration: none; display: block; }
         .filter-section { width: 100%; margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
         select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
+        
+        /* NOVO: Botão de Compartilhar Categoria que aparece ao escolher uma categoria */
+        #btnCompartilharCategoria {
+            display: none;
+            width: 100%;
+            background-color: #1976d2;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
         .product-list { width: 100%; margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
         .product-card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 12px; display: flex; gap: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative; transition: all 0.5s ease; }
         .product-card img { width: 90px; height: 90px; border-radius: 8px; object-fit: cover; }
@@ -550,7 +601,7 @@
         .circle-zap { background-color: #25d366; }
         .circle-channel { background-color: #128c7e; }
 
-        /* NOVO: Botões de Navegação Vertical (Subir e Descer) na Lateral Esquerda */
+        /* Botões de Navegação Vertical (Subir e Descer) na Lateral Esquerda */
         .scroll-buttons-container {
             position: fixed;
             bottom: 25px;
@@ -633,6 +684,8 @@
         <!-- Filtros e Busca -->
         <div class="filter-section">
             <select id="categoryFilter" onchange="filtrarProdutos()"></select>
+            <!-- Botão para partilhar instantaneamente toda a categoria selecionada -->
+            <button id="btnCompartilharCategoria" onclick="compartilharCategoriaAtual()">🔗 Compartilhar Esta Categoria</button>
             <input type="text" id="searchInput" placeholder="🔍 Digite o número ou nome do produto..." onkeyup="filtrarProdutos()">
         </div>
 
