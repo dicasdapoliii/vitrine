@@ -1,827 +1,297 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dicas da Poliii - Guia de Compras</title>
+from flask import Flask, render_template, request, jsonify
+import requests
+import os
+import re
+import json
+from datetime import datetime
+
+app = Flask(__name__)
+
+# Configurações do WhatsApp (Green-API)
+API_ID_INSTANCE = os.getenv("API_ID_INSTANCE", "").strip()
+API_TOKEN = os.getenv("API_TOKEN", "").strip()
+API_URL = "https://7107.api.greenapi.com"
+
+# Destino Configurado
+GRUPO_VIP_ID = "120363379680961951@g.us"
+
+# CONFIGURAÇÕES DO ROBÔ E FILA DE MENSAGENS
+configuracoes_robo = {
+    "status": "ligado",
+    "horaInicio": "08:00",
+    "horaFim": "23:00",
+    "gruposOrigemAtivos": [
+        "120363418644377424@g.us",  # promoções para pobres #690
+        "120363411295116080@g.us",  # Achados Na Promo ML #25
+        "120363408532275056@g.us",  # oqcomprei Promoções | 13
+        "120363427989794290@g.us"   # Perfumes #6
+    ]
+}
+
+fila_mensagens = []
+
+NOMES_GRUPOS = {
+    "120363418644377424@g.us": "Pobres #690",
+    "120363411295116080@g.us": "Achados ML #25",
+    "120363408532275056@g.us": "Oqcomprei | 13",
+    "120363427989794290@g.us": "Perfumes #6"
+}
+
+# ==========================================
+# OS SEUS IDS DE AFILIADO OFICIAIS PARAMETRIZADOS
+# ==========================================
+MEU_ID_AMAZON = "achadinh0cc44-20"
+MEU_ID_SHOpee = "18337380528"
+MEU_ID_MELI = "pepo8413118"
+MEU_ID_MAGALU = "5207311"
+ALIEXPRESS_TRACKING_ID = "Canalwhats"
+
+def resolver_link_geral(url):
+    """ Segue links encurtados (meli.la, amzn.to, shp.ee, onelink.me, etc.) para descobrir o destino real """
+    try:
+        if any(d in url for d in ["meli.la", "amzn.to", "amzn.pobres", "shp.ee", "ali.ski", "maga.lu", "onelink.me"]):
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            resposta = requests.get(url, headers=headers, timeout=6, allow_redirects=True)
+            return resposta.url
+    except Exception as e:
+        print("Erro ao resolver link curto:", str(e))
+    return url
+
+def converter_para_meu_link(texto_mensagem):
+    url_padrao = r'(https?://[^\s]+)'
+    urls_encontradas = re.findall(url_padrao, texto_mensagem)
+    texto_convertido = texto_mensagem
     
-    <!-- Metadados de Pré-visualização (Open Graph para WhatsApp, Facebook e Redes Sociais) -->
-    <meta property="og:title" content="Dicas da Poliii - Seleção Especial de Ofertas">
-    <meta property="og:description" content="Confira os melhores achados e produtos recomendados para você!">
-    <meta property="og:image" content="https://vitrine-sage-two.vercel.app/logo.jpeg">
-    <meta property="og:url" content="https://vitrine-sage-two.vercel.app/">
-    <meta property="og:type" content="website">
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <script>
-        // Endpoint oficial da sua nuvem Npoint
-        const NPOINT_URL = "https://api.npoint.io/fd32c904d4aafe739782"; 
-
-        let produtos = [];
-        let categorias = [
-            "Alimentos e bebidas", "Ar condicionado", "Automotivo e acessórios", "Bebê", 
-            "Casa e Decoração", "Cama, mesa e banho", "Beleza", "Camping e jardim", 
-            "Celular e acessórios", "Computação e informática", "Eletrodoméstico", "Eletrônicos", 
-            "Ferramentas e construção", "Fitness e suplemento", "Games", "Infantil", 
-            "Internacional", "Lazer", "Perfumes e hidratantes", "Pet", "Saúde", 
-            "Saúde e beleza", "Segurança", "Seleção Hering", "Smartphones", "Ventilação", 
-            "Viagem", "Televisores", "Seleção Nike", "Seleção Adidas", "Seleção C&A", 
-            "Seleção Dafiti", "Seleção Kabum", "Seleção Stanley", "Seleção AliExpress", "Seleção Cama in Box"
-        ];
-        let isAdminLogado = false;
-        let produtosSelecionadosSacola = [];
-
-        async function carregarDadosDaNuvem() {
-            try {
-                let resposta = await fetch(NPOINT_URL + "?t=" + new Date().getTime());
-                if (!resposta.ok) throw new Error("Erro ao conectar com a nuvem.");
-                
-                let resultado = await resposta.json();
-                produtos = resultado.produtos || resultado.record?.produtos || [];
-                
-                if (resultado.categorias && Array.isArray(resultado.categorias) && resultado.categorias.length > 0) {
-                    categorias = resultado.categorias;
-                }
-                
-                localStorage.setItem('dicasdapoli_produtos', JSON.stringify(produtos));
-                localStorage.setItem('dicasdapoli_categorias', JSON.stringify(categorias));
-
-                atualizarSelectsDeCategorias();
-                verificarModoListaOuProduto();
-                renderizarGerenciadorCategorias();
-            } catch (erro) {
-                console.warn("⚠️ Nuvem instável. A carregar dados do Cache Local de Segurança...", erro);
-                
-                let cacheProd = localStorage.getItem('dicasdapoli_produtos');
-                let cacheCat = localStorage.getItem('dicasdapoli_categorias');
-                
-                if (cacheProd) produtos = JSON.parse(cacheProd);
-                if (cacheCat) categorias = JSON.parse(cacheCat);
-
-                atualizarSelectsDeCategorias();
-                verificarModoListaOuProduto();
-                renderizarGerenciadorCategorias();
-            }
-        }
-
-        async function salvarDadosNaNuvem() {
-            try {
-                let resposta = await fetch(NPOINT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ produtos: produtos, categorias: categorias })
-                });
-
-                if (!resposta.ok) throw new Error("Erro ao salvar na nuvem.");
-                
-                localStorage.setItem('dicasdapoli_produtos', JSON.stringify(produtos));
-                localStorage.setItem('dicasdapoli_categorias', JSON.stringify(categorias));
-
-                alert("✅ Sincronizado com a nuvem com sucesso para todos!");
-            } catch (erro) {
-                console.error("Erro ao salvar:", erro);
-                alert("⚠️ Erro ao gravar na nuvem do Npoint.");
-            }
-        }
-
-        function atualizarSelectsDeCategorias() {
-            categorias.sort();
-
-            const filtroSelect = document.getElementById('categoryFilter');
-            let filtroHtml = `<option value="todos">🛒 Todas as Categorias</option>
-                              <option value="relampago">⚡ Ofertas Relâmpago (Destaques)</option>`;
-            categorias.forEach(cat => {
-                filtroHtml += `<option value="${cat}">${cat}</option>`;
-            });
-            if (filtroSelect) filtroSelect.innerHTML = filtroHtml;
-
-            const novoCatSelect = document.getElementById('newCat');
-            if (novoCatSelect) {
-                let adminCatHtml = '';
-                categorias.forEach(cat => {
-                    adminCatHtml += `<option value="${cat}">${cat}</option>`;
-                });
-                novoCatSelect.innerHTML = adminCatHtml;
-            }
-        }
-
-        function renderizarGerenciadorCategorias() {
-            const container = document.getElementById('listaCategoriasAdmin');
-            if (!container) return;
-
-            container.innerHTML = "";
-            categorias.forEach(cat => {
-                container.innerHTML += `
-                    <div style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 10px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px;">
-                        <span>📂 ${cat}</span>
-                        <div style="display: flex; gap: 4px;">
-                            <button onclick="editarCategoria('${cat}')" style="background: #ff9800; color: white; border: none; padding: 3px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">✏️ Editar</button>
-                            <button onclick="excluirCategoria('${cat}')" style="background: #f44336; color: white; border: none; padding: 3px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">🗑️ Excluir</button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        async function adicionarNovaCategoria() {
-            const inputCat = document.getElementById('novaCategoriaInput');
-            const nomeNovaCat = inputCat.value.trim();
-
-            if (!nomeNovaCat) {
-                alert("Digite o nome da nova categoria!");
-                return;
-            }
-
-            if (categorias.includes(nomeNovaCat)) {
-                alert("Esta categoria já existe!");
-                return;
-            }
-
-            categorias.push(nomeNovaCat);
-            inputCat.value = "";
-
-            atualizarSelectsDeCategorias();
-            renderizarGerenciadorCategorias();
-            await salvarDadosNaNuvem();
-        }
-
-        async function editarCategoria(nomeAntigo) {
-            let novoNome = prompt(`Editar nome da categoria:\n"${nomeAntigo}"`, nomeAntigo);
-            if (!novoNome) return;
-
-            novoNome = novoNome.trim();
-            if (novoNome === nomeAntigo) return;
-
-            if (categorias.includes(novoNome)) {
-                alert("Já existe uma categoria com este nome!");
-                return;
-            }
-
-            let index = categorias.indexOf(nomeAntigo);
-            if (index !== -1) {
-                categorias[index] = novoNome;
-            }
-
-            produtos.forEach(p => {
-                if (p.cat === nomeAntigo) {
-                    p.cat = novoNome;
-                }
-            });
-
-            atualizarSelectsDeCategorias();
-            renderizarGerenciadorCategorias();
-            renderizarProdutos(produtos);
-            await salvarDadosNaNuvem();
-        }
-
-        async function excluirCategoria(nomeCat) {
-            if (categorias.length <= 1) {
-                alert("Você precisa manter pelo menos uma categoria.");
-                return;
-            }
-
-            if (confirm(`Tem certeza que deseja excluir a categoria "${nomeCat}"?\n(Atenção: verifique se há produtos nela).`)) {
-                categorias = categorias.filter(c => c !== nomeCat);
-                
-                atualizarSelectsDeCategorias();
-                renderizarGerenciadorCategorias();
-                await salvarDadosNaNuvem();
-            }
-        }
-
-        function renderizarProdutos(lista) {
-            const container = document.getElementById('productList');
-            if (!container) return;
-            container.innerHTML = "";
-
-            if(lista.length === 0) {
-                container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Nenhum produto cadastrado nesta seleção.</p>";
-                return;
-            }
-
-            lista.sort((a, b) => {
-                let numA = parseInt(a.num.replace("#", "")) || 0;
-                let numB = parseInt(b.num.replace("#", "")) || 0;
-                return numA - numB;
-            });
-
-            lista.forEach(p => {
-                let botoesAdmin = isAdminLogado ? `
-                    <div class="card-admin-actions" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">
-                        <button class="btn-edit" onclick="carregarParaEditar('${p.id}')">✏️ Editar</button>
-                        <button class="btn-delete" onclick="excluirProduto('${p.id}')">🗑️ Excluir</button>
-                        <button class="btn-share" onclick="compartilharLinkDireto('${p.id}', '${p.title.replace(/'/g, "")}', '${p.cupom || ''}', '${p.precoFinal || ''}')">🔗 Copiar Link Direto</button>
-                    </div>
-                ` : '';
-
-                let seloRelampago = p.relampago === "sim" ? `<div class="badge-relampago"><i class="fa-solid fa-clock"></i> ⚡ OFERTA RELÂMPAGO</div>` : '';
-
-                let infoPromocao = '';
-                if (p.cupom || p.precoFinal) {
-                    let textoCupom = p.cupom ? `🎟️ Cupom: ${p.cupom}` : '';
-                    let textoPreco = p.precoFinal ? `💰 Por: ${p.precoFinal}` : '';
-                    let separador = (p.cupom && p.precoFinal) ? ' | ' : '';
-                    infoPromocao = `<div class="product-promo">${textoPreco}${separador}${textoCupom}</div>`;
-                }
-
-                let botaoSacolaHtml = '';
-                if (isAdminLogado) {
-                    let estaNaSacola = produtosSelecionadosSacola.includes(String(p.id));
-                    let textoBtnSacola = estaNaSacola ? "✅ Na Sacola" : "➕ Adicionar à Sacola";
-                    let corBtnSacola = estaNaSacola ? "#4CAF50" : "#d32f2f";
-                    
-                    botaoSacolaHtml = `
-                        <div style="display: flex; gap: 6px; margin-top: 6px;">
-                            <a href="${p.link}" target="_blank" class="btn-buy" style="flex: 1;">Comprar</a>
-                            <button onclick="toggleProdutoSacola('${p.id}')" id="btn-sacola-${p.id}" style="background-color: ${corBtnSacola}; color: white; border: none; padding: 6px 10px; border-radius: 5px; font-size: 11px; font-weight: bold; cursor: pointer;">${textoBtnSacola}</button>
-                        </div>
-                    `;
-                } else {
-                    botaoSacolaHtml = `<a href="${p.link}" target="_blank" class="btn-buy">Comprar Agora</a>`;
-                }
-
-                container.innerHTML += `
-                    <div class="product-card" id="produto-${p.id}">
-                        ${seloRelampago}
-                        <img src="${p.img}" alt="${p.title}">
-                        <div class="product-info">
-                            <div>
-                                <span class="product-number">${p.num}</span>
-                                <div class="product-title">${p.title}</div>
-                                <div class="product-desc">${p.desc}</div>
-                                ${infoPromocao}
-                                ${botoesAdmin}
-                            </div>
-                            ${botaoSacolaHtml}
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        window.toggleProdutoSacola = function(id) {
-            let index = produtosSelecionadosSacola.indexOf(String(id));
-            let btn = document.getElementById(`btn-sacola-${id}`);
-
-            if (index > -1) {
-                produtosSelecionadosSacola.splice(index, 1);
-                if (btn) {
-                    btn.style.backgroundColor = "#d32f2f";
-                    btn.innerText = "➕ Adicionar à Sacola";
-                }
-            } else {
-                produtosSelecionadosSacola.push(String(id));
-                if (btn) {
-                    btn.style.backgroundColor = "#4CAF50";
-                    btn.innerText = "✅ Na Sacola";
-                }
-            }
-
-            atualizarBarraSacolaFlutuante();
-        }
-
-        function atualizarBarraSacolaFlutuante() {
-            let barra = document.getElementById('barraSacolaFlutuante');
-            let contador = document.getElementById('contadorSacola');
-
-            if (!barra || !contador) return;
-
-            if (isAdminLogado && produtosSelecionadosSacola.length > 0) {
-                contador.innerText = produtosSelecionadosSacola.length;
-                barra.style.display = "flex";
-            } else {
-                barra.style.display = "none";
-            }
-        }
-
-        window.gerarLinkSacolaSelecionada = function() {
-            if (produtosSelecionadosSacola.length === 0) {
-                alert("Nenhum produto selecionado!");
-                return;
-            }
-
-            let urlBase = window.location.origin + window.location.pathname;
-            let linkLista = `${urlBase}?lista=${produtosSelecionadosSacola.join(',')}`;
-
-            let mensagemPersonalizada = `Olá, confira a lista dos produtos com os melhores preços.\n\nVeja os produtos na lista abaixo:\n${linkLista}`;
-
-            navigator.clipboard.writeText(mensagemPersonalizada).then(() => {
-                alert("✅ Link da sacola copiado com o texto personalizado formatado!");
-            });
-        }
-
-        window.compartilharCategoriaAtual = function() {
-            const categoriaSelecionada = document.getElementById('categoryFilter').value;
-
-            if (categoriaSelecionada === 'todos' || categoriaSelecionada === 'relampago') {
-                alert("Por favor, selecione uma categoria específica no filtro para partilhar.");
-                return;
-            }
-
-            let produtosDaCategoria = produtos.filter(p => p.cat === categoriaSelecionada);
-
-            if (produtosDaCategoria.length === 0) {
-                alert(`Não há produtos cadastrados na categoria "${categoriaSelecionada}".`);
-                return;
-            }
-
-            let idsCategoria = produtosDaCategoria.map(p => p.id);
-            let urlBase = window.location.origin + window.location.pathname;
-            let linkCategoria = `${urlBase}?lista=${idsCategoria.join(',')}`;
-
-            let mensagemPersonalizada = `🎄✨ Confira os melhores produtos da categoria *${categoriaSelecionada}*:\n\nSeparei para você:\n\nVeja os produtos na lista abaixo:\n${linkCategoria}`;
-
-            navigator.clipboard.writeText(mensagemPersonalizada).then(() => {
-                alert(`✅ Link da categoria "${categoriaSelecionada}" copiado com o texto personalizado formatado!`);
-            });
-        }
-
-        // NOVO: Função para copiar o link de Cupons da Shopee com a frase personalizada e link de afiliada
-        window.compartilharCuponsShopee = function() {
-            let linkAfiliadaShopee = "https://s.shopee.com.br/8ANLneMzRi";
-            let mensagemCupons = `Confira os novos cupons da Shopee disponíveis:\n\n${linkAfiliadaShopee}`;
-
-            navigator.clipboard.writeText(mensagemCupons).then(() => {
-                alert("✅ Link e frase de cupons da Shopee copiados com sucesso!");
-            });
-        }
-
-        window.compartilharLinkDireto = function(idProduto, titulo, cupom, precoFinal) {
-            let urlBase = window.location.origin + window.location.pathname;
-            let linkInteligente = `${urlBase}?produto=${idProduto}`;
-            
-            let textoPreco = precoFinal ? `\n💰 *Preço Final c/ Desconto:* *${precoFinal}*` : '';
-            let textoCupom = cupom ? `\n🎟️ *Cupom:* \`${cupom}\`` : '';
-            
-            let textoCompartilhar = `✨ Olá! Veja os detalhes deste item:\n*${titulo}* 🛒${textoPreco}${textoCupom}\n\nAcesse direto na minha vitrine:\n${linkInteligente}`;
-            
-            navigator.clipboard.writeText(textoCompartilhar).then(() => {
-                alert("✅ Mensagem com preço final e cupom copiada para o WhatsApp!");
-            });
-        }
-
-        function verificarModoListaOuProduto() {
-            const parametros = new URLSearchParams(window.location.search);
-            const idProduto = parametros.get('produto');
-            const listaIds = parametros.get('lista');
-
-            if (listaIds) {
-                let arrayIds = listaIds.split(',').map(i => i.trim());
-                let produtosDaLista = produtos.filter(p => {
-                    let numLimpo = p.num.replace("#", "");
-                    return arrayIds.includes(String(p.id)) || arrayIds.includes(numLimpo);
-                });
-
-                let h1El = document.querySelector('h1');
-                let bioEl = document.querySelector('.bio');
-                if (h1El) h1El.innerText = "🛍️ Sacola de Ofertas da Poli";
-                if (bioEl) bioEl.innerText = "Seleção especial de produtos recomendados para você";
-                
-                renderizarProdutos(produtosDaLista);
-            } else {
-                renderizarProdutos(produtos);
-                if (idProduto) {
-                    setTimeout(() => {
-                        const card = document.getElementById(`produto-${idProduto}`);
-                        if (card) {
-                            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            card.style.border = "2px solid #ff4081";
-                            card.style.boxShadow = "0 0 15px rgba(255, 64, 129, 0.4)";
-                            setTimeout(() => {
-                                card.style.border = "1px solid #eee";
-                                card.style.boxShadow = "0 2px 5px rgba(0,0,0,0.05)";
-                            }, 4000);
-                        }
-                    }, 600);
-                }
-            }
-        }
-
-        function filtrarProdutos() {
-            const termoInput = document.getElementById('searchInput');
-            const categoriaSelect = document.getElementById('categoryFilter');
-            const btnCompartilharCat = document.getElementById('btnCompartilharCategoria');
-
-            if (!termoInput || !categoriaSelect) return;
-
-            const termo = termoInput.value.toLowerCase().trim();
-            const categoria = categoriaSelect.value;
-
-            if (btnCompartilharCat) {
-                if (isAdminLogado && categoria !== 'todos' && categoria !== 'relampago') {
-                    btnCompartilharCat.style.display = "block";
-                } else {
-                    btnCompartilharCat.style.display = "none";
-                }
-            }
-
-            const filtrados = produtos.filter(p => {
-                if (categoria === 'relampago') {
-                    return p.relampago === "sim";
-                }
-
-                const matchCat = (categoria === 'todos' || p.cat === categoria);
-                let matchTexto = false;
-                if (/^\d+$/.test(termo)) {
-                    let numLimpo = p.num.replace("#", "");
-                    matchTexto = (numLimpo === termo);
-                } else {
-                    matchTexto = p.title.toLowerCase().includes(termo) || p.num.toLowerCase().includes(termo);
-                }
-                return matchCat && matchTexto;
-            });
-
-            renderizarProdutos(filtrados);
-        }
-
-        async function salvarProduto() {
-            const editId = document.getElementById('editId').value;
-            const num = document.getElementById('newNum').value;
-            const cat = document.getElementById('newCat').value;
-            const title = document.getElementById('newTitle').value;
-            const desc = document.getElementById('newDesc').value;
-            const cupom = document.getElementById('newCupom').value;
-            const precoFinal = document.getElementById('newPrecoFinal').value;
-            const relampago = document.getElementById('newRelampago').value;
-            const img = document.getElementById('newImg').value;
-            const link = document.getElementById('newLink').value;
-
-            if(!num || !title || !link || !img) {
-                alert("Preencha todos os campos obrigatórios!");
-                return;
-            }
-
-            const dadosNovo = {
-                id: editId ? String(editId) : String(Date.now()),
-                num: "#" + num.replace("#",""),
-                cat: cat,
-                title: title,
-                desc: desc,
-                cupom: cupom,
-                precoFinal: precoFinal,
-                relampago: relampago,
-                img: img,
-                link: link
-            };
-
-            if(editId) {
-                let index = produtos.findIndex(p => String(p.id) === String(editId));
-                if(index !== -1) {
-                    produtos[index] = dadosNovo;
-                }
-            } else {
-                produtos.push(dadosNovo);
-            }
-
-            renderizarProdutos(produtos);
-            await salvarDadosNaNuvem();
-            limparFormularioprincipal();
-        }
-
-        async function excluirProduto(id) {
-            if(confirm("Tem certeza que deseja excluir este produto?")) {
-                produtos = produtos.filter(p => String(p.id) !== String(id));
-                renderizarProdutos(produtos);
-                await salvarDadosNaNuvem();
-            }
-        }
-
-        function carregarParaEditar(id) {
-            let p = produtos.find(item => String(item.id) === String(id));
-            if(p) {
-                document.getElementById('editId').value = p.id;
-                document.getElementById('newNum').value = p.num.replace("#","");
-                document.getElementById('newCat').value = p.cat;
-                document.getElementById('newTitle').value = p.title;
-                document.getElementById('newDesc').value = p.desc;
-                document.getElementById('newCupom').value = p.cupom || "";
-                document.getElementById('newPrecoFinal').value = p.precoFinal || "";
-                document.getElementById('newRelampago').value = p.relampago || "nao";
-                document.getElementById('newImg').value = p.img;
-                document.getElementById('newLink').value = p.link;
-
-                document.getElementById('panel-title').innerText = "Editar Produto";
-                document.getElementById('btnSalvar').innerText = "Atualizar Produto";
-                document.getElementById('btnCancelar').style.display = "block";
-
-                document.getElementById('admin-panel').style.display = 'block';
-                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-            }
-        }
-
-        function pedirSenhaAdmin() {
-            const senhaMestra = "018315"; 
-            const digitada = prompt("Digite a senha de administração:");
-
-            if (digitada === senhaMestra) {
-                isAdminLogado = true;
-                renderizarProdutos(produtos);
-                filtrarProdutos();
-                document.getElementById('admin-panel').style.display = 'block';
-                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-            } else if (digitada !== null) {
-                alert("Senha incorreta! Acesso negado.");
-            }
-        }
-
-        function sairDoAdmin() {
-            isAdminLogado = false;
-            produtosSelecionadosSacola = [];
-            atualizarBarraSacolaFlutuante();
-            renderizarProdutos(produtos);
-            filtrarProdutos();
-            document.getElementById('admin-panel').style.display = 'none';
-            limparFormularioprincipal();
-        }
-
-        function cancelarEdicao() {
-            limparFormularioprincipal();
-            document.getElementById('panel-title').innerText = "Adicionar Novo Produto";
-            document.getElementById('btnSalvar').innerText = "Salvar Produto na Vitrine";
-            document.getElementById('btnCancelar').style.display = "none";
-        }
-
-        function limparFormularioprincipal() {
-            document.getElementById('editId').value = '';
-            document.getElementById('newNum').value = '';
-            document.getElementById('newTitle').value = '';
-            document.getElementById('newDesc').value = '';
-            document.getElementById('newCupom').value = '';
-            document.getElementById('newPrecoFinal').value = '';
-            document.getElementById('newRelampago').value = 'nao';
-            document.getElementById('newImg').value = '';
-            document.getElementById('newLink').value = '';
-            document.getElementById('panel-title').innerText = "Adicionar Novo Produto";
-            document.getElementById('btnSalvar').innerText = "Salvar Produto na Vitrine";
-            document.getElementById('btnCancelar').style.display = "none";
-        }
-
-        window.onload = carregarDadosDaNuvem;
-    </script>
-
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
-        body { background-color: #d1c4e9; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; padding-bottom: 140px; }
-        .container { width: 100%; max-width: 480px; background: #ffffff; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; align-items: center; position: relative; }
-        .profile-pic { width: 120px; height: 120px; border-radius: 50%; border: 3px solid #ff4081; padding: 3px; margin-bottom: 15px; object-fit: cover; }
-        h1 { font-size: 22px; color: #333; margin-bottom: 5px; text-align: center; }
-        .bio { font-size: 14px; color: #666; margin-bottom: 15px; text-align: center; }
-        .social-icons { display: flex; gap: 15px; margin-bottom: 20px; }
-        .social-icons a { font-size: 20px; color: #333; transition: color 0.3s; }
-        .social-icons a:hover { color: #ff4081; }
-        .btn-shopee { width: 100%; background-color: #ff5722; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-align: center; text-decoration: none; display: block; }
-        .btn-whatsapp { width: 100%; background-color: #25d366; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-align: center; text-decoration: none; display: block; }
-        .filter-section { width: 100%; margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
-        select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
+    for url in urls_encontradas:
+        url_limpa = url.strip()
         
-        #btnCompartilharCategoria {
-            display: none;
-            width: 100%;
-            background-color: #1976d2;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 13px;
-            cursor: pointer;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .product-list { width: 100%; margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .product-card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 12px; display: flex; gap: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative; transition: all 0.5s ease; }
-        .product-card img { width: 90px; height: 90px; border-radius: 8px; object-fit: cover; }
-        .product-info { display: flex; flex-direction: column; justify-content: space-between; flex: 1; }
-        .product-number { font-size: 13px; font-weight: bold; color: #ff4081; }
-        .product-title { font-size: 14px; font-weight: bold; color: #333; }
-        .product-desc { font-size: 12px; color: #666; }
-        .product-promo { margin-top: 5px; font-size: 11px; background: #e8f5e9; color: #2e7d32; padding: 3px 6px; border-radius: 4px; display: inline-block; font-weight: bold; }
-        .badge-relampago { position: absolute; top: -9px; right: 10px; background: #ff3d00; color: white; font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
-        .btn-buy { background-color: #e91e63; color: white; border: none; padding: 6px 10px; border-radius: 5px; font-size: 11px; font-weight: bold; text-align: center; text-decoration: none; cursor: pointer; }
-        .card-admin-actions { display: none; gap: 5px; margin-top: 5px; }
-        .btn-edit { background-color: #ff9800; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
-        .btn-delete { background-color: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
-        .btn-share { background-color: #2196F3; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
-        .admin-link { margin-top: 30px; font-size: 12px; color: #aaa; text-decoration: none; cursor: pointer; display: block; text-align: center; padding-bottom: 20px; }
-        .admin-link:hover { color: #333; }
-        #admin-panel { display: none; width: 100%; background: #f9f9f9; border: 1px solid #ddd; border-radius: 10px; padding: 15px; margin-top: 20px; }
-        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        #admin-panel h3 { font-size: 15px; color: #333; margin: 0; }
-        .btn-close-admin { background-color: #e0e0e0; color: #333; border: none; padding: 4px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer; }
-        .btn-close-admin:hover { background-color: #ccc; }
-
-        .floating-container { 
-            position: fixed; 
-            top: 50%; 
-            transform: translateY(-50%); 
-            right: 2px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 12px; 
-            z-index: 9999; 
-            align-items: center; 
-        }
-        .floating-circle { 
-            width: 48px; 
-            height: 48px; 
-            border-radius: 50%; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
-            align-items: center; 
-            color: white; 
-            box-shadow: 0 3px 8px rgba(0,0,0,0.3); 
-            text-decoration: none; 
-            transition: transform 0.3s; 
-            text-align: center;
-            padding: 2px;
-        }
-        .floating-circle:hover { transform: scale(1.1); }
-        .floating-circle i { font-size: 13px; margin-bottom: 1px; }
-        .floating-circle span { font-size: 5.5px; font-weight: bold; line-height: 1; text-transform: uppercase; }
-        .circle-zap { background-color: #25d366; }
-        .circle-channel { background-color: #128c7e; }
-
-        .scroll-buttons-container {
-            position: fixed;
-            bottom: 25px;
-            left: 15px;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .scroll-btn {
-            background-color: #d32f2f;
-            color: white;
-            border: none;
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.3s;
-        }
-        .scroll-btn:hover { transform: scale(1.1); }
-
-        #barraSacolaFlutuante {
-            display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: #2e7d32;
-            color: white;
-            padding: 12px 20px;
-            z-index: 99998;
-            box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
-            justify-content: space-between;
-            align-items: center;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        .btn-gerar-sacola {
-            background-color: white;
-            color: #2e7d32;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 13px;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-    </style>
-</head>
-<body>
-
-    <div class="container">
-        <!-- Logo -->
-        <img id="logoImg" src="logo.jpeg" alt="Logo Dicasdapoliii" class="profile-pic">
+        # 1. Resolvemos o link curto (ex: meli.la/2zrFWP1) para obter a URL real de destino
+        url_real = resolver_link_geral(url_limpa)
+        novo_link = url_real
         
-        <h1>Dicasdapoliii</h1>
-        <p class="bio">Seu guia de compras online</p>
+        # 2. MERCADO LIVRE (Usa matt_tool)
+        if any(d in url_real for d in ["mercadolivre.com", "mercadolado.com", "meli.im", "meli.la", "pobres.com.br"]):
+            base_limpa = url_real.split("?")[0]
+            
+            # Se for um link de vitrine social, preservamos a estrutura mas aplicamos o teu matt_tool
+            if "/social/" in base_limpa:
+                novo_link = f"{base_limpa}?matt_tool={MEU_ID_MELI}"
+            else:
+                # Se for um link direto de produto do Mercado Livre, limpa parâmetros antigos e aplica o teu ID
+                novo_link = f"{base_limpa}?matt_tool={MEU_ID_MELI}"
+            
+        # 3. AMAZON (Extrai o ASIN e reconstrói o link limpo com a tag correta)
+        elif any(d in url_real for d in ["amazon.com", "amzn.to", "amzn.pobres"]):
+            if "/dp/" in url_real:
+                try:
+                    partes = url_real.split("/dp/")
+                    asin = partes[1].split("/")[0].split("?")[0]
+                    novo_link = f"https://www.amazon.com.br/dp/{asin}?tag={MEU_ID_AMAZON}"
+                except Exception:
+                    base_limpa = url_real.split("?")[0]
+                    novo_link = f"{base_limpa}?tag={MEU_ID_AMAZON}"
+            elif "/gp/product/" in url_real:
+                try:
+                    partes = url_real.split("/gp/product/")
+                    asin = partes[1].split("/")[0].split("?")[0]
+                    novo_link = f"https://www.amazon.com.br/dp/{asin}?tag={MEU_ID_AMAZON}"
+                except Exception:
+                    base_limpa = url_real.split("?")[0]
+                    novo_link = f"{base_limpa}?tag={MEU_ID_AMAZON}"
+            else:
+                base_limpa = url_real.split("?")[0]
+                novo_link = f"{base_limpa}?tag={MEU_ID_AMAZON}"
+                
+        # 4. SHOPEE (Usa af_id)
+        elif any(d in url_real for d in ["shopee.com", "shp.ee"]):
+            base_limpa = url_real.split("?")[0]
+            novo_link = f"{base_limpa}?af_id={MEU_ID_SHOpee}"
+            
+        # 5. ALIEXPRESS (Usa trackingId)
+        elif any(d in url_real for d in ["aliexpress", "ali.ski"]):
+            base_limpa = url_real.split("?")[0]
+            novo_link = f"{base_limpa}?trackingId={ALIEXPRESS_TRACKING_ID}"
+            
+        # 6. MAGALU (Usa partner_id)
+        elif any(d in url_real for d in ["magazineluiza.com", "magalu.com", "maga.lu"]):
+            base_limpa = url_real.split("?")[0]
+            novo_link = f"{base_limpa}?partner_id={MEU_ID_MAGALU}"
+            
+        texto_convertido = texto_convertido.replace(url_limpa, novo_link)
+        
+    return texto_convertido
 
-        <!-- Redes Sociais com o Facebook -->
-        <div class="social-icons">
-            <a href="https://www.facebook.com/share/1GKAczQjX4/" target="_blank"><i class="fa-brands fa-facebook"></i></a>
-            <a href="https://www.tiktok.com" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
-            <a href="https://www.instagram.com" target="_blank"><i class="fa-brands fa-instagram"></i></a>
-            <a href="https://www.youtube.com" target="_blank"><i class="fa-brands fa-youtube"></i></a>
-            <a href="https://www.pinterest.com" target="_blank"><i class="fa-brands fa-pinterest"></i></a>
-        </div>
+@app.route('/')
+def index():
+    try:
+        return render_template('index.html')
+    except Exception:
+        return "Dicas da Poliii Bot - Painel Web Ativo!"
 
-        <!-- Botões de Conversão -->
-        <a href="https://s.shopee.com.br/8ANLneMzRi" target="_blank" class="btn-shopee">🛍️ Resgatar Cupons Shopee</a>
-        <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="btn-whatsapp">💬 Entrar no Canal de Ofertas</a>
-        <a href="https://wa.me/5566999087449" target="_blank" class="btn-whatsapp" style="background-color: #128c7e;">🟢 Falar com a Poli</a>
+@app.route('/configurar-robo', methods=['POST'])
+def configurar_robo():
+    try:
+        dados = request.json
+        configuracoes_robo["status"] = dados.get("status", "ligado")
+        configuracoes_robo["horaInicio"] = dados.get("horaInicio", "08:00")
+        configuracoes_robo["horaFim"] = dados.get("horaFim", "23:00")
+        configuracoes_robo["gruposOrigemAtivos"] = dados.get("gruposOrigemAtivos", [])
+        return jsonify({"status": "sucesso"}), 200
+    except Exception as e:
+        return jsonify({"status": "erro", "mensagem": str(e)}), 500
 
-        <!-- Filtros e Busca -->
-        <div class="filter-section">
-            <select id="categoryFilter" onchange="filtrarProdutos()"></select>
-            <button id="btnCompartilharCategoria" onclick="compartilharCategoriaAtual()">🔗 Compartilhar Esta Categoria</button>
-            <input type="text" id="searchInput" placeholder="🔍 Digite o número ou nome do produto..." onkeyup="filtrarProdutos()">
-        </div>
+@app.route('/obter-fila', methods=['GET'])
+def obter_fila():
+    return jsonify(fila_mensagens), 200
 
-        <!-- Lista Dinâmica de Produtos -->
-        <div class="product-list" id="productList"></div>
+@app.route('/enviar', methods=['POST'])
+def enviar_oferta():
+    try:
+        titulo = request.form.get('titulo', '')
+        image_url = request.form.get('imageUrl', '').strip()
+        link_produto = request.form.get('link', '')
+        preco = request.form.get('preco', '')
+        parcelamento = request.form.get('parcelamento', '')
+        cupom = request.form.get('cupom', '')
+        image_file = request.files.get('imageFile')
+        
+        link_convertido = converter_para_meu_link(link_produto) if link_produto else ""
+        
+        mensagem = f"🔥 *{titulo}* 🔥\n\n"
+        if preco:
+            mensagem += f"💰 *Preço Especial:* R$ {preco}\n\n"
+        if parcelamento:
+            mensagem += f"💳 *Parcelamento:* {parcelamento}\n\n"
+        if cupom:
+            mensagem += f"🎟️ *Cupom:* `{cupom}`\n"
+            mensagem += f"👉 *Copie o código do cupom e aplique no carrinho para garantir o preço!*\n\n"
+        if link_convertido:
+            mensagem += f"🔗 *Corre para garantir:* {link_convertido}\n\n"
+            
+        mensagem += f"🏃‍♀️ *Garanta o teu antes que a oferta e cupom acabem!*"
 
-        <!-- Botão Protegido por Senha para abrir o Painel -->
-        <a class="admin-link" onclick="pedirSenhaAdmin()">⚙️ Painel de Administração</a>
+        file_bytes = None
+        filename = "oferta.jpg"
+        mimetype = "image/jpeg"
+        if image_file and image_file.filename != '':
+            filename = image_file.filename
+            mimetype = image_file.content_type or "image/jpeg"
+            file_bytes = image_file.read()
 
-        <!-- Painel Restrito de Administração -->
-        <div id="admin-panel">
-            <div class="admin-header">
-                <h3 id="panel-title">Adicionar Novo Produto</h3>
-                <button class="btn-close-admin" onclick="sairDoAdmin()">✕ Sair</button>
-            </div>
+        resposta = None
+        if image_url:
+            url_api = f"{API_URL}/waInstance{API_ID_INSTANCE}/sendFileByUrl/{API_TOKEN}"
+            payload = {
+                "chatId": GRUPO_VIP_ID,
+                "urlFile": image_url,
+                "fileName": "oferta.jpg",
+                "caption": mensagem
+            }
+            resposta = requests.post(url_api, json=payload, headers={'Content-Type': 'application/json'})
+        elif file_bytes and len(file_bytes) > 0:
+            try:
+                url_api = f"{API_URL}/waInstance{API_ID_INSTANCE}/sendFileByFile/{API_TOKEN}"
+                files = {'file': (filename, file_bytes, mimetype)}
+                data = {"chatId": GRUPO_VIP_ID, "caption": mensagem}
+                resposta = requests.post(url_api, data=data, files=files)
+            except Exception:
+                resposta = None
 
-            <!-- NOVO: Botão Exclusivo no Admin para Compartilhar Cupons Shopee -->
-            <div style="background: #fff3e0; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffe0b2;">
-                <h4 style="font-size: 13px; color: #e65100; margin-bottom: 6px;">🎟️ Atalho de Cupons Shopee</h4>
-                <p style="font-size: 11px; color: #555; margin-bottom: 8px;">Copia o texto e o teu link de afiliada da Shopee para capturar cookies.</p>
-                <button onclick="compartilharCuponsShopee()" style="background-color: #ff5722; color: white; border: none; padding: 9px 12px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; width: 100%;">🛍️ Copiar Link de Cupons Shopee</button>
-            </div>
+        if not resposta or resposta.status_code != 200:
+            url_api = f"{API_URL}/waInstance{API_ID_INSTANCE}/sendMessage/{API_TOKEN}"
+            payload = {
+                "chatId": GRUPO_VIP_ID,
+                "message": mensagem
+            }
+            resposta = requests.post(url_api, json=payload, headers={'Content-Type': 'application/json'})
 
-            <!-- Seção de Gerenciamento de Categorias com Editar e Excluir -->
-            <div style="background: #eee; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
-                <h4 style="font-size: 13px; color: #333; margin-bottom: 6px;">📂 Gerenciar Categorias da Vitrine</h4>
-                <div style="display: flex; gap: 5px; margin-bottom: 8px;">
-                    <input type="text" id="novaCategoriaInput" placeholder="Nova Categoria (ex: Promoções)" style="margin-bottom: 0;">
-                    <button onclick="adicionarNovaCategoria()" style="background: #4CAF50; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; white-space: nowrap;">Adicionar</button>
-                </div>
-                <div id="listaCategoriasAdmin" style="display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto;"></div>
-            </div>
+        if resposta.status_code == 200:
+            return jsonify({"status": "sucesso"}), 200
+        else:
+            return jsonify({"status": "erro", "mensagem": f"Erro Green-API ({resposta.status_code}): {resposta.text}"}), 500
 
-            <hr style="border: 0; border-top: 1px solid #ddd; margin-bottom: 15px;">
+    except Exception as e:
+        return jsonify({"status": "erro", "mensagem": str(e)}), 500
 
-            <input type="hidden" id="editId">
-            <input type="text" id="newNum" placeholder="Número do Produto (ex: 8)" style="margin-bottom: 8px;">
-            <select id="newCat" style="margin-bottom: 8px;"></select>
-            <input type="text" id="newTitle" placeholder="Título do Produto" style="margin-bottom: 8px;">
-            <input type="text" id="newDesc" placeholder="Descrição curta (ex: Frete Grátis)" style="margin-bottom: 8px;">
-            <input type="text" id="newCupom" placeholder="🎟️ Nome do Cupom (ex: NIKE20)" style="margin-bottom: 8px;">
-            <input type="text" id="newPrecoFinal" placeholder="💰 Preço Final c/ Desconto (ex: R$ 89,90)" style="margin-bottom: 8px;">
-            <select id="newRelampago" style="margin-bottom: 8px;">
-                <option value="nao">⏳ ⚡ Oferta Relâmpago? Não</option>
-                <option value="sim">⏳ ⚡ Oferta Relâmpago? SIM (Com Relógio e Destaque)</option>
-            </select>
-            <input type="text" id="newImg" placeholder="Link direto da imagem (URL da web)" style="margin-bottom: 8px;">
-            <input type="text" id="newLink" placeholder="Link de afiliado (URL)" style="margin-bottom: 8px;">
-            <button class="btn-shopee" id="btnSalvar" onclick="salvarProduto()">Salvar Produto na Nuvem</button>
-            <button class="btn-buy" id="btnCancelar" onclick="cancelarEdicao()" style="display:none; background-color:#777; margin-top:5px;">Cancelar Edição</button>
-        </div>
-    </div>
+@app.route('/webhook', methods=['GET', 'POST'])
+def webhook_whatsapp():
+    if request.method == 'GET':
+        return "🤖 Webhook ativo e a escutar eventos!", 200
 
-    <!-- Barra Flutuante para Sacola Personalizada -->
-    <div id="barraSacolaFlutuante">
-        <span>🛍️ <span id="contadorSacola">0</span> produto(s) na sacola</span>
-        <button class="btn-gerar-sacola" onclick="gerarLinkSacolaSelecionada()">🔗 Gerar Link da Sacola</button>
-    </div>
+    try:
+        dados = request.json
+        if configuracoes_robo.get("status") != "ligado":
+            return jsonify({"status": "ignorado_desligado"}), 200
 
-    <!-- Botões Circulares Compactos Laterais Direitos -->
-    <div class="floating-container">
-        <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="floating-circle circle-channel" title="Canal Ofertas">
-            <i class="fa-solid fa-bullhorn"></i>
-            <span>Canal Ofertas</span>
-        </a>
-        <a href="https://wa.me/5566999087449" target="_blank" class="floating-circle circle-zap" title="Ajuda">
-            <i class="fa-brands fa-whatsapp"></i>
-            <span>Ajuda</span>
-        </a>    
-    </div>
+        hora_atual = datetime.now().strftime("%H:%M")
+        h_inicio = configuracoes_robo.get("horaInicio", "08:00")
+        h_fim = configuracoes_robo.get("horaFim", "23:00")
+        
+        if not (h_inicio <= hora_atual <= h_fim):
+            return jsonify({"status": "fora_de_horario"}), 200
 
-    <!-- Botões de Navegação Rápida (Subir e Descer) na Lateral Esquerda -->
-    <div class="scroll-buttons-container">
-        <button class="scroll-btn" onclick="voltarAoTopo()" title="Ir para o topo">
-            <i class="fa-solid fa-arrow-up"></i>
-        </button>
-        <button class="scroll-btn" onclick="irParaBaixo()" title="Ir para o fim">
-            <i class="fa-solid fa-arrow-down"></i>
-        </button>
-    </div>
+        if dados.get('typeWebhook') == 'incomingMessageReceived':
+            message_data = dados.get('messageData', {})
+            sender_data = dados.get('senderData', {})
+            chat_id_origem = dados.get('chatId') or sender_data.get('chatId', '')
 
-    <script>
-        function voltarAoTopo() {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        }
+            grupos_ativos = configuracoes_robo.get("gruposOrigemAtivos", [])
+            
+            if chat_id_origem not in grupos_ativos:
+                return jsonify({"status": "ignorado_grupo_inativo"}), 200
 
-        function irParaBaixo() {
-            window.scrollTo({
-                top: document.body.scrollHeight,
-                behavior: 'smooth'
-            });
-        }
-    </script>
-</body>
-</html>
+            texto_recebido = ""
+            url_imagem = ""
+            tipo_msg = message_data.get('typeMessage')
+            
+            if tipo_msg == 'textMessage':
+                texto_recebido = message_data.get('messageData', {}).get('textMessageData', {}).get('textMessage', '') or message_data.get('textMessageData', {}).get('textMessage', '')
+            elif tipo_msg == 'extendedTextMessage':
+                texto_recebido = message_data.get('extendedTextMessageData', {}).get('text', '')
+            elif tipo_msg == 'imageMessage':
+                file_data = message_data.get('fileMessageData', {})
+                texto_recebido = file_data.get('caption', '')
+                url_imagem = file_data.get('downloadUrl', '')
+
+            if texto_recebido:
+                horario_recebimento = datetime.now().strftime("%H:%M:%S")
+                nome_grupo_amigavel = NOMES_GRUPOS.get(chat_id_origem, "Grupo")
+                
+                item_fila = {
+                    "horario": horario_recebimento,
+                    "grupo": nome_grupo_amigavel,
+                    "texto": texto_recebido[:90] + "..." if len(texto_recebido) > 90 else texto_recebido
+                }
+                fila_mensagens.insert(0, item_fila)
+                if len(fila_mensagens) > 15:
+                    fila_mensagens.pop()
+
+                texto_com_seu_link = converter_para_meu_link(texto_recebido)
+                
+                if url_imagem:
+                    url_envio = f"{API_URL}/waInstance{API_ID_INSTANCE}/sendFileByUrl/{API_TOKEN}"
+                    payload_envio = {
+                        "chatId": GRUPO_VIP_ID,
+                        "urlFile": url_imagem,
+                        "fileName": "oferta.jpg",
+                        "caption": texto_com_texto_com_seu_link if 'texto_com_seu_link' in locals() else texto_com_seu_link
+                    }
+                    # Ajustado para usar diretamente a variável correta
+                    payload_envio["caption"] = texto_com_seu_link
+                    requests.post(url_envio, json=payload_envio, headers={'Content-Type': 'application/json'})
+                else:
+                    url_envio = f"{API_URL}/waInstance{API_ID_INSTANCE}/sendMessage/{API_TOKEN}"
+                    payload_envio = {
+                        "chatId": GRUPO_VIP_ID,
+                        "message": texto_com_seu_link
+                    }
+                    requests.post(url_envio, json=payload_envio, headers={'Content-Type': 'application/json'})
+
+        return jsonify({"status": "recebido"}), 200
+    except Exception as e:
+        print("ERRO NO WEBHOOK:", str(e))
+        return jsonify({"status": "erro", "detalhe": str(e)}), 500
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
