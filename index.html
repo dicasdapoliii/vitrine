@@ -89,12 +89,12 @@
             categorias.sort();
 
             const filtroSelect = document.getElementById('categoryFilter');
-            let filtroHtml = `<option value="todos">🛒 Todas as Categorias</option>
+            let filtroHtml = `<option value="todos">🛒 Toutes as Categorias</option>
                               <option value="relampago">⚡ Ofertas Relâmpago (Destaques)</option>`;
             categorias.forEach(cat => {
                 filtroHtml += `<option value="${cat}">${cat}</option>`;
             });
-            filtroSelect.innerHTML = filtroHtml;
+            if (filtroSelect) filtroSelect.innerHTML = filtroHtml;
 
             const novoCatSelect = document.getElementById('newCat');
             if (novoCatSelect) {
@@ -311,6 +311,7 @@
             });
         }
 
+        // TEXTO PERSONALIZADO COM O NOME DA CATEGORIA INCLUÍDO
         window.compartilharCategoriaAtual = function() {
             const categoriaSelecionada = document.getElementById('categoryFilter').value;
 
@@ -766,4 +767,45 @@
     <!-- Barra Flutuante para Sacola Personalizada -->
     <div id="barraSacolaFlutuante">
         <span>🛍️ <span id="contadorSacola">0</span> produto(s) na sacola</span>
-        <button class="btn-gerar-sacola" onclick="gerarLinkSacolaSelecionada()">
+        <button class="btn-gerar-sacola" onclick="gerarLinkSacolaSelecionada()">🔗 Gerar Link da Sacola</button>
+    </div>
+
+    <!-- Botões Circulares Compactos Laterais Direitos -->
+    <div class="floating-container">
+        <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="floating-circle circle-channel" title="Canal Ofertas">
+            <i class="fa-solid fa-bullhorn"></i>
+            <span>Canal Ofertas</span>
+        </a>
+        <a href="https://wa.me/5566999087449" target="_blank" class="floating-circle circle-zap" title="Ajuda">
+            <i class="fa-brands fa-whatsapp"></i>
+            <span>Ajuda</span>
+        </a>    
+    </div>
+
+    <!-- Botões de Navegação Rápida (Subir e Descer) na Lateral Esquerda -->
+    <div class="scroll-buttons-container">
+        <button class="scroll-btn" onclick="voltarAoTopo()" title="Ir para o topo">
+            <i class="fa-solid fa-arrow-up"></i>
+        </button>
+        <button class="scroll-btn" onclick="irParaBaixo()" title="Ir para o fim">
+            <i class="fa-solid fa-arrow-down"></i>
+        </button>
+    </div>
+
+    <script>
+        function voltarAoTopo() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        function irParaBaixo() {
+            window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    </script>
+</body>
+</html>
