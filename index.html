@@ -15,7 +15,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
-        // Endpoint oficial da sua nuvem Npoint
+        // ==========================================
+        // 1. CONFIGURAÇÃO DA NUVEM NPOINT E DADOS
+        // ==========================================
         const NPOINT_URL = "https://api.npoint.io/fd32c904d4aafe739782"; 
 
         let produtos = [];
@@ -32,6 +34,9 @@
         let isAdminLogado = false;
         let produtosSelecionadosSacola = [];
 
+        // ==========================================
+        // 2. CARREGAMENTO E GRAVAÇÃO NA NUVEM
+        // ==========================================
         async function carregarDadosDaNuvem() {
             try {
                 let resposta = await fetch(NPOINT_URL + "?t=" + new Date().getTime());
@@ -50,6 +55,7 @@
                 atualizarSelectsDeCategorias();
                 verificarModoListaOuProduto();
                 renderizarGerenciadorCategorias();
+                preencherProximoNumeroAutomatico();
             } catch (erro) {
                 console.warn("⚠️ Nuvem instável. A carregar dados do Cache Local de Segurança...", erro);
                 
@@ -62,6 +68,7 @@
                 atualizarSelectsDeCategorias();
                 verificarModoListaOuProduto();
                 renderizarGerenciadorCategorias();
+                preencherProximoNumeroAutomatico();
             }
         }
 
@@ -85,6 +92,171 @@
             }
         }
 
+        // ==========================================
+        // 3. AUTOMAÇÃO DE NÚMERO, COLAR E IMAGEM
+        // ==========================================
+        function obterProximoNumeroProduto() {
+            if (!produtos || produtos.length === 0) return 1;
+            let maior = 0;
+            produtos.forEach(p => {
+                let n = parseInt(String(p.num || "").replace(/\D/g, ""), 10);
+                if (!isNaN(n) && n > maior) {
+                    maior = n;
+                }
+            });
+            return maior + 1;
+        }
+
+        function preencherProximoNumeroAutomatico() {
+            const editIdEl = document.getElementById('editId');
+            const newNumEl = document.getElementById('newNum');
+            if (newNumEl && (!editIdEl || !editIdEl.value)) {
+                newNumEl.value = obterProximoNumeroProduto();
+            }
+        }
+
+        async function colarCampo(idInput) {
+            try {
+                const texto = await navigator.clipboard.readText();
+                const el = document.getElementById(idInput);
+                if (el) {
+                    el.value = texto.trim();
+                    if (idInput === 'newLink') {
+                        autoDetectarPlataforma(texto.trim());
+                    }
+                    if (idInput === 'newImg') {
+                        mostrarPreviaImagem(texto.trim());
+                    }
+                }
+            } catch (err) {
+                alert("Permita o acesso à área de transferência no navegador ou cole manualmente.");
+            }
+        }
+
+        function autoDetectarPlataforma(url) {
+            if (!url) return;
+            const u = url.toLowerCase();
+            const selectPlat = document.getElementById('newPlataforma');
+            if (!selectPlat) return;
+
+            if (u.includes('mercadolivre') || u.includes('meli.la') || u.includes('MercadoLivre_')) {
+                selectPlat.value = 'MERCADO LIVRE';
+            } else if (u.includes('amazon') || u.includes('amzn.to') || u.includes('amzlink') || u.includes('Amazon_')) {
+                selectPlat.value = 'AMAZON';
+            } else if (u.includes('shopee') || u.includes('shp.ee') || u.includes('Shopee_')) {
+                selectPlat.value = 'SHOPEE';
+            } else if (u.includes('magazineluiza') || u.includes('magazinevoce') || u.includes('magalu') || u.includes('Magalu_')) {
+                selectPlat.value = 'MAGALU';
+            } else if (u.includes('aliexpress') || u.includes('s.click.aliexpress') || u.includes('AliExpress_')) {
+                selectPlat.value = 'ALIEXPRESS';
+            } else if (u.includes('tiktok')) {
+                selectPlat.value = 'TIKTOK SHOP';
+            }
+        }
+
+        function mostrarPreviaImagem(src) {
+            const imgPrev = document.getElementById('previaImgAdmin');
+            if (!imgPrev) return;
+            if (src && (src.startsWith('http') || src.startsWith('data:image'))) {
+                imgPrev.src = src;
+                imgPrev.style.display = 'block';
+            } else {
+                imgPrev.style.display = 'none';
+            }
+        }
+
+        // Comprime a imagem carregada do celular/PC para ficar super leve no Npoint!
+        function processarUploadImagem(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const maxDim = 420;
+                    let w = img.width;
+                    let h = img.height;
+
+                    if (w > h) {
+                        if (w > maxDim) {
+                            h = Math.round((h * maxDim) / w);
+                            w = maxDim;
+                        }
+                    } else {
+                        if (h > maxDim) {
+                            w = Math.round((w * maxDim) / h);
+                            h = maxDim;
+                        }
+                    }
+
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = "#FFFFFF";
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.drawImage(img, 0, 0, w, h);
+
+                    const dataUrlComprimida = canvas.toDataURL('image/jpeg', 0.78);
+                    document.getElementById('newImg').value = dataUrlComprimida;
+                    mostrarPreviaImagem(dataUrlComprimida);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ==========================================
+        // 4. CALCULADORA DE PIX E PARCELAS (ESTILO ROBÔ)
+        // ==========================================
+        function formatarMoedaLimpa(valorStr) {
+            if (!valorStr) return "";
+            let limpo = valorStr.replace(/R\$/gi, "").trim();
+            return limpo;
+        }
+
+        function calcularTextoParcelamento(precoParceladoStr, qtdParcelasStr) {
+            const pParc = formatarMoedaLimpa(precoParceladoStr);
+            const qtd = parseInt(qtdParcelasStr, 10);
+
+            if (!pParc) return "";
+            if (!isNaN(qtd) && qtd > 0) {
+                let numLimpo = pParc.replace(/\./g, "").replace(",", ".");
+                let valorTotal = parseFloat(numLimpo);
+                if (!isNaN(valorTotal) && valorTotal > 0) {
+                    let valorParcela = (valorTotal / qtd).toFixed(2).replace(".", ",");
+                    return `${qtd}x de R$ ${valorParcela} sem juros (Total: R$ ${pParc})`;
+                }
+                return `${qtd}x de R$ ${pParc}`;
+            }
+            return `R$ ${pParc} parcelado`;
+        }
+
+        function atualizarPreviaPrecoAdmin() {
+            const pix = formatarMoedaLimpa(document.getElementById('newPrecoPix')?.value || '');
+            const parcelado = formatarMoedaLimpa(document.getElementById('newPrecoParcelado')?.value || '');
+            const parcelas = document.getElementById('newQtdParcelas')?.value || '';
+            const txtParcelado = calcularTextoParcelamento(parcelado, parcelas);
+
+            let resumoCurto = "";
+            if (pix && txtParcelado) {
+                resumoCurto = `R$ ${pix} no Pix ou ${txtParcelado}`;
+            } else if (pix) {
+                resumoCurto = `R$ ${pix}`;
+            } else if (txtParcelado) {
+                resumoCurto = txtParcelado;
+            }
+
+            const campoLegado = document.getElementById('newPrecoFinal');
+            if (campoLegado) {
+                campoLegado.value = resumoCurto;
+            }
+        }
+
+        // ==========================================
+        // 5. GERENCIADOR DE CATEGORIAS
+        // ==========================================
         function atualizarSelectsDeCategorias() {
             categorias.sort();
 
@@ -190,6 +362,9 @@
             }
         }
 
+        // ==========================================
+        // 6. RENDERIZAÇÃO DOS PRODUTOS E POSTAGEM ESPAÇADA
+        // ==========================================
         function renderizarProdutos(lista) {
             const container = document.getElementById('productList');
             if (!container) return;
@@ -201,8 +376,8 @@
             }
 
             lista.sort((a, b) => {
-                let numA = parseInt(a.num.replace("#", "")) || 0;
-                let numB = parseInt(b.num.replace("#", "")) || 0;
+                let numA = parseInt(String(a.num).replace("#", "")) || 0;
+                let numB = parseInt(String(b.num).replace("#", "")) || 0;
                 return numA - numB;
             });
 
@@ -211,7 +386,7 @@
                     <div class="card-admin-actions" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">
                         <button class="btn-edit" onclick="carregarParaEditar('${p.id}')">✏️ Editar</button>
                         <button class="btn-delete" onclick="excluirProduto('${p.id}')">🗑️ Excluir</button>
-                        <button class="btn-share" onclick="compartilharLinkDireto('${p.id}', '${p.title.replace(/'/g, "")}', '${p.cupom || ''}', '${p.precoFinal || ''}')">🔗 Copiar Link Direto</button>
+                        <button class="btn-share" onclick="compartilharLinkDireto('${p.id}')">🔗 Copiar Postagem (Estilo Robô)</button>
                     </div>
                 ` : '';
 
@@ -249,7 +424,7 @@
                             <div>
                                 <span class="product-number">${p.num}</span>
                                 <div class="product-title">${p.title}</div>
-                                <div class="product-desc">${p.desc}</div>
+                                <div class="product-desc">${p.desc || ''}</div>
                                 ${infoPromocao}
                                 ${botoesAdmin}
                             </div>
@@ -330,14 +505,13 @@
             let urlBase = window.location.origin + window.location.pathname;
             let linkCategoria = `${urlBase}?lista=${idsCategoria.join(',')}`;
 
-            let mensagemPersonalizada = `🎄✨ Confira os melhores produtos da categoria *${categoriaSelecionada}*:\n\nSeparei para você:\n\nVeja os produtos na lista abaixo:\n${linkCategoria}`;
+            let mensagemPersonalizada = `✨ Confira os melhores produtos da categoria *${categoriaSelecionada}*:\n\nSeparei para você:\n\nVeja os produtos na lista abaixo:\n${linkCategoria}`;
 
             navigator.clipboard.writeText(mensagemPersonalizada).then(() => {
                 alert(`✅ Link da categoria "${categoriaSelecionada}" copiado com o texto personalizado formatado!`);
             });
         }
 
-        // NOVO: Função para copiar o link de Cupons da Shopee com a frase personalizada e link de afiliada
         window.compartilharCuponsShopee = function() {
             let linkAfiliadaShopee = "https://s.shopee.com.br/8ANLneMzRi";
             let mensagemCupons = `Confira os novos cupons da Shopee disponíveis:\n\n${linkAfiliadaShopee}`;
@@ -347,17 +521,46 @@
             });
         }
 
-        window.compartilharLinkDireto = function(idProduto, titulo, cupom, precoFinal) {
+        // Monta a mensagem com espaçamento duplo idêntico ao Robô!
+        function montarTextoWhatsAppEstiloRobo(p) {
             let urlBase = window.location.origin + window.location.pathname;
-            let linkInteligente = `${urlBase}?produto=${idProduto}`;
-            
-            let textoPreco = precoFinal ? `\n💰 *Preço Final c/ Desconto:* *${precoFinal}*` : '';
-            let textoCupom = cupom ? `\n🎟️ *Cupom:* \`${cupom}\`` : '';
-            
-            let textoCompartilhar = `✨ Olá! Veja os detalhes deste item:\n*${titulo}* 🛒${textoPreco}${textoCupom}\n\nAcesse direto na minha vitrine:\n${linkInteligente}`;
-            
+            let linkInteligente = `${urlBase}?produto=${p.id}`;
+
+            let msg = `✨ *Meninas, olhem esse super achado na Vitrine (${p.num})!*\n\n`;
+            msg += `🔥 *${p.title}* 🔥\n\n`;
+
+            if (p.desc) {
+                msg += `🏪 *Loja:* ${p.desc}\n\n`;
+            }
+
+            if (p.precoPix || p.precoParcelado) {
+                if (p.precoPix) {
+                    msg += `💰 *Preço no Pix:* R$ ${formatarMoedaLimpa(p.precoPix)}\n\n`;
+                }
+                if (p.precoParcelado) {
+                    let txtParc = calcularTextoParcelamento(p.precoParcelado, p.qtdParcelas);
+                    msg += `💳 *Parcelado:* ${txtParc}\n\n`;
+                }
+            } else if (p.precoFinal) {
+                msg += `💰 *Por:* ${p.precoFinal}\n\n`;
+            }
+
+            if (p.cupom) {
+                msg += `🎟️ *Use o cupom:* \`${p.cupom}\`\n\n`;
+            }
+
+            msg += `🛍️ *Acesse direto na minha vitrine:*\n${linkInteligente}\n\n`;
+            msg += `🏃‍♀️ *Garanta o seu antes que a oferta acabe!*`;
+            return msg;
+        }
+
+        window.compartilharLinkDireto = function(idProduto) {
+            let p = produtos.find(item => String(item.id) === String(idProduto));
+            if (!p) return;
+
+            let textoCompartilhar = montarTextoWhatsAppEstiloRobo(p);
             navigator.clipboard.writeText(textoCompartilhar).then(() => {
-                alert("✅ Mensagem com preço final e cupom copiada para o WhatsApp!");
+                alert("✅ Postagem espaçada (estilo robô) copiada para o WhatsApp!");
             });
         }
 
@@ -369,7 +572,7 @@
             if (listaIds) {
                 let arrayIds = listaIds.split(',').map(i => i.trim());
                 let produtosDaLista = produtos.filter(p => {
-                    let numLimpo = p.num.replace("#", "");
+                    let numLimpo = String(p.num).replace("#", "");
                     return arrayIds.includes(String(p.id)) || arrayIds.includes(numLimpo);
                 });
 
@@ -424,10 +627,10 @@
                 const matchCat = (categoria === 'todos' || p.cat === categoria);
                 let matchTexto = false;
                 if (/^\d+$/.test(termo)) {
-                    let numLimpo = p.num.replace("#", "");
+                    let numLimpo = String(p.num).replace("#", "");
                     matchTexto = (numLimpo === termo);
                 } else {
-                    matchTexto = p.title.toLowerCase().includes(termo) || p.num.toLowerCase().includes(termo);
+                    matchTexto = p.title.toLowerCase().includes(termo) || String(p.num).toLowerCase().includes(termo);
                 }
                 return matchCat && matchTexto;
             });
@@ -435,30 +638,57 @@
             renderizarProdutos(filtrados);
         }
 
+        // ==========================================
+        // 7. SALVAR E EDITAR PRODUTO NO PAINEL ADMIN
+        // ==========================================
         async function salvarProduto() {
             const editId = document.getElementById('editId').value;
             const num = document.getElementById('newNum').value;
             const cat = document.getElementById('newCat').value;
             const title = document.getElementById('newTitle').value;
-            const desc = document.getElementById('newDesc').value;
-            const cupom = document.getElementById('newCupom').value;
-            const precoFinal = document.getElementById('newPrecoFinal').value;
+            
+            const plataforma = document.getElementById('newPlataforma').value;
+            const freteGratis = document.getElementById('newFreteGratis').checked;
+            const descExtra = document.getElementById('newDesc').value.trim();
+
+            let descMontada = plataforma;
+            if (freteGratis) {
+                descMontada += (descMontada ? " • FRETE GRÁTIS" : "FRETE GRÁTIS");
+            }
+            if (descExtra) {
+                descMontada += (descMontada ? " • " + descExtra : descExtra);
+            }
+
+            const cupom = document.getElementById('newCupom').value.trim();
+            const precoPix = formatarMoedaLimpa(document.getElementById('newPrecoPix').value);
+            const precoParcelado = formatarMoedaLimpa(document.getElementById('newPrecoParcelado').value);
+            const qtdParcelas = document.getElementById('newQtdParcelas').value.trim();
+
+            atualizarPreviaPrecoAdmin();
+            const precoFinal = document.getElementById('newPrecoFinal').value.trim();
+
             const relampago = document.getElementById('newRelampago').value;
-            const img = document.getElementById('newImg').value;
-            const link = document.getElementById('newLink').value;
+            const img = document.getElementById('newImg').value.trim();
+            const link = document.getElementById('newLink').value.trim();
 
             if(!num || !title || !link || !img) {
-                alert("Preencha todos os campos obrigatórios!");
+                alert("Preencha o Número, Título, Imagem e Link do produto!");
                 return;
             }
 
             const dadosNovo = {
                 id: editId ? String(editId) : String(Date.now()),
-                num: "#" + num.replace("#",""),
+                num: "#" + String(num).replace("#",""),
                 cat: cat,
                 title: title,
-                desc: desc,
+                desc: descMontada,
+                plataforma: plataforma,
+                freteGratis: freteGratis,
+                descExtra: descExtra,
                 cupom: cupom,
+                precoPix: precoPix,
+                precoParcelado: precoParcelado,
+                qtdParcelas: qtdParcelas,
                 precoFinal: precoFinal,
                 relampago: relampago,
                 img: img,
@@ -484,6 +714,7 @@
                 produtos = produtos.filter(p => String(p.id) !== String(id));
                 renderizarProdutos(produtos);
                 await salvarDadosNaNuvem();
+                preencherProximoNumeroAutomatico();
             }
         }
 
@@ -491,18 +722,45 @@
             let p = produtos.find(item => String(item.id) === String(id));
             if(p) {
                 document.getElementById('editId').value = p.id;
-                document.getElementById('newNum').value = p.num.replace("#","");
+                document.getElementById('newNum').value = String(p.num).replace("#","");
                 document.getElementById('newCat').value = p.cat;
                 document.getElementById('newTitle').value = p.title;
-                document.getElementById('newDesc').value = p.desc;
+                
+                // Preenche a plataforma se existir ou detecta da descrição antiga
+                const platSelect = document.getElementById('newPlataforma');
+                const descAntiga = (p.desc || "").toUpperCase();
+                if (p.plataforma) {
+                    platSelect.value = p.plataforma;
+                } else if (descAntiga.includes("MERCADO LIVRE")) {
+                    platSelect.value = "MERCADO LIVRE";
+                } else if (descAntiga.includes("AMAZON")) {
+                    platSelect.value = "AMAZON";
+                } else if (descAntiga.includes("SHOPEE")) {
+                    platSelect.value = "SHOPEE";
+                } else if (descAntiga.includes("MAGALU")) {
+                    platSelect.value = "MAGALU";
+                } else if (descAntiga.includes("ALIEXPRESS")) {
+                    platSelect.value = "ALIEXPRESS";
+                } else if (descAntiga.includes("TIKTOK")) {
+                    platSelect.value = "TIKTOK SHOP";
+                } else {
+                    platSelect.value = "MERCADO LIVRE";
+                }
+
+                document.getElementById('newFreteGratis').checked = Boolean(p.freteGratis || descAntiga.includes("FRETE GR"));
+                document.getElementById('newDesc').value = p.descExtra || "";
                 document.getElementById('newCupom').value = p.cupom || "";
+                document.getElementById('newPrecoPix').value = p.precoPix || "";
+                document.getElementById('newPrecoParcelado').value = p.precoParcelado || "";
+                document.getElementById('newQtdParcelas').value = p.qtdParcelas || "";
                 document.getElementById('newPrecoFinal').value = p.precoFinal || "";
                 document.getElementById('newRelampago').value = p.relampago || "nao";
                 document.getElementById('newImg').value = p.img;
+                mostrarPreviaImagem(p.img);
                 document.getElementById('newLink').value = p.link;
 
-                document.getElementById('panel-title').innerText = "Editar Produto";
-                document.getElementById('btnSalvar').innerText = "Atualizar Produto";
+                document.getElementById('panel-title').innerText = "✏️ Editar Produto " + p.num;
+                document.getElementById('btnSalvar').innerText = "💾 Atualizar Produto na Nuvem";
                 document.getElementById('btnCancelar').style.display = "block";
 
                 document.getElementById('admin-panel').style.display = 'block';
@@ -518,6 +776,7 @@
                 isAdminLogado = true;
                 renderizarProdutos(produtos);
                 filtrarProdutos();
+                preencherProximoNumeroAutomatico();
                 document.getElementById('admin-panel').style.display = 'block';
                 window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
             } else if (digitada !== null) {
@@ -537,24 +796,29 @@
 
         function cancelarEdicao() {
             limparFormularioprincipal();
-            document.getElementById('panel-title').innerText = "Adicionar Novo Produto";
-            document.getElementById('btnSalvar').innerText = "Salvar Produto na Vitrine";
-            document.getElementById('btnCancelar').style.display = "none";
         }
 
         function limparFormularioprincipal() {
             document.getElementById('editId').value = '';
-            document.getElementById('newNum').value = '';
             document.getElementById('newTitle').value = '';
+            document.getElementById('newPlataforma').value = 'MERCADO LIVRE';
+            document.getElementById('newFreteGratis').checked = false;
             document.getElementById('newDesc').value = '';
             document.getElementById('newCupom').value = '';
+            document.getElementById('newPrecoPix').value = '';
+            document.getElementById('newPrecoParcelado').value = '';
+            document.getElementById('newQtdParcelas').value = '';
             document.getElementById('newPrecoFinal').value = '';
             document.getElementById('newRelampago').value = 'nao';
             document.getElementById('newImg').value = '';
+            const fileInput = document.getElementById('newImgFile');
+            if (fileInput) fileInput.value = '';
+            mostrarPreviaImagem('');
             document.getElementById('newLink').value = '';
-            document.getElementById('panel-title').innerText = "Adicionar Novo Produto";
-            document.getElementById('btnSalvar').innerText = "Salvar Produto na Vitrine";
+            document.getElementById('panel-title').innerText = "➕ Adicionar Novo Produto";
+            document.getElementById('btnSalvar').innerText = "💾 Salvar Produto na Nuvem";
             document.getElementById('btnCancelar').style.display = "none";
+            preencherProximoNumeroAutomatico();
         }
 
         window.onload = carregarDadosDaNuvem;
@@ -575,6 +839,56 @@
         .filter-section { width: 100%; margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
         select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
         
+        .admin-label {
+            display: block;
+            font-size: 12px;
+            font-weight: bold;
+            color: #4a5568;
+            margin-bottom: 4px;
+            margin-top: 8px;
+        }
+        .input-with-paste {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .input-with-paste input {
+            flex: 1;
+            margin-bottom: 0 !important;
+        }
+        .btn-paste {
+            background-color: #6f42c1;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .btn-paste:hover {
+            background-color: #59339d;
+        }
+        .grid-3cols {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        .grid-3cols > div {
+            flex: 1;
+        }
+        .upload-box {
+            background: #f3f0ff;
+            border: 1px dashed #6f42c1;
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
         #btnCompartilharCategoria {
             display: none;
             width: 100%;
@@ -596,8 +910,8 @@
         .product-info { display: flex; flex-direction: column; justify-content: space-between; flex: 1; }
         .product-number { font-size: 13px; font-weight: bold; color: #ff4081; }
         .product-title { font-size: 14px; font-weight: bold; color: #333; }
-        .product-desc { font-size: 12px; color: #666; }
-        .product-promo { margin-top: 5px; font-size: 11px; background: #e8f5e9; color: #2e7d32; padding: 3px 6px; border-radius: 4px; display: inline-block; font-weight: bold; }
+        .product-desc { font-size: 11px; color: #666; font-weight: bold; margin-top: 2px; }
+        .product-promo { margin-top: 5px; font-size: 11px; background: #e8f5e9; color: #2e7d32; padding: 4px 7px; border-radius: 4px; display: inline-block; font-weight: bold; line-height: 1.3; }
         .badge-relampago { position: absolute; top: -9px; right: 10px; background: #ff3d00; color: white; font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
         .btn-buy { background-color: #e91e63; color: white; border: none; padding: 6px 10px; border-radius: 5px; font-size: 11px; font-weight: bold; text-align: center; text-decoration: none; cursor: pointer; }
@@ -607,10 +921,10 @@
         .btn-share { background-color: #2196F3; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
         .admin-link { margin-top: 30px; font-size: 12px; color: #aaa; text-decoration: none; cursor: pointer; display: block; text-align: center; padding-bottom: 20px; }
         .admin-link:hover { color: #333; }
-        #admin-panel { display: none; width: 100%; background: #f9f9f9; border: 1px solid #ddd; border-radius: 10px; padding: 15px; margin-top: 20px; }
-        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        #admin-panel h3 { font-size: 15px; color: #333; margin: 0; }
-        .btn-close-admin { background-color: #e0e0e0; color: #333; border: none; padding: 4px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        #admin-panel { display: none; width: 100%; background: #f9f9f9; border: 1px solid #ddd; border-radius: 12px; padding: 15px; margin-top: 20px; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        #admin-panel h3 { font-size: 16px; color: #d63384; margin: 0; }
+        .btn-close-admin { background-color: #e0e0e0; color: #333; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer; }
         .btn-close-admin:hover { background-color: #ccc; }
 
         .floating-container { 
@@ -709,7 +1023,7 @@
         <h1>Dicasdapoliii</h1>
         <p class="bio">Seu guia de compras online</p>
 
-        <!-- Redes Sociais com o Facebook -->
+        <!-- Redes Sociais -->
         <div class="social-icons">
             <a href="https://www.facebook.com/share/1GKAczQjX4/" target="_blank"><i class="fa-brands fa-facebook"></i></a>
             <a href="https://www.tiktok.com" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
@@ -736,21 +1050,21 @@
         <!-- Botão Protegido por Senha para abrir o Painel -->
         <a class="admin-link" onclick="pedirSenhaAdmin()">⚙️ Painel de Administração</a>
 
-        <!-- Painel Restrito de Administração -->
+        <!-- Painel Restrito de Administração Otimizado -->
         <div id="admin-panel">
             <div class="admin-header">
-                <h3 id="panel-title">Adicionar Novo Produto</h3>
+                <h3 id="panel-title">➕ Adicionar Novo Produto</h3>
                 <button class="btn-close-admin" onclick="sairDoAdmin()">✕ Sair</button>
             </div>
 
-            <!-- NOVO: Botão Exclusivo no Admin para Compartilhar Cupons Shopee -->
+            <!-- Atalho de Cupons Shopee -->
             <div style="background: #fff3e0; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffe0b2;">
                 <h4 style="font-size: 13px; color: #e65100; margin-bottom: 6px;">🎟️ Atalho de Cupons Shopee</h4>
                 <p style="font-size: 11px; color: #555; margin-bottom: 8px;">Copia o texto e o teu link de afiliada da Shopee para capturar cookies.</p>
                 <button onclick="compartilharCuponsShopee()" style="background-color: #ff5722; color: white; border: none; padding: 9px 12px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; width: 100%;">🛍️ Copiar Link de Cupons Shopee</button>
             </div>
 
-            <!-- Seção de Gerenciamento de Categorias com Editar e Excluir -->
+            <!-- Seção de Gerenciamento de Categorias -->
             <div style="background: #eee; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
                 <h4 style="font-size: 13px; color: #333; margin-bottom: 6px;">📂 Gerenciar Categorias da Vitrine</h4>
                 <div style="display: flex; gap: 5px; margin-bottom: 8px;">
@@ -760,23 +1074,98 @@
                 <div id="listaCategoriasAdmin" style="display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto;"></div>
             </div>
 
-            <hr style="border: 0; border-top: 1px solid #ddd; margin-bottom: 15px;">
+            <hr style="border: 0; border-top: 1px solid #ddd; margin-bottom: 12px;">
 
             <input type="hidden" id="editId">
-            <input type="text" id="newNum" placeholder="Número do Produto (ex: 8)" style="margin-bottom: 8px;">
-            <select id="newCat" style="margin-bottom: 8px;"></select>
-            <input type="text" id="newTitle" placeholder="Título do Produto" style="margin-bottom: 8px;">
-            <input type="text" id="newDesc" placeholder="Descrição curta (ex: Frete Grátis)" style="margin-bottom: 8px;">
-            <input type="text" id="newCupom" placeholder="🎟️ Nome do Cupom (ex: NIKE20)" style="margin-bottom: 8px;">
-            <input type="text" id="newPrecoFinal" placeholder="💰 Preço Final c/ Desconto (ex: R$ 89,90)" style="margin-bottom: 8px;">
+
+            <!-- 1. Número Automático e Categoria -->
+            <div style="display: flex; gap: 8px;">
+                <div style="width: 38%;">
+                    <label class="admin-label">Nº Automático:</label>
+                    <input type="text" id="newNum" placeholder="Ex: 284">
+                </div>
+                <div style="flex: 1;">
+                    <label class="admin-label">Categoria da Vitrine:</label>
+                    <select id="newCat"></select>
+                </div>
+            </div>
+
+            <!-- 2. Link de Afiliado (Detecta a loja automaticamente ao colar!) -->
+            <label class="admin-label">🔗 Link de Afiliado (URL):</label>
+            <div class="input-with-paste">
+                <input type="text" id="newLink" placeholder="Cole o link da loja aqui..." oninput="autoDetectarPlataforma(this.value)">
+                <button type="button" class="btn-paste" onclick="colarCampo('newLink')">📋 Colar</button>
+            </div>
+
+            <!-- 3. Plataforma / Loja + Frete Grátis -->
+            <label class="admin-label">🏪 Plataforma / Loja Oficial:</label>
+            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+                <select id="newPlataforma" style="flex: 1;">
+                    <option value="MERCADO LIVRE">💛 MERCADO LIVRE</option>
+                    <option value="AMAZON">📦 AMAZON</option>
+                    <option value="SHOPEE">🧡 SHOPEE</option>
+                    <option value="MAGALU">💙 MAGALU</option>
+                    <option value="ALIEXPRESS">❤️ ALIEXPRESS</option>
+                    <option value="TIKTOK SHOP">🎵 TIKTOK SHOP</option>
+                </select>
+                <label style="font-size: 12px; font-weight: bold; color: #2e7d32; display: flex; align-items: center; gap: 4px; white-space: nowrap; background: #e8f5e9; padding: 9px 10px; border-radius: 8px; border: 1px solid #c8e6c9; cursor: pointer;">
+                    <input type="checkbox" id="newFreteGratis" style="width: auto;"> 🚚 Frete Grátis
+                </label>
+            </div>
+            <input type="text" id="newDesc" placeholder="Observação extra opcional (ex: Loja Oficial, Bivolt...)" style="margin-bottom: 6px; font-size: 12px; padding: 8px;">
+
+            <!-- 4. Título do Produto com Botão Colar -->
+            <label class="admin-label">🏷️ Título do Produto / Achadinho:</label>
+            <div class="input-with-paste">
+                <input type="text" id="newTitle" placeholder="Ex: Liquidificador Industrial 1800W...">
+                <button type="button" class="btn-paste" onclick="colarCampo('newTitle')">📋 Colar</button>
+            </div>
+
+            <!-- 5. Calculadora de Preço Pix e Parcelado (Estilo Robô) -->
+            <label class="admin-label">💰 Preço no Pix e Parcelamento (Calcula sozinho):</label>
+            <div class="grid-3cols">
+                <div>
+                    <input type="text" id="newPrecoPix" placeholder="Pix (ex: 175,00)" oninput="atualizarPreviaPrecoAdmin()">
+                </div>
+                <div>
+                    <input type="text" id="newPrecoParcelado" placeholder="Total Parc (184,90)" oninput="atualizarPreviaPrecoAdmin()">
+                </div>
+                <div style="max-width: 85px;">
+                    <input type="number" id="newQtdParcelas" placeholder="Vezes (6)" min="1" oninput="atualizarPreviaPrecoAdmin()">
+                </div>
+            </div>
+            <input type="text" id="newPrecoFinal" placeholder="Resumo do Preço (preenchido automático ou digite manual)" style="margin-bottom: 6px; background: #f1f8e9; font-size: 12px; color: #2e7d32; font-weight: bold;">
+
+            <!-- 6. Cupom com Botão Colar -->
+            <label class="admin-label">🎟️ Cupom de Desconto (Opcional):</label>
+            <div class="input-with-paste">
+                <input type="text" id="newCupom" placeholder="Ex: PROMO10">
+                <button type="button" class="btn-paste" onclick="colarCampo('newCupom')">📋 Colar</button>
+            </div>
+
+            <!-- 7. Oferta Relâmpago -->
+            <label class="admin-label">⚡ Destaque Relâmpago:</label>
             <select id="newRelampago" style="margin-bottom: 8px;">
-                <option value="nao">⏳ ⚡ Oferta Relâmpago? Não</option>
-                <option value="sim">⏳ ⚡ Oferta Relâmpago? SIM (Com Relógio e Destaque)</option>
+                <option value="nao">⏳ Oferta Relâmpago? Não</option>
+                <option value="sim">⚡ Oferta Relâmpago? SIM (Com Relógio e Destaque)</option>
             </select>
-            <input type="text" id="newImg" placeholder="Link direto da imagem (URL da web)" style="margin-bottom: 8px;">
-            <input type="text" id="newLink" placeholder="Link de afiliado (URL)" style="margin-bottom: 8px;">
-            <button class="btn-shopee" id="btnSalvar" onclick="salvarProduto()">Salvar Produto na Nuvem</button>
-            <button class="btn-buy" id="btnCancelar" onclick="cancelarEdicao()" style="display:none; background-color:#777; margin-top:5px;">Cancelar Edição</button>
+
+            <!-- 8. Imagem: Colar URL da Web OU Subir do Aparelho -->
+            <label class="admin-label">🖼️ Imagem do Produto (URL ou Arquivo do Aparelho):</label>
+            <div class="input-with-paste">
+                <input type="text" id="newImg" placeholder="Cole o link da imagem (https://...)" oninput="mostrarPreviaImagem(this.value)">
+                <button type="button" class="btn-paste" onclick="colarCampo('newImg')">📋 Colar</button>
+            </div>
+            <div class="upload-box">
+                <label for="newImgFile" style="font-size: 12px; color: #59339d; font-weight: bold; cursor: pointer; display: block; margin-bottom: 4px;">
+                    📱 Ou Carregar Foto do Celular / Computador:
+                </label>
+                <input type="file" id="newImgFile" accept="image/*" onchange="processarUploadImagem(event)" style="font-size: 11px; padding: 4px; background: #fff;">
+                <img id="previaImgAdmin" src="" alt="Prévia" style="display: none; width: 80px; height: 80px; object-fit: cover; border-radius: 8px; margin: 8px auto 0; border: 2px solid #6f42c1;">
+            </div>
+
+            <button class="btn-shopee" id="btnSalvar" onclick="salvarProduto()" style="margin-top: 10px; background-color: #2e7d32;">💾 Salvar Produto na Nuvem</button>
+            <button class="btn-buy" id="btnCancelar" onclick="cancelarEdicao()" style="display:none; background-color:#777; margin-top:5px; width: 100%; padding: 10px;">Cancelar Edição</button>
         </div>
     </div>
 
