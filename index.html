@@ -16,9 +16,12 @@
     
     <script>
         // ==========================================
-        // 1. CONFIGURAÇÃO DA NUVEM NPOINT E DADOS
+        // 1. CONFIGURAÇÃO DA NUVEM NPOINT E GREEN-API
         // ==========================================
         const NPOINT_URL = "https://api.npoint.io/fd32c904d4aafe739782"; 
+        const GREEN_API_INSTANCE = "710722755197";
+        const GREEN_API_TOKEN = "7f26121b7a3a4fe5ac41abc60054a69526473ea64c004fa1a8";
+        const GRUPO_VIP_ID = "120363379680961951@g.us";
 
         let produtos = [];
         let categorias = [
@@ -431,7 +434,8 @@
                         <button class="btn-edit" onclick="carregarParaEditar('${p.id}')">✏️ Editar</button>
                         <button class="btn-delete" onclick="excluirProduto('${p.id}')">🗑️ Excluir</button>
                         <button class="btn-share" onclick="compartilharLinkDireto('${p.id}')">🔗 Copiar Texto</button>
-                        <button class="btn-share" style="background-color: #8e24aa;" onclick="compartilharProdutoComFoto('${p.id}')">🖼️ Enviar c/ Foto do Produto</button>
+                        <button class="btn-share" style="background-color: #8e24aa;" onclick="compartilharProdutoComFoto('${p.id}')">🖼️ Copiar c/ Foto</button>
+                        <button class="btn-share" style="background-color: #2e7d32; width: 100%; padding: 6px; margin-top: 2px;" id="btn-vip-${p.id}" onclick="dispararDiretoGrupoVip('${p.id}')">🚀 Disparar Direto p/ Grupo VIP (1 Clique)</button>
                     </div>
                 ` : '';
 
@@ -501,7 +505,6 @@
             atualizarBarraSacolaFlutuante();
         }
 
-        // NOVO: Função para desmarcar todos os itens da sacola de uma só vez!
         window.limparSacolaCompleta = function() {
             produtosSelecionadosSacola.forEach(id => {
                 let btn = document.getElementById(`btn-sacola-${id}`);
@@ -528,7 +531,6 @@
             }
         }
 
-        // Ao gerar o link da sacola, copia para o WhatsApp e JÁ LIMPA A SACOLA AUTOMATICAMENTE!
         window.gerarLinkSacolaSelecionada = function() {
             if (produtosSelecionadosSacola.length === 0) {
                 alert("Nenhum produto selecionado!");
@@ -582,7 +584,7 @@
         }
 
         // =========================================================
-        // MENSAGEM PARA O WHATSAPP + ENVIO COM A FOTO DO PRODUTO!
+        // MENSAGEM PARA O WHATSAPP + ENVIO COM FOTO (PC E CELULAR)
         // =========================================================
         function montarTextoWhatsAppEstiloRobo(p) {
             let urlBase = window.location.origin + window.location.pathname;
@@ -628,16 +630,18 @@
             });
         }
 
-        // NOVO: Envia/Copia o produto único com a FOTO REAL DO PRODUTO em vez do logo da vitrine!
+        // Detecta se está no telemóvel (Android/iPhone) para não abrir a janela chata do Windows no PC!
+        function ehDispositivoMovel() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
         window.compartilharProdutoComFoto = async function(idProduto) {
             let p = produtos.find(item => String(item.id) === String(idProduto));
             if (!p) return;
 
             let texto = montarTextoWhatsAppEstiloRobo(p);
-            await navigator.clipboard.writeText(texto);
 
             try {
-                // Converte a imagem do produto num arquivo PNG limpo para enviar/colar direto no WhatsApp!
                 const img = new Image();
                 img.crossOrigin = "anonymous";
                 img.onload = function() {
@@ -651,62 +655,71 @@
 
                     canvas.toBlob(async function(blob) {
                         if (!blob) {
-                            alert("✅ Texto copiado! (Para enviar a foto junto, clique com o botão direito na foto do produto e escolha 'Copiar imagem').");
+                            await navigator.clipboard.writeText(texto);
+                            alert("✅ Texto copiado!");
                             return;
                         }
-                        const arquivoFoto = new File([blob], "oferta-vitrine.png", { type: "image/png" });
 
-                        // 1. Se estiver no telemóvel (ou navegador com Web Share), abre direto o WhatsApp com a FOTO + TEXTO!
-                        if (navigator.canShare && navigator.canShare({ files: [arquivoFoto] })) {
-                            try {
-                                await navigator.share({
-                                    files: [arquivoFoto],
-                                    title: p.title,
-                                    text: texto
-                                });
-                                return;
-                            } catch (e) {}
+                        // 1. SE ESTIVER NO TELEMÓVEL: Usa o menu nativo que funcionou perfeitamente!
+                        if (ehDispositivoMovel() && navigator.canShare) {
+                            await navigator.clipboard.writeText(texto);
+                            const arquivoFoto = new File([blob], "oferta-vitrine.png", { type: "image/png" });
+                            if (navigator.canShare({ files: [arquivoFoto] })) {
+                                try {
+                                    await navigator.share({
+                                        files: [arquivoFoto],
+                                        title: p.title,
+                                        text: texto
+                                    });
+                                    return;
+                                } catch (e) {}
+                            }
                         }
 
-                        // 2. No computador (WhatsApp Web), copia a IMAGEM para o Ctrl+V e abre uma janelinha com o texto pronto!
+                        // 2. SE ESTIVER NO COMPUTADOR (PC): NUNCA abre a janela do Windows!
+                        // Copia a FOTO direto para o seu Ctrl+V e abre o botão de 2 passos!
                         if (navigator.clipboard && window.ClipboardItem) {
                             try {
                                 await navigator.clipboard.write([
                                     new ClipboardItem({ "image/png": blob })
                                 ]);
-                                exibirModalFotoPronta(texto, p.title);
+                                exibirModalFotoProntaPC(texto, p.title);
                                 return;
                             } catch (e) {}
                         }
 
+                        await navigator.clipboard.writeText(texto);
                         alert("✅ Legenda copiada para o WhatsApp!");
                     }, "image/png");
                 };
-                img.onerror = function() {
-                    alert("✅ Legenda copiada! (Para levar a foto junto no PC, clique com o botão direito na imagem do produto e clique em 'Copiar imagem').");
+                img.onerror = async function() {
+                    await navigator.clipboard.writeText(texto);
+                    alert("✅ Legenda copiada! (Para levar a foto junto no PC, clique com o botão direito na foto do produto e escolha 'Copiar imagem').");
                 };
                 img.src = p.img;
             } catch (erro) {
+                await navigator.clipboard.writeText(texto);
                 alert("✅ Legenda copiada para o WhatsApp!");
             }
         }
 
-        function exibirModalFotoPronta(textoLegenda, tituloProd) {
+        function exibirModalFotoProntaPC(textoLegenda, tituloProd) {
             let modalExistente = document.getElementById('modalFotoCopiada');
             if (modalExistente) modalExistente.remove();
 
             const modal = document.createElement('div');
             modal.id = 'modalFotoCopiada';
-            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999999;display:flex;justify-content:center;align-items:center;padding:15px;';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);z-index:999999;display:flex;justify-content:center;align-items:center;padding:15px;';
             modal.innerHTML = `
-                <div style="background:#fff;max-width:400px;width:100%;border-radius:14px;padding:18px;text-align:center;box-shadow:0 8px 25px rgba(0,0,0,0.3);">
-                    <h3 style="color:#2e7d32;font-size:16px;margin-bottom:8px;">🖼️ Foto do Produto Copiada!</h3>
-                    <p style="font-size:13px;color:#444;margin-bottom:12px;line-height:1.4;">
-                        <strong>Passo 1:</strong> Vá no WhatsApp Web e aperte <b>Ctrl + V</b> (a foto grande de <i>${tituloProd}</i> vai aparecer na hora!).<br><br>
-                        <strong>Passo 2:</strong> Clique no botão abaixo para copiar a legenda e cole na legenda da foto:
+                <div style="background:#fff;max-width:410px;width:100%;border-radius:16px;padding:20px;text-align:center;box-shadow:0 8px 25px rgba(0,0,0,0.35);border:2px solid #6f42c1;">
+                    <h3 style="color:#2e7d32;font-size:17px;margin-bottom:10px;">🖼️ Passo 1: Cole a Foto no WhatsApp!</h3>
+                    <p style="font-size:13px;color:#333;margin-bottom:14px;line-height:1.5;background:#f3f0ff;padding:10px;border-radius:8px;">
+                        A <b>FOTO</b> do produto já está no seu <b>Ctrl + V</b>!<br>
+                        👉 Vá na conversa do WhatsApp Web ao lado e aperte <b>Ctrl + V</b> agora para a foto aparecer.<br><br>
+                        Depois que a foto aparecer lá, clique no botão roxo abaixo para copiar o texto da legenda:
                     </p>
                     <button id="btnCopiarLegendaModal" style="width:100%;background:#6f42c1;color:#fff;border:none;padding:12px;border-radius:8px;font-weight:bold;font-size:14px;cursor:pointer;margin-bottom:8px;">
-                        📋 Copiar Legenda Agora (Passo 2)
+                        📋 Passo 2: Copiar Texto da Legenda
                     </button>
                     <button onclick="document.getElementById('modalFotoCopiada').remove()" style="width:100%;background:#e0e0e0;color:#333;border:none;padding:9px;border-radius:8px;font-weight:bold;font-size:12px;cursor:pointer;">
                         Fechar
@@ -717,13 +730,78 @@
             document.getElementById('btnCopiarLegendaModal').onclick = function() {
                 navigator.clipboard.writeText(textoLegenda).then(() => {
                     this.style.background = '#2e7d32';
-                    this.innerText = '✅ Legenda Copiada! Agora dê Ctrl+V no WhatsApp!';
+                    this.innerText = '✅ Texto Copiado! Agora dê Ctrl+V na legenda da foto!';
                     setTimeout(() => {
                         let m = document.getElementById('modalFotoCopiada');
                         if (m) m.remove();
-                    }, 1500);
+                    }, 1800);
                 });
             };
+        }
+
+        // NOVO: Dispara o produto da Vitrine (Foto Grande + Legenda) DIRETO para o Grupo VIP via Green-API!
+        window.dispararDiretoGrupoVip = async function(idProduto) {
+            let p = produtos.find(item => String(item.id) === String(idProduto));
+            if (!p) return;
+
+            let btn = document.getElementById(`btn-vip-${idProduto}`);
+            let textoOriginalBtn = btn ? btn.innerText : "";
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = "⏳ A enviar foto + texto para o Grupo VIP...";
+            }
+
+            let legenda = montarTextoWhatsAppEstiloRobo(p);
+
+            try {
+                // Caso 1: A imagem é uma URL da web (https://...)
+                if (p.img && p.img.startsWith("http")) {
+                    let resp = await fetch(`https://7107.api.greenapi.com/waInstance${GREEN_API_INSTANCE}/sendFileByUrl/${GREEN_API_TOKEN}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            chatId: GRUPO_VIP_ID,
+                            urlFile: p.img,
+                            fileName: "oferta.jpg",
+                            caption: legenda
+                        })
+                    });
+                    if (resp.ok) {
+                        alert("✅ Oferta enviada com FOTO GRANDE direto para o grupo DICAS DA POLI!");
+                        if (btn) { btn.disabled = false; btn.innerText = textoOriginalBtn; }
+                        return;
+                    }
+                }
+
+                // Caso 2: A imagem foi carregada do aparelho (data:image/jpeg;base64,...)
+                if (p.img && p.img.startsWith("data:image")) {
+                    let resBlob = await fetch(p.img);
+                    let blob = await resBlob.blob();
+                    let formData = new FormData();
+                    formData.append("chatId", GRUPO_VIP_ID);
+                    formData.append("caption", legenda);
+                    formData.append("file", blob, "oferta.jpg");
+
+                    let respUp = await fetch(`https://7107.media.greenapi.com/waInstance${GREEN_API_INSTANCE}/sendFileByFile/${GREEN_API_TOKEN}`, {
+                        method: "POST",
+                        body: formData
+                    });
+                    if (respUp.ok) {
+                        alert("✅ Oferta enviada com FOTO GRANDE direto para o grupo DICAS DA POLI!");
+                        if (btn) { btn.disabled = false; btn.innerText = textoOriginalBtn; }
+                        return;
+                    }
+                }
+
+                alert("⚠️ Não foi possível enviar automático. Use o botão '🖼️ Copiar c/ Foto'.");
+            } catch (e) {
+                alert("⚠️ Erro de ligação com a Green-API.");
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = textoOriginalBtn;
+                }
+            }
         }
 
         function verificarModoListaOuProduto() {
@@ -747,7 +825,6 @@
             } else {
                 renderizarProdutos(produtos);
                 if (idProduto) {
-                    // Se abriu 1 produto específico, atualiza o título e imagem Open Graph da página para o produto!
                     let prodUnico = produtos.find(item => String(item.id) === String(idProduto));
                     if (prodUnico) {
                         document.title = `${prodUnico.title} - Dicas da Poliii`;
@@ -1282,7 +1359,7 @@
             <div style="display: flex; gap: 8px;">
                 <div style="width: 38%;">
                     <label class="admin-label">Nº Automático:</label>
-                    <input type="text" id="newNum" placeholder="Ex: 293">
+                    <input type="text" id="newNum" placeholder="Ex: 294">
                 </div>
                 <div style="flex: 1;">
                     <label class="admin-label">Categoria da Vitrine:</label>
@@ -1377,7 +1454,7 @@
         </div>
     </div>
 
-    <!-- Barra Flutuante para Sacola Personalizada (Com Botão Limpar + Auto-Limpeza!) -->
+    <!-- Barra Flutuante para Sacola Personalizada -->
     <div id="barraSacolaFlutuante">
         <span>🛍️ <span id="contadorSacola">0</span> produto(s) na sacola</span>
         <div class="botoes-sacola-group">
