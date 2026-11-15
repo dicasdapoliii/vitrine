@@ -6,10 +6,10 @@
     <title>Dicas da Poliii - Guia de Compras</title>
     
     <!-- Metadados de Pré-visualização (Open Graph para WhatsApp, Facebook e Redes Sociais) -->
-    <meta property="og:title" content="Dicas da Poliii - Seleção Especial de Ofertas">
-    <meta property="og:description" content="Confira os melhores achados e produtos recomendados para você!">
-    <meta property="og:image" content="https://vitrine-sage-two.vercel.app/logo.jpeg">
-    <meta property="og:url" content="https://vitrine-sage-two.vercel.app/">
+    <meta property="og:title" id="ogTitle" content="Dicas da Poliii - Seleção Especial de Ofertas">
+    <meta property="og:description" id="ogDesc" content="Confira os melhores achados e produtos recomendados para você!">
+    <meta property="og:image" id="ogImage" content="https://vitrine-sage-two.vercel.app/logo.jpeg">
+    <meta property="og:url" id="ogUrl" content="https://vitrine-sage-two.vercel.app/">
     <meta property="og:type" content="website">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -93,14 +93,13 @@
         }
 
         // ==========================================
-        // 3. AUTOMAÇÃO DE NÚMERO SEQUENCIAL REAL (IGNORA NÚMEROS GIGANTES ACIDENTAIS)
+        // 3. AUTOMAÇÃO DE NÚMERO SEQUENCIAL REAL
         // ==========================================
         function obterMaiorNumeroSequencialReal() {
             if (!produtos || produtos.length === 0) return 0;
             let maior = 0;
             produtos.forEach(p => {
                 let n = parseInt(String(p.num || "").replace(/\D/g, ""), 10);
-                // Ignora números acima de 5000 (como o 19400/19401/19402) para manter a sequência real 289, 290, 291...
                 if (!isNaN(n) && n > maior && n < 5000) {
                     maior = n;
                 }
@@ -121,7 +120,6 @@
             verificarSeHaNumerosGigantesParaCorrigir();
         }
 
-        // Verifica se há produtos com número > 5000 (ex: #19401, #19402) e mostra botão de correção rápida
         function verificarSeHaNumerosGigantesParaCorrigir() {
             const btnCorrigir = document.getElementById('btnCorrigirSequencia');
             if (!btnCorrigir) return;
@@ -131,7 +129,7 @@
             });
             if (foraDeSequencia.length > 0) {
                 btnCorrigir.style.display = 'block';
-                btnCorrigir.innerText = `🔧 Ajustar ${foraDeSequencia.length} produto(s) com nº alto (ex: #19401) para a sequência (#${obterMaiorNumeroSequencialReal() + 1}+)`;
+                btnCorrigir.innerText = `🔧 Ajustar ${foraDeSequencia.length} produto(s) com nº alto para a sequência (#${obterMaiorNumeroSequencialReal() + 1}+)`;
             } else {
                 btnCorrigir.style.display = 'none';
             }
@@ -139,7 +137,6 @@
 
         async function corrigirNumerosForaDaSequencia() {
             let baseAtual = obterMaiorNumeroSequencialReal();
-            // Ordena os produtos que ficaram com número >= 5000 do mais antigo para o mais novo
             let altos = produtos.filter(p => {
                 let n = parseInt(String(p.num || "").replace(/\D/g, ""), 10);
                 return !isNaN(n) && n >= 5000;
@@ -152,7 +149,6 @@
             if (altos.length === 0) return;
 
             altos.forEach(p => {
-                // Se for o antigo 19400 solto sem ser os novos (19401+), ou todos os >= 5000, traz para 290, 291...
                 baseAtual += 1;
                 p.num = "#" + baseAtual;
             });
@@ -276,7 +272,6 @@
                 }
                 return `${qtd}x de R$ ${pParc}${sufixoJuros}`;
             }
-            // Quando não tem quantidade de parcelas preenchida, retorna apenas "R$ 99,81" (sem repetir a palavra "parcelado"!)
             return `R$ ${pParc}`;
         }
 
@@ -411,7 +406,7 @@
         }
 
         // ==========================================
-        // 6. RENDERIZAÇÃO DOS PRODUTOS (MAIS NOVOS NO TOPO!)
+        // 6. RENDERIZAÇÃO DOS PRODUTOS E GESTÃO DA SACOLA
         // ==========================================
         function renderizarProdutos(lista) {
             const container = document.getElementById('productList');
@@ -435,7 +430,8 @@
                     <div class="card-admin-actions" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">
                         <button class="btn-edit" onclick="carregarParaEditar('${p.id}')">✏️ Editar</button>
                         <button class="btn-delete" onclick="excluirProduto('${p.id}')">🗑️ Excluir</button>
-                        <button class="btn-share" onclick="compartilharLinkDireto('${p.id}')">🔗 Copiar Postagem (Estilo Robô)</button>
+                        <button class="btn-share" onclick="compartilharLinkDireto('${p.id}')">🔗 Copiar Texto</button>
+                        <button class="btn-share" style="background-color: #8e24aa;" onclick="compartilharProdutoComFoto('${p.id}')">🖼️ Enviar c/ Foto do Produto</button>
                     </div>
                 ` : '';
 
@@ -505,6 +501,19 @@
             atualizarBarraSacolaFlutuante();
         }
 
+        // NOVO: Função para desmarcar todos os itens da sacola de uma só vez!
+        window.limparSacolaCompleta = function() {
+            produtosSelecionadosSacola.forEach(id => {
+                let btn = document.getElementById(`btn-sacola-${id}`);
+                if (btn) {
+                    btn.style.backgroundColor = "#d32f2f";
+                    btn.innerText = "➕ Adicionar à Sacola";
+                }
+            });
+            produtosSelecionadosSacola = [];
+            atualizarBarraSacolaFlutuante();
+        }
+
         function atualizarBarraSacolaFlutuante() {
             let barra = document.getElementById('barraSacolaFlutuante');
             let contador = document.getElementById('contadorSacola');
@@ -519,6 +528,7 @@
             }
         }
 
+        // Ao gerar o link da sacola, copia para o WhatsApp e JÁ LIMPA A SACOLA AUTOMATICAMENTE!
         window.gerarLinkSacolaSelecionada = function() {
             if (produtosSelecionadosSacola.length === 0) {
                 alert("Nenhum produto selecionado!");
@@ -531,7 +541,8 @@
             let mensagemPersonalizada = `Olá, confira a lista dos produtos com os melhores preços.\n\nVeja os produtos na lista abaixo:\n${linkLista}`;
 
             navigator.clipboard.writeText(mensagemPersonalizada).then(() => {
-                alert("✅ Link da sacola copiado com o texto personalizado formatado!");
+                alert("✅ Link da sacola copiado! A sacola já foi limpa automaticamente para a próxima seleção.");
+                limparSacolaCompleta();
             });
         }
 
@@ -571,13 +582,12 @@
         }
 
         // =========================================================
-        // MENSAGEM PARA O WHATSAPP (ESTILO ROBÔ ATUALIZADO!)
+        // MENSAGEM PARA O WHATSAPP + ENVIO COM A FOTO DO PRODUTO!
         // =========================================================
         function montarTextoWhatsAppEstiloRobo(p) {
             let urlBase = window.location.origin + window.location.pathname;
             let linkInteligente = `${urlBase}?produto=${p.id}`;
 
-            // Frase neutra (para homens e mulheres) com "super oferta" e número do produto:
             let msg = `✨ *Olhem essa super oferta na Vitrine (${p.num})!*\n\n`;
             msg += `🔥 *${p.title}* 🔥\n\n`;
 
@@ -614,8 +624,106 @@
 
             let textoCompartilhar = montarTextoWhatsAppEstiloRobo(p);
             navigator.clipboard.writeText(textoCompartilhar).then(() => {
-                alert("✅ Postagem copiada para o WhatsApp!");
+                alert("✅ Texto da postagem copiado para o WhatsApp!");
             });
+        }
+
+        // NOVO: Envia/Copia o produto único com a FOTO REAL DO PRODUTO em vez do logo da vitrine!
+        window.compartilharProdutoComFoto = async function(idProduto) {
+            let p = produtos.find(item => String(item.id) === String(idProduto));
+            if (!p) return;
+
+            let texto = montarTextoWhatsAppEstiloRobo(p);
+            await navigator.clipboard.writeText(texto);
+
+            try {
+                // Converte a imagem do produto num arquivo PNG limpo para enviar/colar direto no WhatsApp!
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = function() {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext("2d");
+                    ctx.fillStyle = "#FFFFFF";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+
+                    canvas.toBlob(async function(blob) {
+                        if (!blob) {
+                            alert("✅ Texto copiado! (Para enviar a foto junto, clique com o botão direito na foto do produto e escolha 'Copiar imagem').");
+                            return;
+                        }
+                        const arquivoFoto = new File([blob], "oferta-vitrine.png", { type: "image/png" });
+
+                        // 1. Se estiver no telemóvel (ou navegador com Web Share), abre direto o WhatsApp com a FOTO + TEXTO!
+                        if (navigator.canShare && navigator.canShare({ files: [arquivoFoto] })) {
+                            try {
+                                await navigator.share({
+                                    files: [arquivoFoto],
+                                    title: p.title,
+                                    text: texto
+                                });
+                                return;
+                            } catch (e) {}
+                        }
+
+                        // 2. No computador (WhatsApp Web), copia a IMAGEM para o Ctrl+V e abre uma janelinha com o texto pronto!
+                        if (navigator.clipboard && window.ClipboardItem) {
+                            try {
+                                await navigator.clipboard.write([
+                                    new ClipboardItem({ "image/png": blob })
+                                ]);
+                                exibirModalFotoPronta(texto, p.title);
+                                return;
+                            } catch (e) {}
+                        }
+
+                        alert("✅ Legenda copiada para o WhatsApp!");
+                    }, "image/png");
+                };
+                img.onerror = function() {
+                    alert("✅ Legenda copiada! (Para levar a foto junto no PC, clique com o botão direito na imagem do produto e clique em 'Copiar imagem').");
+                };
+                img.src = p.img;
+            } catch (erro) {
+                alert("✅ Legenda copiada para o WhatsApp!");
+            }
+        }
+
+        function exibirModalFotoPronta(textoLegenda, tituloProd) {
+            let modalExistente = document.getElementById('modalFotoCopiada');
+            if (modalExistente) modalExistente.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'modalFotoCopiada';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999999;display:flex;justify-content:center;align-items:center;padding:15px;';
+            modal.innerHTML = `
+                <div style="background:#fff;max-width:400px;width:100%;border-radius:14px;padding:18px;text-align:center;box-shadow:0 8px 25px rgba(0,0,0,0.3);">
+                    <h3 style="color:#2e7d32;font-size:16px;margin-bottom:8px;">🖼️ Foto do Produto Copiada!</h3>
+                    <p style="font-size:13px;color:#444;margin-bottom:12px;line-height:1.4;">
+                        <strong>Passo 1:</strong> Vá no WhatsApp Web e aperte <b>Ctrl + V</b> (a foto grande de <i>${tituloProd}</i> vai aparecer na hora!).<br><br>
+                        <strong>Passo 2:</strong> Clique no botão abaixo para copiar a legenda e cole na legenda da foto:
+                    </p>
+                    <button id="btnCopiarLegendaModal" style="width:100%;background:#6f42c1;color:#fff;border:none;padding:12px;border-radius:8px;font-weight:bold;font-size:14px;cursor:pointer;margin-bottom:8px;">
+                        📋 Copiar Legenda Agora (Passo 2)
+                    </button>
+                    <button onclick="document.getElementById('modalFotoCopiada').remove()" style="width:100%;background:#e0e0e0;color:#333;border:none;padding:9px;border-radius:8px;font-weight:bold;font-size:12px;cursor:pointer;">
+                        Fechar
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            document.getElementById('btnCopiarLegendaModal').onclick = function() {
+                navigator.clipboard.writeText(textoLegenda).then(() => {
+                    this.style.background = '#2e7d32';
+                    this.innerText = '✅ Legenda Copiada! Agora dê Ctrl+V no WhatsApp!';
+                    setTimeout(() => {
+                        let m = document.getElementById('modalFotoCopiada');
+                        if (m) m.remove();
+                    }, 1500);
+                });
+            };
         }
 
         function verificarModoListaOuProduto() {
@@ -639,6 +747,18 @@
             } else {
                 renderizarProdutos(produtos);
                 if (idProduto) {
+                    // Se abriu 1 produto específico, atualiza o título e imagem Open Graph da página para o produto!
+                    let prodUnico = produtos.find(item => String(item.id) === String(idProduto));
+                    if (prodUnico) {
+                        document.title = `${prodUnico.title} - Dicas da Poliii`;
+                        let ogT = document.getElementById('ogTitle');
+                        let ogI = document.getElementById('ogImage');
+                        if (ogT) ogT.setAttribute('content', `${prodUnico.num} - ${prodUnico.title}`);
+                        if (ogI && prodUnico.img && prodUnico.img.startsWith('http')) {
+                            ogI.setAttribute('content', prodUnico.img);
+                        }
+                    }
+
                     setTimeout(() => {
                         const card = document.getElementById(`produto-${idProduto}`);
                         if (card) {
@@ -1050,24 +1170,43 @@
             width: 100%;
             background: #2e7d32;
             color: white;
-            padding: 12px 20px;
+            padding: 12px 16px;
             z-index: 99998;
             box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
             justify-content: space-between;
             align-items: center;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
+            gap: 8px;
+        }
+        .botoes-sacola-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
         }
         .btn-gerar-sacola {
             background-color: white;
             color: #2e7d32;
             border: none;
-            padding: 8px 14px;
+            padding: 8px 12px;
             border-radius: 6px;
             font-weight: bold;
-            font-size: 13px;
+            font-size: 12px;
             cursor: pointer;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            white-space: nowrap;
+        }
+        .btn-limpar-sacola {
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            white-space: nowrap;
         }
     </style>
 </head>
@@ -1135,16 +1274,15 @@
 
             <input type="hidden" id="editId">
 
-            <!-- Botão Inteligente para corrigir #19401 / #19402 para #290 / #291 automaticamente -->
             <button type="button" id="btnCorrigirSequencia" onclick="corrigirNumerosForaDaSequencia()" style="display: none; width: 100%; background-color: #ff9800; color: white; border: none; padding: 9px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; margin-bottom: 10px;">
-                🔧 Corrigir Nºs #19401+ para a sequência correta (#290, #291...)
+                🔧 Corrigir Nºs altos para a sequência correta
             </button>
 
             <!-- 1. Número Automático e Categoria -->
             <div style="display: flex; gap: 8px;">
                 <div style="width: 38%;">
                     <label class="admin-label">Nº Automático:</label>
-                    <input type="text" id="newNum" placeholder="Ex: 290">
+                    <input type="text" id="newNum" placeholder="Ex: 293">
                 </div>
                 <div style="flex: 1;">
                     <label class="admin-label">Categoria da Vitrine:</label>
@@ -1239,10 +1377,13 @@
         </div>
     </div>
 
-    <!-- Barra Flutuante para Sacola Personalizada -->
+    <!-- Barra Flutuante para Sacola Personalizada (Com Botão Limpar + Auto-Limpeza!) -->
     <div id="barraSacolaFlutuante">
         <span>🛍️ <span id="contadorSacola">0</span> produto(s) na sacola</span>
-        <button class="btn-gerar-sacola" onclick="gerarLinkSacolaSelecionada()">🔗 Gerar Link da Sacola</button>
+        <div class="botoes-sacola-group">
+            <button class="btn-gerar-sacola" onclick="gerarLinkSacolaSelecionada()">🔗 Gerar Link da Sacola</button>
+            <button class="btn-limpar-sacola" onclick="limparSacolaCompleta()" title="Desmarcar todos os produtos">🗑️ Limpar Sacola</button>
+        </div>
     </div>
 
     <!-- Botões Circulares Compactos Laterais Direitos -->
