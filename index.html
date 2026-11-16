@@ -16,7 +16,7 @@
     
     <script>
         // ==========================================
-        // 1. CONFIGURAÇÃO DA NUVEM NPOINT, GREEN-API E AFILIADOS FIXOS
+        // 1. CONFIGURAÇÃO DA NUVEM NPOINT, GREEN-API E LINKS FIXOS
         // ==========================================
         const NPOINT_URL = "https://api.npoint.io/fd32c904d4aafe739782"; 
         const GREEN_API_INSTANCE = "710722755197";
@@ -25,7 +25,6 @@
 
         const MEU_ID_MELI_PARAMS = "matt_word=pepo8413118&matt_tool=46346758&forceInApp=true";
 
-        // Links Fixos da Central de Cupons
         const LINKS_PADRAO_CUPONS = {
             shopee: "https://s.shopee.com.br/8ANLneMzRi",
             meli_todos: "https://www.mercadolivre.com.br/cupons?matt_word=pepo8413118&matt_tool=46346758&forceInApp=true",
@@ -33,9 +32,9 @@
             amazon: "https://link.amazon/B07XB6mZ1"
         };
 
-        // Links Fixos por Plataforma para o Disparador de Cupom / Ação Promocional
+        // Links fixos automáticos para o Disparador de Cupom / Ação Promocional
         const LINKS_FIXOS_DISPARADOR = {
-            "MERCADO LIVRE": "https://www.mercadolivre.com.br/cupons?matt_word=pepo8413118&matt_tool=46346758&forceInApp=true",
+            "MERCADO LIVRE": "https://www.mercadolivre.com.br/black-friday?matt_word=pepo8413118&matt_tool=46346758&forceInApp=true#source=sbc-wpp-share",
             "AMAZON": "https://link.amazon/B07XB6mZ1",
             "SHOPEE": "https://s.shopee.com.br/8ANLneMzRi",
             "MAGALU": "https://www.magazinevoce.com.br/magazineofertinhasdapoli/",
@@ -59,8 +58,8 @@
         let produtosSelecionadosSacola = [];
         let abaCupomAtiva = "meli";
         let imagemCustomCupomElement = null;
-        let imagemAcaoLivreElement = null;
-        let imagemAcaoLivreDataUrl = "";
+        let imagemAcaoLivreCustomElement = null;
+        let imagemAcaoLivreUrlExterna = "";
 
         // ==========================================
         // 2. CARREGAMENTO E GRAVAÇÃO NA NUVEM
@@ -199,10 +198,8 @@
                         mostrarPreviaImagem(texto.trim());
                     }
                     if (idInput === 'acaoLivreImgUrl') {
-                        imagemAcaoLivreDataUrl = texto.trim();
-                        atualizarPreviaBannerDisparador();
-                    }
-                    if (idInput === 'acaoLivreCupom' || idInput === 'acaoLivreTitulo') {
+                        imagemAcaoLivreUrlExterna = texto.trim();
+                        imagemAcaoLivreCustomElement = null;
                         atualizarPreviaBannerDisparador();
                     }
                 }
@@ -540,7 +537,7 @@
         }
 
         // =========================================================
-        // 7. CENTRAL MULTILOJAS DE CUPONS (ARTE CORRIGIDA SEM CORTE + COMPRA MÍNIMA OPCIONAL)
+        // 7. CENTRAL MULTILOJAS DE CUPONS (ARTE CORRIGIDA + COMPRA MÍNIMA OPCIONAL!)
         // =========================================================
         function garantirIdMeliNoLink(urlMeli) {
             if (!urlMeli) return LINKS_PADRAO_CUPONS.meli_black;
@@ -555,21 +552,19 @@
             return u;
         }
 
-        function carregarFotoSalvaCentral() {
-            const estilo = document.getElementById("estiloTextoCupomMultiloja")?.value || "";
-            const chave = `foto_fixa_central_${abaCupomAtiva}_${estilo}`;
-            const salva = localStorage.getItem(chave);
-            if (salva && salva.startsWith("data:image")) {
-                const img = new Image();
-                img.onload = function() {
-                    imagemCustomCupomElement = img;
-                    atualizarPreviaBannerCupomMultiloja();
-                };
-                img.src = salva;
-            } else {
+        function carregarImagemSalvaCentral(chave) {
+            const b64 = localStorage.getItem(`foto_fixa_central_${chave}`);
+            if (!b64) {
                 imagemCustomCupomElement = null;
                 atualizarPreviaBannerCupomMultiloja();
+                return;
             }
+            const img = new Image();
+            img.onload = function() {
+                imagemCustomCupomElement = img;
+                atualizarPreviaBannerCupomMultiloja();
+            };
+            img.src = b64;
         }
 
         function selecionarAbaCentralCupons(loja) {
@@ -589,10 +584,10 @@
 
             const inputLink = document.getElementById("linkEditavelCupomAtual");
             const selectOpcao = document.getElementById("estiloTextoCupomMultiloja");
-            const boxConfigAmanha = document.getElementById("boxConfigMeliAmanha");
+            const boxConfigAmanhã = document.getElementById("boxConfigMeliAmanhã");
 
             if (loja === "shopee") {
-                if (boxConfigAmanha) boxConfigAmanha.style.display = "none";
+                if (boxConfigAmanhã) boxConfigAmanhã.style.display = "none";
                 if (inputLink) inputLink.value = localStorage.getItem("link_cupom_shopee") || LINKS_PADRAO_CUPONS.shopee;
                 if (selectOpcao) {
                     selectOpcao.innerHTML = `
@@ -601,6 +596,7 @@
                         <option value="shopee_frete">🚚 Cupons Shopee + Frete Grátis Liberados</option>
                     `;
                 }
+                carregarImagemSalvaCentral("shopee");
             } else if (loja === "meli") {
                 if (inputLink) inputLink.value = localStorage.getItem("link_cupom_meli") || LINKS_PADRAO_CUPONS.meli_black;
                 if (selectOpcao) {
@@ -611,9 +607,10 @@
                         <option value="meli_duplo">🔥 Estratégia Dupla (1º Ativa Cookie + 2º Resgata Cupons)</option>
                     `;
                 }
-                if (boxConfigAmanha) boxConfigAmanha.style.display = "flex";
+                if (boxConfigAmanhã) boxConfigAmanhã.style.display = "flex";
+                carregarImagemSalvaCentral("meli_amanha");
             } else if (loja === "amazon") {
-                if (boxConfigAmanha) boxConfigAmanha.style.display = "none";
+                if (boxConfigAmanhã) boxConfigAmanhã.style.display = "none";
                 if (inputLink) inputLink.value = localStorage.getItem("link_cupom_amazon") || LINKS_PADRAO_CUPONS.amazon;
                 if (selectOpcao) {
                     selectOpcao.innerHTML = `
@@ -621,30 +618,33 @@
                         <option value="amz_geral">🎟️ Central de Cupons de Desconto Amazon</option>
                     `;
                 }
+                carregarImagemSalvaCentral("amazon");
             }
-
-            carregarFotoSalvaCentral();
         }
 
         function aoMudarOpcaoTextoMeli() {
             const sel = document.getElementById("estiloTextoCupomMultiloja");
             const inputLink = document.getElementById("linkEditavelCupomAtual");
-            const boxConfigAmanha = document.getElementById("boxConfigMeliAmanha");
+            const boxConfigAmanhã = document.getElementById("boxConfigMeliAmanhã");
             if (!sel || !inputLink) return;
 
             if (abaCupomAtiva === "meli") {
                 if (sel.value === "meli_todos") {
                     inputLink.value = LINKS_PADRAO_CUPONS.meli_todos;
-                    if (boxConfigAmanha) boxConfigAmanha.style.display = "none";
+                    if (boxConfigAmanhã) boxConfigAmanhã.style.display = "none";
+                    carregarImagemSalvaCentral("meli_black");
                 } else if (sel.value === "meli_amanha") {
                     inputLink.value = LINKS_PADRAO_CUPONS.meli_black;
-                    if (boxConfigAmanha) boxConfigAmanha.style.display = "flex";
+                    if (boxConfigAmanhã) boxConfigAmanhã.style.display = "flex";
+                    carregarImagemSalvaCentral("meli_amanha");
                 } else {
                     inputLink.value = LINKS_PADRAO_CUPONS.meli_black;
-                    if (boxConfigAmanha) boxConfigAmanha.style.display = "none";
+                    if (boxConfigAmanhã) boxConfigAmanhã.style.display = "none";
+                    carregarImagemSalvaCentral("meli_black");
                 }
+            } else {
+                atualizarPreviaBannerCupomMultiloja();
             }
-            carregarFotoSalvaCentral();
         }
 
         function salvarLinkEditadoCupom() {
@@ -740,102 +740,168 @@
             desenharTicketCupomShopee(ctx, 385, 145, 470, 145, -5.5, "CUPOM DE", "10% OFF");
         }
 
-        // ARTE CORRIGIDA (SEM CORTE!) IGUAL AO BANNER OFICIAL "RESGATE O CUPOM PARA USAR AMANHÃ"
-        function desenharMontagemMeliResgateAmanha(ctx) {
-            const vDesconto = (document.getElementById("valorCupomAmanha")?.value || "").trim();
-            const vMinimo = (document.getElementById("minimoCupomAmanha")?.value || "").trim();
+        // ARTE CORRIGIDA (SEM CORTE NA PALAVRA CUPOM!) IDÊNTICA AO BANNER OFICIAL ANEXADO!
+        function desenharMontagemMeliResgateAmanhã(ctx) {
+            const vDesconto = (document.getElementById("valorCupomAmanhã")?.value || "R$ 40 OFF").trim();
+            const usarMinimo = document.getElementById("checkIncluirMinimoAmanhã")?.checked;
+            const vMinimo = (document.getElementById("minimoCupomAmanhã")?.value || "Compra mínima R$ 199").trim();
 
-            // Fundo Amarelo Oficial Mercado Livre
+            // Fundo Geral Amarelo Oficial Mercado Livre
             const gradBg = ctx.createLinearGradient(0, 0, 800, 450);
             gradBg.addColorStop(0, "#FFE600");
-            gradBg.addColorStop(1, "#FFEA35");
+            gradBg.addColorStop(1, "#FFEA33");
             ctx.fillStyle = gradBg;
             ctx.fillRect(0, 0, 800, 450);
 
-            // Barra Azul Superior igual à imagem oficial enviada: "SÓ HOJE! Descontos incríveis com CUPONS 🎟️"
-            const gradBar = ctx.createLinearGradient(15, 12, 785, 58);
-            gradBar.addColorStop(0, "#191970");
-            gradBar.addColorStop(0.5, "#0055D4");
-            gradBar.addColorStop(1, "#29B6F6");
-            ctx.fillStyle = gradBar;
+            // Marca d'água grande suave no fundo ("DOMINGO DE CUPONS")
+            ctx.fillStyle = "rgba(230, 195, 0, 0.28)";
+            ctx.font = "900 110px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("CUPONS", 400, 180);
+
+            // 1. Barra Azul Superior: "SÓ HOJE! Descontos incríveis com CUPONS 🎟️"
+            const gradBlue = ctx.createLinearGradient(15, 10, 785, 52);
+            gradBlue.addColorStop(0, "#1A1F71");
+            gradBlue.addColorStop(0.5, "#0055D4");
+            gradBlue.addColorStop(1, "#29B6F6");
+            ctx.fillStyle = gradBlue;
             ctx.beginPath();
-            ctx.roundRect(15, 14, 770, 46, 10);
+            ctx.roundRect(15, 10, 770, 42, 8);
             ctx.fill();
 
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillStyle = "#FFE600";
-            ctx.font = "900 21px Arial";
-            ctx.fillText("SÓ HOJE!  Descontos incríveis com CUPONS ⚡", 400, 38);
-
-            // Pílula Superior: [BLACK FRIDAY] [COMPRE AGORA!]
-            ctx.fillStyle = "#111111";
-            ctx.beginPath();
-            ctx.roundRect(210, 82, 195, 42, 8);
-            ctx.fill();
-            ctx.fillStyle = "#FFFFFF";
             ctx.font = "900 20px Arial";
-            ctx.fillText("BLACK FRIDAY", 307, 104);
-
+            ctx.fillText("SÓ HOJE! ", 255, 31);
             ctx.fillStyle = "#FFFFFF";
+            ctx.font = "bold 20px Arial";
+            ctx.fillText("Descontos incríveis com CUPONS ⚡", 475, 31);
+
+            // 2. Pílula Dupla "BLACK FRIDAY | COMPRE AGORA!"
+            ctx.fillStyle = "#111111";
             ctx.beginPath();
-            ctx.roundRect(408, 82, 185, 42, 8);
+            ctx.roundRect(220, 68, 175, 36, 8);
+            ctx.fill();
+            ctx.fillStyle = "#FFFFFF";
+            ctx.font = "900 17px Arial";
+            ctx.fillText("BLACK FRIDAY", 307, 87);
+
+            ctx.fillStyle = "#FFF9C4";
+            ctx.beginPath();
+            ctx.roundRect(398, 68, 182, 36, 8);
             ctx.fill();
             ctx.fillStyle = "#111111";
-            ctx.font = "900 19px Arial";
-            ctx.fillText("COMPRE AGORA!", 500, 104);
+            ctx.font = "900 17px Arial";
+            ctx.fillText("COMPRE AGORA!", 489, 87);
 
-            // Bilhete Preto Neon Centralizado (Com folga ampla para NUNCA cortar a palavra CUPOM!)
+            // 3. Bilhete Preto Neon Central: "RESGATE O CUPOM" (Perfeitamente centralizado, sem cortar!)
             ctx.save();
-            ctx.shadowColor = "rgba(0,0,0,0.35)";
-            ctx.shadowBlur = 18;
+            ctx.shadowColor = "rgba(255, 160, 0, 0.7)";
+            ctx.shadowBlur = 22;
             ctx.fillStyle = "#141414";
             ctx.strokeStyle = "#FFD600";
-            ctx.lineWidth = 6;
+            ctx.lineWidth = 5;
             ctx.beginPath();
-            ctx.roundRect(140, 145, 520, 155, 16);
+            ctx.roundRect(155, 118, 490, 128, 14);
             ctx.fill();
             ctx.stroke();
             ctx.restore();
 
-            // Recortes laterais do bilhete
+            // Recortes laterais do bilhete preto
             ctx.fillStyle = "#FFE600";
             ctx.beginPath();
-            ctx.arc(140, 222, 22, -Math.PI / 2, Math.PI / 2);
-            ctx.arc(660, 222, 22, Math.PI / 2, -Math.PI / 2);
+            ctx.arc(155, 182, 18, -Math.PI / 2, Math.PI / 2);
+            ctx.arc(645, 182, 18, Math.PI / 2, -Math.PI / 2);
             ctx.fill();
 
-            // Texto "RESGATE O" + "CUPOM" perfeitamente centralizados dentro do bilhete
-            ctx.fillStyle = "#FFFFFF";
-            ctx.font = "900 28px Arial";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText("RESGATE O", 400, 185);
+            ctx.fillStyle = "#FFFFFF";
+            ctx.font = "900 25px Arial";
+            ctx.fillText("RESGATE O", 400, 150);
 
             ctx.fillStyle = "#FFE600";
-            ctx.font = "900 72px Arial";
-            ctx.fillText("CUPOM", 400, 248);
+            ctx.font = "900 62px Arial";
+            ctx.fillText("CUPOM", 400, 204);
 
-            // Textos inferiores: "PARA USAR AMANHÃ / APROVEITE!"
+            // 4. Chamada "PARA USAR AMANHÃ - APROVEITE!"
             ctx.fillStyle = "#111111";
-            ctx.font = "bold 32px Arial";
-            ctx.fillText("PARA USAR AMANHÃ", 400, 342);
-            ctx.font = "900 38px Arial";
-            ctx.fillText("APROVEITE!", 400, 386);
+            ctx.font = "900 26px Arial";
+            ctx.fillText("PARA USAR AMANHÃ", 400, 272);
+            ctx.font = "900 30px Arial";
+            ctx.fillText("APROVEITE!", 400, 305);
 
-            // Se você preencher um valor ou compra mínima opcional, exibe num selo discreto no rodapé
-            if (vDesconto || vMinimo) {
-                let txtExtra = vDesconto ? `🔥 ${vDesconto}` : "";
-                if (vMinimo) txtExtra += (txtExtra ? ` (${vMinimo})` : vMinimo);
-                ctx.fillStyle = "#2D3277";
-                ctx.font = "bold 20px Arial";
-                ctx.fillText(txtExtra, 400, 426);
+            // 5. Cartão Branco Inferior demonstrando o botão "Resgatar" e o Cadeado Dourado
+            ctx.save();
+            ctx.shadowColor = "rgba(0,0,0,0.18)";
+            ctx.shadowBlur = 12;
+            ctx.fillStyle = "#FFFFFF";
+            ctx.beginPath();
+            ctx.roundRect(95, 326, 610, 112, 14);
+            ctx.fill();
+            ctx.restore();
+
+            ctx.strokeStyle = "#CCCCCC";
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([6, 6]);
+            ctx.beginPath();
+            ctx.moveTo(435, 334);
+            ctx.lineTo(435, 430);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = "#001A72";
+            ctx.textAlign = "left";
+            ctx.font = "900 38px Arial";
+            ctx.fillText(vDesconto || "SUPER CUPOM", 122, 368);
+
+            ctx.font = "bold 17px Arial";
+            ctx.fillText("EM TODO O SITE MERCADO LIVRE", 122, 396);
+
+            if (usarMinimo && vMinimo) {
+                ctx.fillStyle = "#666666";
+                ctx.font = "bold 14px Arial";
+                ctx.fillText(`${vMinimo} | T&C`, 122, 420);
             } else {
-                ctx.fillStyle = "#333333";
-                ctx.font = "16px Arial";
-                ctx.fillText("Veja mais em: mercadolivre.com.br/black-friday", 400, 428);
+                ctx.fillStyle = "#2E7D32";
+                ctx.font = "bold 14px Arial";
+                ctx.fillText("🔥 Desconto exclusivo no app!", 122, 420);
             }
-            ctx.textBaseline = "alphabetic";
+
+            // Lado Direito: Cadeado + Horário + Botão Azul "Resgatar"
+            const cxLock = 565;
+            ctx.textAlign = "center";
+            ctx.fillStyle = "#333333";
+            ctx.font = "bold 15px Arial";
+            ctx.fillText("🔒 Libera às 00:00h (23h MT)", cxLock, 355);
+
+            ctx.fillStyle = "#3483FA";
+            ctx.beginPath();
+            ctx.roundRect(cxLock - 78, 374, 156, 46, 8);
+            ctx.fill();
+
+            ctx.fillStyle = "#FFFFFF";
+            ctx.font = "bold 21px Arial";
+            ctx.fillText("Resgatar", cxLock, 397);
+
+            // Seta vermelha apontando para "Resgatar"
+            ctx.save();
+            ctx.strokeStyle = "#E60014";
+            ctx.fillStyle = "#E60014";
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(745, 360);
+            ctx.lineTo(652, 394);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(646, 396);
+            ctx.lineTo(665, 378);
+            ctx.lineTo(670, 400);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
         }
 
         function desenharMontagemMeliBlackFriday(ctx) {
@@ -861,6 +927,7 @@
             ctx.fillStyle = "#2D3277";
             ctx.font = "900 34px Arial";
             ctx.textAlign = "left";
+            ctx.textBaseline = "alphabetic";
             ctx.fillText("mercado", 320, 38);
             ctx.fillText("livre", 320, 72);
 
@@ -990,6 +1057,7 @@
             desenharNuvem(15, 395, 1.2);
             desenharNuvem(680, 410, 1.15);
 
+            ctx.textBaseline = "alphabetic";
             ctx.fillStyle = "#FFFFFF";
             ctx.textAlign = "center";
             ctx.font = "900 68px Arial";
@@ -1046,6 +1114,7 @@
             }
             ctx.restore();
 
+            ctx.textBaseline = "alphabetic";
             ctx.fillStyle = "rgba(0, 0, 0, 0.18)";
             ctx.beginPath();
             ctx.roundRect(35, 330, 730, 98, 14);
@@ -1079,7 +1148,7 @@
                 desenharMontagemShopee(ctx);
             } else if (abaCupomAtiva === "meli") {
                 if (estilo === "meli_amanha") {
-                    desenharMontagemMeliResgateAmanha(ctx);
+                    desenharMontagemMeliResgateAmanhã(ctx);
                 } else {
                     desenharMontagemMeliBlackFriday(ctx);
                 }
@@ -1097,7 +1166,7 @@
             }
         }
 
-        // Salva a foto escolhida no localStorage como FIXA para aquela campanha até você decidir trocar!
+        // Quando você escolhe uma foto oficial do aparelho na Central de Cupons, ela agora fica SALVA como fixa!
         function carregarFotoCustomCentralCupom(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1112,27 +1181,26 @@
                     ctx.fillStyle = "#FFFFFF";
                     ctx.fillRect(0, 0, 800, 450);
                     ctx.drawImage(img, 0, 0, 800, 450);
-                    const dataUrlSalva = c.toDataURL("image/jpeg", 0.85);
+                    const dataComprimida = c.toDataURL("image/jpeg", 0.85);
 
-                    const estilo = document.getElementById("estiloTextoCupomMultiloja")?.value || "";
-                    const chave = `foto_fixa_central_${abaCupomAtiva}_${estilo}`;
+                    const sel = document.getElementById("estiloTextoCupomMultiloja")?.value || "";
+                    const chave = (abaCupomAtiva === "meli" && sel === "meli_amanha") ? "meli_amanha" : (abaCupomAtiva === "meli" ? "meli_black" : abaCupomAtiva);
                     try {
-                        localStorage.setItem(chave, dataUrlSalva);
+                        localStorage.setItem(`foto_fixa_central_${chave}`, dataComprimida);
                     } catch (err) {}
 
                     imagemCustomCupomElement = img;
                     atualizarPreviaBannerCupomMultiloja();
-                    alert("✅ Foto salva como FIXA para esta opção! Quando quiser trocar, basta escolher outra.");
                 };
                 img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
 
-        function restaurarArtePadraoCentral() {
-            const estilo = document.getElementById("estiloTextoCupomMultiloja")?.value || "";
-            const chave = `foto_fixa_central_${abaCupomAtiva}_${estilo}`;
-            localStorage.removeItem(chave);
+        function restaurarArteAutomaticaCentral() {
+            const sel = document.getElementById("estiloTextoCupomMultiloja")?.value || "";
+            const chave = (abaCupomAtiva === "meli" && sel === "meli_amanha") ? "meli_amanha" : (abaCupomAtiva === "meli" ? "meli_black" : abaCupomAtiva);
+            localStorage.removeItem(`foto_fixa_central_${chave}`);
             imagemCustomCupomElement = null;
             const fileIn = document.getElementById("inputFotoCustomCentralCupom");
             if (fileIn) fileIn.value = "";
@@ -1167,22 +1235,21 @@
             if (abaCupomAtiva === "meli") {
                 linkAtual = garantirIdMeliNoLink(linkAtual || LINKS_PADRAO_CUPONS.meli_black);
 
-                // AÇÃO: RESGATE HOJE PARA USAR AMANHÃ (COMPRA MÍNIMA 100% OPCIONAL!)
+                // OPÇÃO: RESGATE HOJE PARA USAR AMANHÃ (COM COMPRA MÍNIMA OPCIONAL!)
                 if (estilo === "meli_amanha") {
-                    const vDesc = (document.getElementById("valorCupomAmanha")?.value || "R$ 40 OFF").trim();
-                    const vMin = (document.getElementById("minimoCupomAmanha")?.value || "").trim();
-                    const textoMinimo = vMin ? ` (${vMin})` : "";
-                    const textoDesconto = vDesc ? ` de *${vDesc} EM TODO O SITE*${textoMinimo}` : ` *EM TODO O SITE*${textoMinimo}`;
+                    const vDesc = (document.getElementById("valorCupomAmanhã")?.value || "R$ 40 OFF").trim();
+                    const usarMinimo = document.getElementById("checkIncluirMinimoAmanhã")?.checked;
+                    const vMin = (document.getElementById("minimoCupomAmanhã")?.value || "Compra mínima R$ 199").trim();
+                    const trechoMinimo = (usarMinimo && vMin) ? ` (${vMin})` : "";
 
                     return (
                         `⏳ *RESGATE AGORA O CUPOM DO MERCADO LIVRE PARA USAR LOGO MAIS!* 🎟️\n\n` +
-                        `🔥 O Mercado Livre liberou um super cupom${textoDesconto}!\n\n` +
+                        `🔥 O Mercado Livre liberou um super cupom de *${vDesc} EM TODO O SITE*${trechoMinimo}!\n\n` +
                         `⚠️ *ATENÇÃO — VOCÊ PRECISA RESGATAR AGORA:*\n` +
-                        `1️⃣ Clique no link abaixo para abrir a página de cupons\n` +
+                        `1️⃣ Clique no link abaixo para abrir a página de cupons.\n` +
                         `2️⃣ *Role a página um pouco para baixo* até encontrar o cupom com o cadeado dourado e clique no botão azul *"Resgatar"*!\n` +
-                        `3️⃣ Pronto! O cupom ficará salvo na sua conta e será liberado para uso a partir das *23:00h (horário local MT) / 00:00h (horário de Brasília)*!\n` +
-                        `4️⃣ *Fique ligado que às 23h eu irei mandar o nome do cupom para você economizar!*\n\n` +
-                        `👉 *Resgate o cupom disponível clicando no link abaixo:*\n` +
+                        `3️⃣ Pronto! O cupom ficará salvo na sua conta e será liberado para uso a partir das *23:00h (horário local MT) / 00:00h (horário de Brasília)*!\n\n` +
+                        `👉 *Resgate os cupons disponíveis clicando no link abaixo:*\n` +
                         `${linkAtual}\n\n` +
                         `🏃‍♀️ *Corra para garantir o resgate na sua conta agora mesmo antes que encerre!*`
                     );
@@ -1286,18 +1353,15 @@
         }
 
         // =========================================================
-        // 8. DISPARADOR DE CUPOM / AÇÃO PROMOCIONAL
-        // (COM IMAGEM FIXA POR PLATAFORMA + LINK FIXO AUTOMÁTICO!)
+        // 8. DISPARADOR DE CUPOM COM LINKS FIXOS + IMAGENS FIXAS POR PLATAFORMA!
         // =========================================================
-        function obterLinkPadraoDisparador(plataforma) {
-            const salvo = localStorage.getItem(`link_fixo_disparador_${plataforma}`);
-            if (salvo !== null && salvo !== undefined && salvo !== "") {
-                return salvo;
-            }
-            return LINKS_FIXOS_DISPARADOR[plataforma] || "";
+        function obterLinkFixoDaPlataforma(plat) {
+            const salvo = localStorage.getItem(`link_fixo_disparador_${plat}`);
+            if (salvo !== null && salvo !== "") return salvo;
+            return LINKS_FIXOS_DISPARADOR[plat] || "";
         }
 
-        function salvarLinkFixoDisparador() {
+        function salvarLinkFixoDisparadorAtual() {
             const plat = document.getElementById("acaoLivrePlataforma")?.value || "MERCADO LIVRE";
             const inputLink = document.getElementById("acaoLivreLink");
             if (!inputLink) return;
@@ -1307,139 +1371,136 @@
                 inputLink.value = val;
             }
             localStorage.setItem(`link_fixo_disparador_${plat}`, val);
-            alert(`✅ Link fixo da plataforma ${plat} guardado com sucesso!`);
+            alert(`✅ Link padrão de ${plat} salvo como fixo!`);
         }
 
         function aoMudarPlataformaDisparador() {
             const plat = document.getElementById("acaoLivrePlataforma")?.value || "MERCADO LIVRE";
             const inputLink = document.getElementById("acaoLivreLink");
             if (inputLink) {
-                inputLink.value = obterLinkPadraoDisparador(plat);
+                inputLink.value = obterLinkFixoDaPlataforma(plat);
             }
-            // Limpa foto avulsa para usar o Banner Fixo da plataforma selecionada (ou foto salva daquela plataforma)
-            imagemAcaoLivreElement = null;
-            imagemAcaoLivreDataUrl = "";
+            imagemAcaoLivreCustomElement = null;
+            imagemAcaoLivreUrlExterna = "";
             const urlIn = document.getElementById("acaoLivreImgUrl");
             if (urlIn) urlIn.value = "";
             const fileIn = document.getElementById("inputFileAcaoLivre");
             if (fileIn) fileIn.value = "";
-
-            const fotoFixaSalva = localStorage.getItem(`foto_fixa_disparador_${plat}`);
-            if (fotoFixaSalva && fotoFixaSalva.startsWith("data:image")) {
-                const img = new Image();
-                img.onload = function() {
-                    imagemAcaoLivreElement = img;
-                    atualizarPreviaBannerDisparador();
-                };
-                img.src = fotoFixaSalva;
-            } else {
-                atualizarPreviaBannerDisparador();
-            }
+            atualizarPreviaBannerDisparador();
         }
 
-        // Desenha automaticamente a Arte Fixa de "CUPOM DISPONÍVEL" para cada Plataforma!
-        function gerarCanvasBannerDisparadorPorLoja() {
+        // Desenha automaticamente a Arte Fixa de Cupom de cada Plataforma (Logo + "CUPOM DISPONÍVEL - RESGATE AGORA!")
+        function gerarCanvasArteFixaDisparador() {
             const canvas = document.createElement("canvas");
             canvas.width = 800;
             canvas.height = 450;
             const ctx = canvas.getContext("2d");
 
-            if (imagemAcaoLivreElement) {
+            if (imagemAcaoLivreCustomElement) {
                 ctx.fillStyle = "#FFFFFF";
                 ctx.fillRect(0, 0, 800, 450);
-                ctx.drawImage(imagemAcaoLivreElement, 0, 0, 800, 450);
+                ctx.drawImage(imagemAcaoLivreCustomElement, 0, 0, 800, 450);
                 return canvas;
             }
 
             const plat = document.getElementById("acaoLivrePlataforma")?.value || "MERCADO LIVRE";
-            const cupomDigitado = (document.getElementById("acaoLivreCupom")?.value || "").trim().toUpperCase();
+            const cupomDigitado = (document.getElementById("acaoLivreCupom")?.value || "").trim();
             const regraDigitada = (document.getElementById("acaoLivreTitulo")?.value || "").trim();
 
-            const paletas = {
-                "MERCADO LIVRE": { bg1: "#FFE600", bg2: "#FFF159", headerBg: "#2D3277", headerTxt: "#FFFFFF", nome: "🤝 MERCADO LIVRE", badgeCor: "#2D3277" },
-                "AMAZON":        { bg1: "#FF6200", bg2: "#FF8533", headerBg: "#131921", headerTxt: "#FFFFFF", nome: "📦 AMAZON BRASIL", badgeCor: "#FF6200" },
-                "SHOPEE":        { bg1: "#EE4D2D", bg2: "#FF6633", headerBg: "#FFFFFF", headerTxt: "#EE4D2D", nome: "🛍️ SHOPEE OFICIAL", badgeCor: "#EE4D2D" },
-                "MAGALU":        { bg1: "#0086FF", bg2: "#00B0FF", headerBg: "#FFFFFF", headerTxt: "#0086FF", nome: "💙 MAGALU OFERTAS", badgeCor: "#0086FF" },
-                "ALIEXPRESS":    { bg1: "#E62E04", bg2: "#FF5252", headerBg: "#191919", headerTxt: "#FFFFFF", nome: "❤️ ALIEXPRESS", badgeCor: "#E62E04" },
-                "TIKTOK SHOP":   { bg1: "#111111", bg2: "#252525", headerBg: "#FE2C55", headerTxt: "#FFFFFF", nome: "🎵 TIKTOK SHOP", badgeCor: "#FE2C55" },
-                "BLACK FRIDAY":  { bg1: "#111111", bg2: "#2C2C2C", headerBg: "#FFB300", headerTxt: "#111111", nome: "🖤 BLACK FRIDAY", badgeCor: "#D50000" }
+            const temas = {
+                "MERCADO LIVRE": { cor1: "#FFE600", cor2: "#FFD000", corCard: "#2D3277", corTextoTopo: "#2D3277", icone: "🤝", nome: "mercado livre" },
+                "AMAZON": { cor1: "#FF6200", cor2: "#FF8F00", corCard: "#131921", corTextoTopo: "#FFFFFF", icone: "📦", nome: "amazon" },
+                "SHOPEE": { cor1: "#EE4D2D", cor2: "#FF6633", corCard: "#FFFFFF", corTextoTopo: "#FFFFFF", icone: "🛍️", nome: "Shopee" },
+                "MAGALU": { cor1: "#0086FF", cor2: "#0056D2", corCard: "#FFFFFF", corTextoTopo: "#FFFFFF", icone: "💙", nome: "Magalu" },
+                "ALIEXPRESS": { cor1: "#E62E04", cor2: "#FF5722", corCard: "#FFFFFF", corTextoTopo: "#FFFFFF", icone: "🛒", nome: "AliExpress" },
+                "TIKTOK SHOP": { cor1: "#010101", cor2: "#25F4EE", corCard: "#FE2C55", corTextoTopo: "#FFFFFF", icone: "🎵", nome: "TikTok Shop" },
+                "BLACK FRIDAY": { cor1: "#111111", cor2: "#333333", corCard: "#FFE600", corTextoTopo: "#FFE600", icone: "🖤", nome: "BLACK FRIDAY" }
             };
-            const p = paletas[plat] || paletas["MERCADO LIVRE"];
 
-            // Fundo da plataforma
+            const t = temas[plat] || temas["MERCADO LIVRE"];
+
+            // Fundo Degradê da Plataforma
             const grad = ctx.createLinearGradient(0, 0, 800, 450);
-            grad.addColorStop(0, p.bg1);
-            grad.addColorStop(1, p.bg2);
+            grad.addColorStop(0, t.cor1);
+            grad.addColorStop(1, t.cor2);
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, 800, 450);
 
-            // Faixa superior com o Nome/Logo da Plataforma
-            ctx.fillStyle = p.headerBg;
-            ctx.beginPath();
-            ctx.roundRect(180, 22, 440, 62, 31);
-            ctx.fill();
+            // Selos decorativos "%" nos cantos
+            const desenharSelo = (sx, sy, rot) => {
+                ctx.save();
+                ctx.translate(sx, sy);
+                ctx.rotate((rot * Math.PI) / 180);
+                ctx.fillStyle = "rgba(255,255,255,0.2)";
+                ctx.beginPath();
+                ctx.roundRect(-42, -28, 84, 56, 10);
+                ctx.fill();
+                ctx.fillStyle = t.corTextoTopo;
+                ctx.font = "900 32px Arial";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText("%", 0, 2);
+                ctx.restore();
+            };
+            desenharSelo(70, 85, -20);
+            desenharSelo(730, 95, 22);
+            desenharSelo(75, 375, 16);
+            desenharSelo(725, 370, -18);
 
-            ctx.fillStyle = p.headerTxt;
-            ctx.font = "900 30px Arial";
+            // Cabeçalho com Logo e Nome da Plataforma
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText(p.nome, 400, 54);
+            ctx.fillStyle = t.corTextoTopo;
+            ctx.font = "900 46px Arial";
+            ctx.fillText(`${t.icone} ${t.nome}`, 400, 75);
 
-            // Bilhete Central Branco de Cupom Disponível
+            // Bilhete Central de Cupom
             ctx.save();
-            ctx.shadowColor = "rgba(0,0,0,0.28)";
+            ctx.shadowColor = "rgba(0,0,0,0.3)";
             ctx.shadowBlur = 20;
             ctx.shadowOffsetY = 8;
             ctx.fillStyle = "#FFFFFF";
             ctx.beginPath();
-            ctx.roundRect(95, 112, 610, 235, 18);
+            ctx.roundRect(110, 130, 580, 215, 18);
             ctx.fill();
             ctx.restore();
 
-            // Recortes laterais do bilhete
-            ctx.fillStyle = p.bg1;
+            // Recortes laterais do bilhete branco
+            ctx.fillStyle = t.cor1;
             ctx.beginPath();
-            ctx.arc(95, 230, 22, -Math.PI / 2, Math.PI / 2);
-            ctx.arc(705, 230, 22, Math.PI / 2, -Math.PI / 2);
+            ctx.arc(110, 237, 20, -Math.PI / 2, Math.PI / 2);
+            ctx.arc(690, 237, 20, Math.PI / 2, -Math.PI / 2);
             ctx.fill();
 
-            // Moldura tracejada interna
-            ctx.strokeStyle = p.badgeCor;
+            // Borda interna tracejada
+            ctx.strokeStyle = "#DDDDDD";
             ctx.lineWidth = 3;
             ctx.setLineDash([8, 6]);
-            ctx.beginPath();
-            ctx.roundRect(122, 132, 556, 195, 12);
-            ctx.stroke();
+            ctx.strokeRect(138, 150, 524, 175);
             ctx.setLineDash([]);
 
-            ctx.fillStyle = "#444444";
-            ctx.font = "900 25px Arial";
-            ctx.fillText("🎟️ CUPOM DISPONÍVEL 🎟️", 400, 172);
+            ctx.fillStyle = "#E65100";
+            ctx.font = "900 26px Arial";
+            ctx.fillText("🎟️ CUPOM DISPONÍVEL 🎟️", 400, 188);
 
-            ctx.fillStyle = p.badgeCor;
-            if (cupomDigitado) {
-                ctx.font = "900 54px Arial";
-                ctx.fillText(cupomDigitado.slice(0, 16), 400, 235);
-            } else {
-                ctx.font = "900 48px Arial";
-                ctx.fillText("RESGATE O CUPOM", 400, 235);
-            }
+            const textoDestaqueMeio = regraDigitada ? regraDigitada.toUpperCase().slice(0, 26) : (cupomDigitado ? `USE: ${cupomDigitado.toUpperCase().slice(0, 18)}` : "RESGATE O CUPOM");
+            ctx.fillStyle = "#111111";
+            ctx.font = "900 44px Arial";
+            ctx.fillText(textoDestaqueMeio, 400, 245);
 
-            ctx.fillStyle = "#222222";
-            ctx.font = "bold 23px Arial";
-            const textoSub = regraDigitada ? regraDigitada.slice(0, 38) : "ATIVE NO LINK E APROVEITE!";
-            ctx.fillText(textoSub, 400, 292);
+            ctx.fillStyle = "#2E7D32";
+            ctx.font = "bold 22px Arial";
+            ctx.fillText("ATIVE PELO LINK ABAIXO E APROVEITE!", 400, 298);
 
-            // Faixa Inferior de Chamada
-            ctx.fillStyle = "rgba(0,0,0,0.82)";
+            // Faixa Inferior
+            ctx.fillStyle = "rgba(0,0,0,0.22)";
             ctx.beginPath();
-            ctx.roundRect(150, 372, 500, 52, 12);
+            ctx.roundRect(180, 372, 440, 52, 26);
             ctx.fill();
 
-            ctx.fillStyle = "#FFE600";
-            ctx.font = "900 22px Arial";
-            ctx.fillText("👉 CLIQUE NO LINK ABAIXO PARA ATIVAR!", 400, 399);
-            ctx.textBaseline = "alphabetic";
+            ctx.fillStyle = "#FFFFFF";
+            ctx.font = "bold 22px Arial";
+            ctx.fillText("✨ Dicas da Poliii • Ofertas & Cupons ✨", 400, 399);
 
             return canvas;
         }
@@ -1448,14 +1509,13 @@
             const imgEl = document.getElementById("previaImgAcaoLivre");
             if (!imgEl) return;
 
-            const urlDigitada = (document.getElementById("acaoLivreImgUrl")?.value || "").trim();
-            if (urlDigitada && urlDigitada.startsWith("http")) {
-                imgEl.src = urlDigitada;
+            if (imagemAcaoLivreUrlExterna && imagemAcaoLivreUrlExterna.startsWith("http") && !imagemAcaoLivreCustomElement) {
+                imgEl.src = imagemAcaoLivreUrlExterna;
                 imgEl.style.display = "block";
                 return;
             }
 
-            const canvas = gerarCanvasBannerDisparadorPorLoja();
+            const canvas = gerarCanvasArteFixaDisparador();
             imgEl.src = canvas.toDataURL("image/png");
             imgEl.style.display = "block";
         }
@@ -1467,37 +1527,22 @@
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
-                    const c = document.createElement("canvas");
-                    c.width = 800;
-                    c.height = 450;
-                    const ctx = c.getContext("2d");
-                    ctx.fillStyle = "#FFFFFF";
-                    ctx.fillRect(0, 0, 800, 450);
-                    ctx.drawImage(img, 0, 0, 800, 450);
-                    const dataUrlSalva = c.toDataURL("image/jpeg", 0.85);
-
-                    const plat = document.getElementById("acaoLivrePlataforma")?.value || "MERCADO LIVRE";
-                    try {
-                        localStorage.setItem(`foto_fixa_disparador_${plat}`, dataUrlSalva);
-                    } catch (err) {}
-
-                    imagemAcaoLivreElement = img;
-                    imagemAcaoLivreDataUrl = dataUrlSalva;
+                    imagemAcaoLivreCustomElement = img;
+                    imagemAcaoLivreUrlExterna = "";
+                    const urlInput = document.getElementById("acaoLivreImgUrl");
+                    if (urlInput) urlInput.value = "(Foto personalizada carregada)";
                     atualizarPreviaBannerDisparador();
-                    alert(`✅ Foto salva como FIXA para ${plat}!`);
                 };
                 img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
 
-        function restaurarArtePadraoDisparador() {
-            const plat = document.getElementById("acaoLivrePlataforma")?.value || "MERCADO LIVRE";
-            localStorage.removeItem(`foto_fixa_disparador_${plat}`);
-            imagemAcaoLivreElement = null;
-            imagemAcaoLivreDataUrl = "";
-            const urlIn = document.getElementById("acaoLivreImgUrl");
-            if (urlIn) urlIn.value = "";
+        function restaurarBannerFixoDisparador() {
+            imagemAcaoLivreCustomElement = null;
+            imagemAcaoLivreUrlExterna = "";
+            const urlInput = document.getElementById("acaoLivreImgUrl");
+            if (urlInput) urlInput.value = "";
             const fileIn = document.getElementById("inputFileAcaoLivre");
             if (fileIn) fileIn.value = "";
             atualizarPreviaBannerDisparador();
@@ -1507,8 +1552,11 @@
             const plat = document.getElementById("acaoLivrePlataforma")?.value || "OFERTA ESPECIAL";
             const titulo = (document.getElementById("acaoLivreTitulo")?.value || "").trim();
             const cupomAcao = (document.getElementById("acaoLivreCupom")?.value || "").trim();
-            let link = (document.getElementById("acaoLivreLink")?.value || "").trim() || obterLinkPadraoDisparador(plat);
+            let link = (document.getElementById("acaoLivreLink")?.value || "").trim();
 
+            if (!link) {
+                link = obterLinkFixoDaPlataforma(plat);
+            }
             if (plat.includes("MERCADO LIVRE") && link.includes("mercadolivre.com.br")) {
                 link = garantirIdMeliNoLink(link);
             }
@@ -1539,25 +1587,23 @@
         }
 
         window.executarAcaoPromocionalLivre = async function(modo) {
-            const plat = document.getElementById("acaoLivrePlataforma")?.value || "MERCADO LIVRE";
             const texto = montarTextoAcaoPromocionalLivre();
-            const link = (document.getElementById("acaoLivreLink")?.value || "").trim() || obterLinkPadraoDisparador(plat);
+            const plat = document.getElementById("acaoLivrePlataforma")?.value || "MERCADO LIVRE";
+            const link = (document.getElementById("acaoLivreLink")?.value || "").trim() || obterLinkFixoDaPlataforma(plat);
             const cupomAcao = (document.getElementById("acaoLivreCupom")?.value || "").trim();
 
             if (!link && !cupomAcao) {
-                alert("Preencha o Nome do Cupom ou o Link para disparar!");
+                alert("Preencha pelo menos o Nome do Cupom ou o Link para disparar!");
                 return;
             }
 
             if (modo === "copiar") {
                 await navigator.clipboard.writeText(texto);
-                alert("✅ Texto do Cupom com a frase de ativação e link copiado!");
+                alert("✅ Texto do Cupom com a frase de ativação copiado!");
                 return;
             }
 
-            const urlInput = (document.getElementById("acaoLivreImgUrl")?.value || "").trim();
-            const usarUrlWeb = urlInput.startsWith("http") ? urlInput : "";
-            const canvasGerado = gerarCanvasBannerDisparadorPorLoja();
+            const canvasDisparador = gerarCanvasArteFixaDisparador();
 
             if (modo === "vip") {
                 const btnVip = document.getElementById("btnAcaoLivreVip");
@@ -1568,10 +1614,15 @@
                 }
 
                 try {
-                    const opcoesMidia = usarUrlWeb ? { urlWeb: usarUrlWeb } : { canvasEl: canvasGerado };
+                    let opcoesMidia = {};
+                    if (imagemAcaoLivreUrlExterna && imagemAcaoLivreUrlExterna.startsWith("http") && !imagemAcaoLivreCustomElement) {
+                        opcoesMidia = { urlWeb: imagemAcaoLivreUrlExterna };
+                    } else {
+                        opcoesMidia = { canvasEl: canvasDisparador };
+                    }
                     const res = await enviarDiretoGreenApiBlindado(texto, opcoesMidia);
                     if (res.sucesso) {
-                        alert("✅ Cupom enviado com foto direto no Grupo VIP!");
+                        alert("✅ Cupom + Arte enviados com sucesso direto no Grupo VIP!");
                     } else {
                         alert("⚠️ Use o botão roxo '🖼️ Enviar c/ Foto' ao lado.");
                     }
@@ -1584,8 +1635,8 @@
                 return;
             }
 
-            // Modo WhatsApp (Celular ou PC) usando o Banner Fixo da Plataforma (ou a imagem escolhida)
-            canvasGerado.toBlob(async function(blob) {
+            // Modo "whatsapp" (usa a Arte Fixa da plataforma ou a foto escolhida!)
+            canvasDisparador.toBlob(async function(blob) {
                 if (!blob) {
                     await navigator.clipboard.writeText(texto);
                     alert("✅ Texto copiado!");
@@ -2366,4 +2417,427 @@
         .floating-circle:hover { transform: scale(1.1); }
         .floating-circle i { font-size: 13px; margin-bottom: 1px; }
         .floating-circle span { font-size: 5.5px; font-weight: bold; line-height: 1; text-transform: uppercase; }
-        .circle-zap { background-color: #25d366
+        .circle-zap { background-color: #25d366; }
+        .circle-channel { background-color: #128c7e; }
+
+        .scroll-buttons-container {
+            position: fixed;
+            bottom: 25px;
+            left: 15px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .scroll-btn {
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s;
+        }
+        .scroll-btn:hover { transform: scale(1.1); }
+
+        #barraSacolaFlutuante {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #2e7d32;
+            color: white;
+            padding: 12px 16px;
+            z-index: 99998;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: bold;
+            gap: 8px;
+        }
+        .botoes-sacola-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .btn-gerar-sacola {
+            background-color: white;
+            color: #2e7d32;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            white-space: nowrap;
+        }
+        .btn-limpar-sacola {
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Logo -->
+        <img id="logoImg" src="logo.jpeg" alt="Logo Dicasdapoliii" class="profile-pic">
+        
+        <h1>Dicasdapoliii</h1>
+        <p class="bio">Seu guia de compras online</p>
+
+        <!-- Redes Sociais -->
+        <div class="social-icons">
+            <a href="https://www.facebook.com/share/1GKAczQjX4/" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+            <a href="https://www.tiktok.com" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
+            <a href="https://www.instagram.com" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+            <a href="https://www.youtube.com" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+            <a href="https://www.pinterest.com" target="_blank"><i class="fa-brands fa-pinterest"></i></a>
+        </div>
+
+        <!-- Botões de Conversão -->
+        <a href="https://s.shopee.com.br/8ANLneMzRi" target="_blank" class="btn-shopee">🛍️ Resgatar Cupons Shopee</a>
+        <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="btn-whatsapp">💬 Entrar no Canal de Ofertas</a>
+        <a href="https://wa.me/5566999087449" target="_blank" class="btn-whatsapp" style="background-color: #128c7e;">🟢 Falar com a Poli</a>
+
+        <!-- Filtros e Busca -->
+        <div class="filter-section">
+            <select id="categoryFilter" onchange="filtrarProdutos()"></select>
+            <button id="btnCompartilharCategoria" onclick="compartilharCategoriaAtual()">🔗 Compartilhar Esta Categoria</button>
+            <input type="text" id="searchInput" placeholder="🔍 Digite o número ou nome do produto..." onkeyup="filtrarProdutos()">
+        </div>
+
+        <!-- Lista Dinâmica de Produtos -->
+        <div class="product-list" id="productList"></div>
+
+        <!-- Botão Protegido por Senha para abrir o Painel -->
+        <a class="admin-link" onclick="pedirSenhaAdmin()">⚙️ Painel de Administração</a>
+
+        <!-- Painel Restrito de Administração Otimizado -->
+        <div id="admin-panel">
+            <div class="admin-header">
+                <h3 id="panel-title">➕ Adicionar Novo Produto</h3>
+                <button class="btn-close-admin" onclick="sairDoAdmin()">✕ Sair</button>
+            </div>
+
+            <!-- ================================================================= -->
+            <!-- 1. CENTRAL MULTILOJAS DE CUPONS (ARTE CORRIGIDA + MÍNIMO OPCIONAL) -->
+            <!-- ================================================================= -->
+            <div style="background: #fff8e1; padding: 12px; border-radius: 10px; margin-bottom: 14px; border: 2px solid #ffb300;">
+                <h4 style="font-size: 14px; color: #d84315; margin-bottom: 6px;">🎟️ Central de Cupons (Shopee, Meli e Amazon)</h4>
+                <p style="font-size: 11px; color: #555; margin-bottom: 8px;">Envia a chamada <b>"Resgate os cupons disponíveis clicando no link abaixo"</b> + montagem da loja:</p>
+
+                <!-- Botões das 3 Lojas -->
+                <div style="display: flex; gap: 6px; margin-bottom: 10px;">
+                    <button type="button" id="tab-cupom-meli" onclick="selecionarAbaCentralCupons('meli')" style="flex: 1; background: #ffe600; color: #2d3277; border: 1px solid #d4bf00; padding: 8px 4px; border-radius: 8px; font-weight: 900; font-size: 11px; cursor: pointer;">
+                        💛 M. Livre
+                    </button>
+                    <button type="button" id="tab-cupom-amazon" onclick="selecionarAbaCentralCupons('amazon')" style="flex: 1; background: #ff6200; color: #ffffff; border: 1px solid #e65100; padding: 8px 4px; border-radius: 8px; font-weight: 900; font-size: 11px; cursor: pointer;">
+                        📦 Amazon
+                    </button>
+                    <button type="button" id="tab-cupom-shopee" onclick="selecionarAbaCentralCupons('shopee')" style="flex: 1; background: #ee4d2d; color: #ffffff; border: 1px solid #bf360c; padding: 8px 4px; border-radius: 8px; font-weight: 900; font-size: 11px; cursor: pointer;">
+                        🧡 Shopee
+                    </button>
+                </div>
+
+                <!-- Prévia da Montagem Automática -->
+                <div style="text-align: center; margin-bottom: 8px;">
+                    <img id="previaBannerCupomMultiloja" src="" alt="Prévia Montagem Cupons" style="width: 100%; max-width: 300px; border-radius: 8px; border: 2px solid #ff6f00; box-shadow: 0 3px 8px rgba(0,0,0,0.18);">
+                </div>
+
+                <!-- Seletor de Frase / Estratégia -->
+                <label style="font-size: 11px; font-weight: bold; color: #444; display: block; margin-bottom: 3px;">📝 Escolha a campanha / tipo de chamada:</label>
+                <select id="estiloTextoCupomMultiloja" onchange="aoMudarOpcaoTextoMeli()" style="margin-bottom: 8px; font-size: 12px; padding: 8px; border-color: #ffb74d; font-weight: bold;"></select>
+
+                <!-- Campos Rápidos para Ajustar o Valor e Compra Mínima Opcional (Desmarcada por padrão!) -->
+                <div id="boxConfigMeliAmanhã" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; background: #fffde7; padding: 8px; border-radius: 8px; border: 1px dashed #fbc02d;">
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 10px; font-weight: bold; color: #2d3277;">Destaque do Cupom:</label>
+                            <input type="text" id="valorCupomAmanhã" value="R$ 40 OFF" oninput="atualizarPreviaBannerCupomMultiloja()" style="font-size: 11px; padding: 6px; background: #fff; font-weight: bold;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 10px; font-weight: bold; color: #2d3277; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                <input type="checkbox" id="checkIncluirMinimoAmanhã" onchange="atualizarPreviaBannerCupomMultiloja()" style="width: auto;"> Incluir Compra Mínima?
+                            </label>
+                            <input type="text" id="minimoCupomAmanhã" value="Compra mínima R$ 199" oninput="atualizarPreviaBannerCupomMultiloja()" style="font-size: 11px; padding: 6px; background: #fff;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Campo para Trocar o Link Quando Necessário -->
+                <label style="font-size: 11px; font-weight: bold; color: #444; display: block; margin-bottom: 3px;">🔗 Link da Central de Cupons (já com seu ID no Mercado Livre):</label>
+                <div class="input-with-paste" style="margin-bottom: 8px;">
+                    <input type="text" id="linkEditavelCupomAtual" style="font-size: 11px; padding: 8px; background: #fff;">
+                    <button type="button" class="btn-paste" onclick="colarCampo('linkEditavelCupomAtual')" style="padding: 8px 10px; font-size: 11px;">📋 Colar</button>
+                    <button type="button" onclick="salvarLinkEditadoCupom()" style="background: #2e7d32; color: #fff; border: none; border-radius: 8px; padding: 8px 10px; font-size: 11px; font-weight: bold; cursor: pointer;" title="Guardar novo link">💾</button>
+                </div>
+
+                <!-- 3 Botões de Disparo -->
+                <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+                    <button type="button" onclick="copiarTextoCentralCupons()" style="flex: 1; background-color: #ff5722; color: white; border: none; padding: 9px 6px; border-radius: 8px; font-weight: bold; font-size: 11px; cursor: pointer;">
+                        🔗 Só Copiar Link/Texto
+                    </button>
+                    <button type="button" onclick="enviarCentralCuponsComFoto()" style="flex: 1; background-color: #8e24aa; color: white; border: none; padding: 9px 6px; border-radius: 8px; font-weight: bold; font-size: 11px; cursor: pointer;">
+                        🖼️ Enviar c/ Foto (WhatsApp)
+                    </button>
+                </div>
+                <button type="button" id="btnDispararCupomVip" onclick="dispararCentralCuponsGrupoVip()" style="width: 100%; background-color: #2e7d32; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; margin-bottom: 6px;">
+                    🚀 Disparar Montagem + Link Direto no Grupo VIP
+                </button>
+
+                <details style="font-size: 11px; color: #bf360c; cursor: pointer;">
+                    <summary style="font-weight: bold;">📸 Fixar outra imagem oficial do meu aparelho (fica salva!)</summary>
+                    <input type="file" id="inputFotoCustomCentralCupom" accept="image/*" onchange="carregarFotoCustomCentralCupom(event)" style="font-size: 11px; padding: 4px; margin-top: 4px; background: #fff;">
+                    <button type="button" onclick="restaurarArteAutomaticaCentral()" style="margin-top: 4px; background: #777; color: #fff; border: none; padding: 5px 8px; border-radius: 6px; font-size: 10px; cursor: pointer;">🔄 Voltar para a Arte Automática</button>
+                </details>
+            </div>
+
+            <!-- ================================================================= -->
+            <!-- 2. DISPARADOR DE CUPOM COM LINKS FIXOS E ARTES FIXAS AUTOMÁTICAS! -->
+            <!-- ================================================================= -->
+            <div style="background: #e8eaf6; padding: 12px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #9fa8da;">
+                <h4 style="font-size: 13px; color: #283593; margin-bottom: 4px;">⚡ Disparador Rápido de Cupom (Links & Artes Fixas)</h4>
+                <p style="font-size: 11px; color: #555; margin-bottom: 8px;">Ao escolher a plataforma, o <b>Link Fixo</b> e a <b>Arte da Loja</b> já carregam sozinhos! Basta colocar o nome do cupom:</p>
+
+                <select id="acaoLivrePlataforma" onchange="aoMudarPlataformaDisparador()" style="margin-bottom: 8px; font-size: 12px; padding: 8px; font-weight: bold; border: 2px solid #3949ab;">
+                    <option value="MERCADO LIVRE">💛 Mercado Livre (Link & Arte Fixa)</option>
+                    <option value="AMAZON">📦 Amazon (Link & Arte Fixa)</option>
+                    <option value="SHOPEE">🧡 Shopee (Link & Arte Fixa)</option>
+                    <option value="MAGALU">💙 Magalu (Link & Arte Fixa)</option>
+                    <option value="ALIEXPRESS">❤️ AliExpress (Arte Fixa)</option>
+                    <option value="TIKTOK SHOP">🎵 TikTok Shop (Arte Fixa)</option>
+                    <option value="BLACK FRIDAY">🖤 Especial Black Friday</option>
+                </select>
+
+                <!-- Prévia Automática da Arte Fixa da Plataforma Selecionada -->
+                <div style="text-align: center; margin-bottom: 8px;">
+                    <img id="previaImgAcaoLivre" src="" alt="Arte Fixa Plataforma" style="width: 100%; max-width: 280px; border-radius: 8px; margin: 0 auto; border: 2px solid #3949ab; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
+                </div>
+
+                <!-- Coluna do Nome do Cupom + Botão Colar -->
+                <div class="input-with-paste">
+                    <input type="text" id="acaoLivreCupom" placeholder="🎟️ Nome do(s) Cupom(ns) (ex: AFILIADO20, BLACK50)" oninput="atualizarPreviaBannerDisparador()" style="font-size: 12px; padding: 8px; background: #fffde7; font-weight: bold; border-color: #fbc02d;">
+                    <button type="button" class="btn-paste" onclick="colarCampo('acaoLivreCupom'); atualizarPreviaBannerDisparador();" style="padding: 8px 10px;">📋 Colar</button>
+                </div>
+
+                <!-- Frase / Regra Opcional da Promoção -->
+                <div class="input-with-paste">
+                    <input type="text" id="acaoLivreTitulo" placeholder="Regra opcional (ex: 20% OFF ou R$ 30 OFF)" oninput="atualizarPreviaBannerDisparador()" style="font-size: 12px; padding: 8px;">
+                    <button type="button" class="btn-paste" onclick="colarCampo('acaoLivreTitulo'); atualizarPreviaBannerDisparador();" style="padding: 8px 10px;">📋 Colar</button>
+                </div>
+
+                <!-- Link de Afiliada (Já vem preenchido com o Link Fixo da loja ou pode trocar/salvar!) -->
+                <label style="font-size: 10px; font-weight: bold; color: #283593; display: block; margin-bottom: 2px;">🔗 Link Fixo da Plataforma (ou cole outro link opcional abaixo):</label>
+                <div class="input-with-paste">
+                    <input type="text" id="acaoLivreLink" placeholder="Link de ativação do cookie (https://...)" style="font-size: 11px; padding: 8px; background: #fff;">
+                    <button type="button" class="btn-paste" onclick="colarCampo('acaoLivreLink')" style="padding: 8px 10px; font-size: 11px;">📋 Colar</button>
+                    <button type="button" onclick="salvarLinkFixoDisparadorAtual()" style="background: #2e7d32; color: #fff; border: none; border-radius: 8px; padding: 8px 10px; font-size: 11px; font-weight: bold; cursor: pointer;" title="Salvar este link como fixo para esta loja">💾</button>
+                </div>
+
+                <!-- Opção recolhida caso queira usar outra foto da internet ou do computador -->
+                <details style="font-size: 11px; color: #283593; cursor: pointer; margin-bottom: 8px; background: #fff; padding: 6px; border-radius: 6px; border: 1px dashed #9fa8da;">
+                    <summary style="font-weight: bold;">🖼️ Quero trocar a imagem fixa por outra foto/URL (opcional)</summary>
+                    <div class="input-with-paste" style="margin-top: 6px;">
+                        <input type="text" id="acaoLivreImgUrl" placeholder="URL da Imagem (https://...)" oninput="imagemAcaoLivreUrlExterna=this.value; imagemAcaoLivreCustomElement=null; atualizarPreviaBannerDisparador();" style="font-size: 11px; padding: 6px;">
+                        <button type="button" class="btn-paste" onclick="colarCampo('acaoLivreImgUrl')" style="padding: 6px 8px; font-size: 11px;">📋 Colar</button>
+                    </div>
+                    <input type="file" id="inputFileAcaoLivre" accept="image/*" onchange="processarUploadAcaoLivre(event)" style="font-size: 11px; padding: 3px; margin-top: 3px;">
+                    <button type="button" onclick="restaurarBannerFixoDisparador()" style="margin-top: 4px; background: #777; color: #fff; border: none; padding: 4px 8px; border-radius: 5px; font-size: 10px; cursor: pointer;">🔄 Voltar para a Arte Fixa da Plataforma</button>
+                </details>
+
+                <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+                    <button type="button" onclick="executarAcaoPromocionalLivre('copiar')" style="flex: 1; background: #3949ab; color: #fff; border: none; padding: 8px; border-radius: 8px; font-weight: bold; font-size: 11px; cursor: pointer;">
+                        🔗 Só Copiar Texto
+                    </button>
+                    <button type="button" onclick="executarAcaoPromocionalLivre('whatsapp')" style="flex: 1; background: #8e24aa; color: #fff; border: none; padding: 8px; border-radius: 8px; font-weight: bold; font-size: 11px; cursor: pointer;">
+                        🖼️ Enviar c/ Foto (WhatsApp)
+                    </button>
+                </div>
+                <button type="button" id="btnAcaoLivreVip" onclick="executarAcaoPromocionalLivre('vip')" style="width: 100%; background: #2e7d32; color: #fff; border: none; padding: 9px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer;">
+                    🚀 Disparar Cupom + Arte Direto no Grupo VIP
+                </button>
+            </div>
+
+            <!-- Seção de Gerenciamento de Categorias -->
+            <div style="background: #eee; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                <h4 style="font-size: 13px; color: #333; margin-bottom: 6px;">📂 Gerenciar Categorias da Vitrine</h4>
+                <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+                    <input type="text" id="novaCategoriaInput" placeholder="Nova Categoria (ex: Promoções)" style="margin-bottom: 0;">
+                    <button onclick="adicionarNovaCategoria()" style="background: #4CAF50; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; white-space: nowrap;">Adicionar</button>
+                </div>
+                <div id="listaCategoriasAdmin" style="display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto;"></div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #ddd; margin-bottom: 12px;">
+
+            <input type="hidden" id="editId">
+
+            <button type="button" id="btnCorrigirSequencia" onclick="corrigirNumerosForaDaSequencia()" style="display: none; width: 100%; background-color: #ff9800; color: white; border: none; padding: 9px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; margin-bottom: 10px;">
+                🔧 Corrigir Nºs altos para a sequência correta
+            </button>
+
+            <!-- 1. Número Automático e Categoria -->
+            <div style="display: flex; gap: 8px;">
+                <div style="width: 38%;">
+                    <label class="admin-label">Nº Automático:</label>
+                    <input type="text" id="newNum" placeholder="Ex: 294">
+                </div>
+                <div style="flex: 1;">
+                    <label class="admin-label">Categoria da Vitrine:</label>
+                    <select id="newCat"></select>
+                </div>
+            </div>
+
+            <!-- 2. Link de Afiliado -->
+            <label class="admin-label">🔗 Link de Afiliado (URL):</label>
+            <div class="input-with-paste">
+                <input type="text" id="newLink" placeholder="Cole o link da loja aqui..." oninput="autoDetectarPlataforma(this.value)">
+                <button type="button" class="btn-paste" onclick="colarCampo('newLink')">📋 Colar</button>
+            </div>
+
+            <!-- 3. Plataforma / Loja + Frete Grátis -->
+            <label class="admin-label">🏪 Plataforma / Loja Oficial:</label>
+            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+                <select id="newPlataforma" style="flex: 1;">
+                    <option value="MERCADO LIVRE">💛 MERCADO LIVRE</option>
+                    <option value="AMAZON">📦 AMAZON</option>
+                    <option value="SHOPEE">🧡 SHOPEE</option>
+                    <option value="MAGALU">💙 MAGALU</option>
+                    <option value="ALIEXPRESS">❤️ ALIEXPRESS</option>
+                    <option value="TIKTOK SHOP">🎵 TIKTOK SHOP</option>
+                </select>
+                <label style="font-size: 12px; font-weight: bold; color: #2e7d32; display: flex; align-items: center; gap: 4px; white-space: nowrap; background: #e8f5e9; padding: 9px 10px; border-radius: 8px; border: 1px solid #c8e6c9; cursor: pointer;">
+                    <input type="checkbox" id="newFreteGratis" style="width: auto;"> 🚚 Frete Grátis
+                </label>
+            </div>
+            <input type="text" id="newDesc" placeholder="Observação extra opcional (ex: Loja Oficial, Bivolt...)" style="margin-bottom: 6px; font-size: 12px; padding: 8px;">
+
+            <!-- 4. Título do Produto com Botão Colar -->
+            <label class="admin-label">🏷️ Título do Produto / Achadinho:</label>
+            <div class="input-with-paste">
+                <input type="text" id="newTitle" placeholder="Ex: Pack de 4 Mini Figuras Harry Potter...">
+                <button type="button" class="btn-paste" onclick="colarCampo('newTitle')">📋 Colar</button>
+            </div>
+
+            <!-- 5. Calculadora de Preço Pix e Parcelamento (Com e Sem Juros) -->
+            <label class="admin-label">💰 Preço no Pix e Parcelamento (Calcula sozinho):</label>
+            <div class="grid-2cols">
+                <div>
+                    <input type="text" id="newPrecoPix" placeholder="Pix (ex: 89,99)" oninput="atualizarPreviaPrecoAdmin()">
+                </div>
+                <div>
+                    <input type="text" id="newPrecoParcelado" placeholder="Total Parc (ex: 99,81)" oninput="atualizarPreviaPrecoAdmin()">
+                </div>
+            </div>
+            <div class="grid-2cols">
+                <div style="max-width: 110px;">
+                    <input type="number" id="newQtdParcelas" placeholder="Vezes (ex: 6)" min="1" oninput="atualizarPreviaPrecoAdmin()">
+                </div>
+                <div>
+                    <select id="newTipoJuros" onchange="atualizarPreviaPrecoAdmin()">
+                        <option value="sem_juros">✅ Sem juros (Mostra "sem juros")</option>
+                        <option value="com_juros">💳 Com juros (Oculta "com juros")</option>
+                    </select>
+                </div>
+            </div>
+            <input type="text" id="newPrecoFinal" placeholder="Resumo do Preço (preenchido automático ou digite manual)" style="margin-bottom: 6px; background: #f1f8e9; font-size: 12px; color: #2e7d32; font-weight: bold;">
+
+            <!-- 6. Cupom com Botão Colar -->
+            <label class="admin-label">🎟️ Cupom de Desconto (Opcional):</label>
+            <div class="input-with-paste">
+                <input type="text" id="newCupom" placeholder="Ex: PROMO10">
+                <button type="button" class="btn-paste" onclick="colarCampo('newCupom')">📋 Colar</button>
+            </div>
+
+            <!-- 7. Oferta Relâmpago -->
+            <label class="admin-label">⚡ Destaque Relâmpago:</label>
+            <select id="newRelampago" style="margin-bottom: 8px;">
+                <option value="nao">⏳ Oferta Relâmpago? Não</option>
+                <option value="sim">⚡ Oferta Relâmpago? SIM (Com Relógio e Destaque)</option>
+            </select>
+
+            <!-- 8. Imagem: Colar URL da Web OU Subir do Aparelho -->
+            <label class="admin-label">🖼️ Imagem do Produto (URL ou Arquivo do Aparelho):</label>
+            <div class="input-with-paste">
+                <input type="text" id="newImg" placeholder="Cole o link da imagem (https://...)" oninput="mostrarPreviaImagem(this.value)">
+                <button type="button" class="btn-paste" onclick="colarCampo('newImg')">📋 Colar</button>
+            </div>
+            <div class="upload-box">
+                <label for="newImgFile" style="font-size: 12px; color: #59339d; font-weight: bold; cursor: pointer; display: block; margin-bottom: 4px;">
+                    📱 Ou Carregar Foto do Celular / Computador:
+                </label>
+                <input type="file" id="newImgFile" accept="image/*" onchange="processarUploadImagem(event)" style="font-size: 11px; padding: 4px; background: #fff;">
+                <img id="previaImgAdmin" src="" alt="Prévia" style="display: none; width: 80px; height: 80px; object-fit: cover; border-radius: 8px; margin: 8px auto 0; border: 2px solid #6f42c1;">
+            </div>
+
+            <button class="btn-shopee" id="btnSalvar" onclick="salvarProduto()" style="margin-top: 10px; background-color: #2e7d32;">💾 Salvar Produto na Nuvem</button>
+            <button class="btn-buy" id="btnCancelar" onclick="cancelarEdicao()" style="display:none; background-color:#777; margin-top:5px; width: 100%; padding: 10px;">Cancelar Edição</button>
+        </div>
+    </div>
+
+    <!-- Barra Flutuante para Sacola Personalizada -->
+    <div id="barraSacolaFlutuante">
+        <span>🛍️ <span id="contadorSacola">0</span> produto(s) na sacola</span>
+        <div class="botoes-sacola-group">
+            <button class="btn-gerar-sacola" onclick="gerarLinkSacolaSelecionada()">🔗 Gerar Link da Sacola</button>
+            <button class="btn-limpar-sacola" onclick="limparSacolaCompleta()" title="Desmarcar todos os produtos">🗑️ Limpar Sacola</button>
+        </div>
+    </div>
+
+    <!-- Botões Circulares Compactos Laterais Direitos -->
+    <div class="floating-container">
+        <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="floating-circle circle-channel" title="Canal Ofertas">
+            <i class="fa-solid fa-bullhorn"></i>
+            <span>Canal Ofertas</span>
+        </a>
+        <a href="https://wa.me/5566999087449" target="_blank" class="floating-circle circle-zap" title="Ajuda">
+            <i class="fa-brands fa-whatsapp"></i>
+            <span>Ajuda</span>
+        </a>    
+    </div>
+
+    <!-- Botões de Navegação Rápida (Subir e Descer) na Lateral Esquerda -->
+    <div class="scroll-buttons-container">
+        <button class="scroll-btn" onclick="voltarAoTopo()" title="Ir para o topo">
+            <i class="fa-solid fa-arrow-up"></i>
+        </button>
+        <button class="scroll-btn" onclick="irParaBaixo()" title="Ir para o fim">
+            <i class="fa-solid fa-arrow-down"></i>
+        </button>
+    </div>
+
+    <script>
+        function voltarAoTopo() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        function irParaBaixo() {
+            window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    </script>
+</body>
+</html>
