@@ -437,75 +437,22 @@
         }
 
         // =========================================================
-        // 6. MOTOR DE UPLOAD PÚBLICO + GREEN-API (GARANTE ENVIO COM FOTO GRANDE!)
+        // 6. MOTOR DIRETO GREEN-API (SEM SITES EXTERNOS DE 3KB!)
+        // Envia os bytes reais da imagem direto para a Green-API!
         // =========================================================
-        async function converterCanvasOuDataUrlParaLinkPublico(canvasElement, dataUrlString) {
-            let blobImg = null;
-            try {
-                if (canvasElement) {
-                    blobImg = await new Promise(res => canvasElement.toBlob(res, "image/jpeg", 0.90));
-                } else if (dataUrlString && dataUrlString.startsWith("data:image")) {
-                    let r = await fetch(dataUrlString);
-                    blobImg = await r.blob();
-                }
-            } catch (e) {}
-
-            if (!blobImg) return "";
-
-            // Rota 1: tmpfiles.org API (Possui CORS 100% liberado para navegadores e devolve URL https direta da imagem!)
-            try {
-                let fd1 = new FormData();
-                fd1.append("file", blobImg, "cupom-dicasdapoli.jpg");
-                let r1 = await fetch("https://tmpfiles.org/api/v1/upload", {
-                    method: "POST",
-                    body: fd1
-                });
-                if (r1.ok) {
-                    let j1 = await r1.json();
-                    if (j1 && j1.data && j1.data.url) {
-                        // Converte https://tmpfiles.org/12345/cupom.jpg em link direto https://tmpfiles.org/dl/12345/cupom.jpg
-                        return j1.data.url.replace("tmpfiles.org/", "tmpfiles.org/dl/");
-                    }
-                }
-            } catch (e) {}
-
-            // Rota 2: litterbox.catbox.moe (Servidor de arquivos temporários para APIs)
-            try {
-                let fd2 = new FormData();
-                fd2.append("reqtype", "fileupload");
-                fd2.append("time", "1h");
-                fd2.append("fileToUpload", blobImg, "cupom-dicasdapoli.jpg");
-                let r2 = await fetch("https://litterbox.catbox.moe/resources/internals/api.php", {
-                    method: "POST",
-                    body: fd2
-                });
-                if (r2.ok) {
-                    let txtUrl = (await r2.text()).trim();
-                    if (txtUrl.startsWith("http")) return txtUrl;
-                }
-            } catch (e) {}
-
-            return "";
-        }
-
         async function enviarDiretoGreenApiBlindado(legenda, opcoesImagem = {}) {
             const { urlWeb, canvasEl, dataUrl } = opcoesImagem;
 
-            let urlFinalImagem = (urlWeb && urlWeb.startsWith("http")) ? urlWeb : "";
-            if (!urlFinalImagem && (canvasEl || dataUrl)) {
-                urlFinalImagem = await converterCanvasOuDataUrlParaLinkPublico(canvasEl, dataUrl);
-            }
-
-            // Envia a FOTO GRANDE + Legenda via sendFileByUrl (mesma rota que envia os produtos com foto!)
-            if (urlFinalImagem) {
+            // Caso 1: Já é uma URL direta da web (ex: produto da vitrine https://http2.mlstatic.com/...)
+            if (urlWeb && urlWeb.startsWith("http")) {
                 try {
                     let respUrl = await fetch(`https://7107.api.greenapi.com/waInstance${GREEN_API_INSTANCE}/sendFileByUrl/${GREEN_API_TOKEN}`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
                             chatId: GRUPO_VIP_ID,
-                            urlFile: urlFinalImagem,
-                            fileName: "cupom-dicasdapoli.jpg",
+                            urlFile: urlWeb,
+                            fileName: "oferta-dicasdapoli.jpg",
                             caption: legenda
                         })
                     });
@@ -515,11 +462,85 @@
                 } catch (e) {}
             }
 
+            // Extrai o Blob JPEG real e nítido (60KB a 120KB) a partir do Canvas ou do DataURL
+            let blobReal = null;
+            try {
+                if (canvasEl) {
+                    blobReal = await new Promise(res => canvasEl.toBlob(res, "image/jpeg", 0.92));
+                } else if (dataUrl && dataUrl.startsWith("data:image")) {
+                    const partes = dataUrl.split(",");
+                    const mime = partes[0].match(/:(.*?);/)[1] || "image/jpeg";
+                    const binStr = atob(partes[1]);
+                    const len = binStr.length;
+                    const arr = new Uint8Array(len);
+                    for (let i = 0; i < len; i++) {
+                        arr[i] = binStr.charCodeAt(i);
+                    }
+                    blobReal = new Blob([arr], { type: mime });
+                }
+            } catch (e) {
+                console.error("Erro ao gerar blob da imagem:", e);
+            }
+
+            if (blobReal && blobReal.size > 5000) {
+                // Camada A: Upload Direto via sendFileByFile Oficial da Green-API (CORS Nativo!)
+                try {
+                    const arquivoJpg = new File([blobReal], "cupom-dicasdapoli.jpg", { type: "image/jpeg" });
+                    const fd = new FormData();
+                    fd.append("chatId", GRUPO_VIP_ID);
+                    fd.append("caption", legenda);
+                    fd.append("file", arquivoJpg, "cupom-dicasdapoli.jpg");
+
+                    const respFile = await fetch(`https://7107.media.greenapi.com/waInstance${GREEN_API_INSTANCE}/sendFileByFile/${GREEN_API_TOKEN}`, {
+                        method: "POST",
+                        body: fd
+                    });
+
+                    if (respFile.ok) {
+                        const dadosResp = await respFile.json();
+                        if (dadosResp && dadosResp.idMessage) {
+                            return { sucesso: true, comFoto: true };
+                        }
+                    }
+                } catch (errFile) {
+                    console.warn("Aviso sendFileByFile direto:", errFile);
+                }
+
+                // Camada B: Usa o endpoint nativo uploadFile da própria Green-API e em seguida dispara sendFileByUrl!
+                try {
+                    const respUp = await fetch(`https://7107.media.greenapi.com/waInstance${GREEN_API_INSTANCE}/uploadFile/${GREEN_API_TOKEN}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "image/jpeg" },
+                        body: blobReal
+                    });
+                    if (respUp.ok) {
+                        const jsonUp = await respUp.json();
+                        if (jsonUp && jsonUp.urlFile) {
+                            const respSend = await fetch(`https://7107.api.greenapi.com/waInstance${GREEN_API_INSTANCE}/sendFileByUrl/${GREEN_API_TOKEN}`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    chatId: GRUPO_VIP_ID,
+                                    urlFile: jsonUp.urlFile,
+                                    fileName: "cupom-dicasdapoli.jpg",
+                                    caption: legenda
+                                })
+                            });
+                            if (respSend.ok) {
+                                return { sucesso: true, comFoto: true };
+                            }
+                        }
+                    }
+                } catch (errUp) {
+                    console.warn("Aviso uploadFile Green-API:", errUp);
+                }
+            }
+
             return { sucesso: false, comFoto: false };
         }
 
         // =========================================================
-        // 7. GERADOR FIEL DOS 8 TICKETS DE CUPOM ENVIADOS PELA POLI!
+        // 7. GERADOR FIEL DOS TICKETS DE CUPOM ENVIADOS PELA POLI
         // =========================================================
         function desenharConfetesESacolinhasFundo(ctx, corConfete1, corConfete2, comMoedasShopee = false) {
             const posicoes = [
@@ -568,7 +589,6 @@
                 corLinhaTracejada, corBotao, corTextoBotao, textoBotao
             } = opcoes;
 
-            // Fundo Geral 800x450
             ctx.fillStyle = corFundo;
             ctx.fillRect(0, 0, 800, 450);
 
@@ -581,14 +601,12 @@
             ctx.shadowBlur = 18;
             ctx.shadowOffsetY = 6;
 
-            // Corpo Principal do Ticket
             ctx.fillStyle = corCorpo || "#FFFFFF";
             ctx.beginPath();
             ctx.roundRect(tx, ty, tw, th, raio);
             ctx.fill();
             ctx.restore();
 
-            // Canhoto Esquerdo Colorido
             ctx.save();
             ctx.beginPath();
             ctx.roundRect(tx, ty, tw, th, raio);
@@ -597,7 +615,6 @@
             ctx.fillRect(tx, ty, largCanhoto, th);
             ctx.restore();
 
-            // Borda do Ticket
             if (corBordaTicket) {
                 ctx.strokeStyle = corBordaTicket;
                 ctx.lineWidth = 4;
@@ -606,14 +623,12 @@
                 ctx.stroke();
             }
 
-            // Recortes Semicirculares (Superior e Inferior na linha tracejada)
             ctx.fillStyle = corFundo;
             ctx.beginPath();
             ctx.arc(xTracejado, ty, 15, 0, Math.PI * 2);
             ctx.arc(xTracejado, ty + th, 15, 0, Math.PI * 2);
             ctx.fill();
 
-            // Linha Tracejada Vertical
             ctx.strokeStyle = corLinhaTracejada || "#777777";
             ctx.lineWidth = 2.5;
             ctx.setLineDash([8, 7]);
@@ -623,7 +638,6 @@
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // Botão "Resgatar" à Direita
             if (textoBotao !== "") {
                 const bx = xTracejado + 22;
                 const by = ty + th / 2 - 30;
@@ -681,7 +695,6 @@
             ctx.font = "900 32px Arial";
             ctx.fillText("amazon", 0, 25);
 
-            // Sorriso Laranja da Amazon
             ctx.strokeStyle = "#FF9900";
             ctx.lineWidth = 4.5;
             ctx.lineCap = "round";
@@ -700,27 +713,23 @@
         function desenharLogoShopeeNoCanhoto(ctx, cx, cy) {
             ctx.save();
             ctx.translate(cx, cy);
-            // Alça da sacola branca
             ctx.strokeStyle = "#FFFFFF";
             ctx.lineWidth = 6;
             ctx.beginPath();
             ctx.arc(0, -45, 20, Math.PI, 0, false);
             ctx.stroke();
 
-            // Corpo da sacola branca
             ctx.fillStyle = "#FFFFFF";
             ctx.beginPath();
             ctx.roundRect(-42, -45, 84, 78, 8);
             ctx.fill();
 
-            // Letra S Laranja
             ctx.fillStyle = "#EE4D2D";
             ctx.font = "900 52px Arial";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText("S", 0, -4);
 
-            // Nome SHOPEE abaixo
             ctx.fillStyle = "#FFFFFF";
             ctx.font = "900 26px Arial";
             ctx.fillText("SHOPEE", 0, 58);
@@ -730,7 +739,6 @@
         function desenharArteTicketOficialPoli(ctx, tipoModelo) {
             const centerMeioX = 410;
 
-            // MODELO 1: Mercado Livre - Resgate Hoje p/ Usar a partir das 23h (image_78)
             if (tipoModelo === "meli_amanha") {
                 desenharBaseTicketHorizontal(ctx, {
                     corFundo: "#FFE600",
@@ -760,7 +768,6 @@
                 return;
             }
 
-            // MODELO 2: Mercado Livre - Cupom Black Friday Preto e Dourado (image_81)
             if (tipoModelo === "meli_black") {
                 desenharBaseTicketHorizontal(ctx, {
                     corFundo: "#0D0D0D",
@@ -793,7 +800,6 @@
                 return;
             }
 
-            // MODELO 3: Mercado Livre - Ticket Branco em Fundo Amarelo "% CUPOM DE DESCONTO" (image_82)
             if (tipoModelo === "meli_padrao") {
                 desenharBaseTicketHorizontal(ctx, {
                     corFundo: "#FFE600",
@@ -813,7 +819,6 @@
                 ctx.fillText("mercado", 285, 198);
                 ctx.fillText("livre", 285, 255);
 
-                // Selo Azul "%" à direita do tracejado
                 const sx = 660, sy = 195;
                 ctx.fillStyle = "#1A237E";
                 ctx.beginPath();
@@ -831,7 +836,6 @@
                 return;
             }
 
-            // MODELO 4: Amazon - Black dos Sonhos Ofertas Exclusivas só no App (image_79)
             if (tipoModelo === "amz_black") {
                 desenharBaseTicketHorizontal(ctx, {
                     corFundo: "#1C2836",
@@ -860,7 +864,6 @@
                 return;
             }
 
-            // MODELO 5: Amazon - Cupom Amazon Padrão e Disparador Rápido (image_77)
             if (tipoModelo === "amz_padrao") {
                 desenharBaseTicketHorizontal(ctx, {
                     corFundo: "#1C2836",
@@ -883,7 +886,6 @@
                 return;
             }
 
-            // MODELO 6: Shopee - Vários Cupons Resgate Agora p/ Central de Cupons (image_80)
             if (tipoModelo === "shopee_central") {
                 desenharBaseTicketHorizontal(ctx, {
                     corFundo: "#8E1C06",
@@ -906,7 +908,6 @@
                 ctx.font = "900 34px Arial";
                 ctx.fillText("RESGATE AGORA", centerMeioX, 192);
 
-                // Mini-etiquetas de cupons (15% OFF, 10% OFF, R$ 100 OFF, R$ 200 OFF...)
                 const tags = [
                     { x: 260, y: 230, w: 72, h: 36, c: "#FF6D00", t: "15% OFF" },
                     { x: 342, y: 230, w: 72, h: 36, c: "#E64A19", t: "10% OFF" },
@@ -926,7 +927,6 @@
                 return;
             }
 
-            // MODELO 7: Shopee - Ticket Limpo p/ Disparador Rápido de Cupom (image_85)
             if (tipoModelo === "shopee_disparador") {
                 desenharBaseTicketHorizontal(ctx, {
                     corFundo: "#EE4D2D",
@@ -947,7 +947,6 @@
                 return;
             }
 
-            // MODELO 8: AliExpress - Ticket p/ Disparador Rápido de Cupom (image_84)
             if (tipoModelo === "aliexpress_disparador") {
                 desenharBaseTicketHorizontal(ctx, {
                     corFundo: "#E62E31",
@@ -972,7 +971,6 @@
                 return;
             }
 
-            // MODELO 9: TikTok Shop - Ticket p/ Disparador Rápido de Cupom (image_83)
             if (tipoModelo === "tiktok_disparador") {
                 desenharBaseTicketHorizontal(ctx, {
                     corFundo: "#050505",
@@ -1005,7 +1003,6 @@
                 return;
             }
 
-            // MODELO 10: Magalu - Ticket p/ Disparador Rápido de Cupom
             desenharBaseTicketHorizontal(ctx, {
                 corFundo: "#0086FF",
                 corCanhoto: "#0086FF",
@@ -2517,7 +2514,7 @@
             </div>
 
             <!-- ================================================================= -->
-            <!-- 1. CENTRAL MULTILOJAS DE CUPONS (ARTES FIXAS + ENVIO C/ FOTO)     -->
+            <!-- 1. CENTRAL MULTILOJAS DE CUPONS (ENVIO DIRETO DE BYTES DE IMAGEM) -->
             <!-- ================================================================= -->
             <div style="background: #fff8e1; padding: 12px; border-radius: 10px; margin-bottom: 14px; border: 2px solid #ffb300;">
                 <h4 style="font-size: 14px; color: #d84315; margin-bottom: 6px;">🎟️ Central de Cupons (Shopee, Meli e Amazon)</h4>
@@ -2545,7 +2542,7 @@
                 <label style="font-size: 11px; font-weight: bold; color: #444; display: block; margin-bottom: 3px;">📝 Escolha a campanha / tipo de chamada:</label>
                 <select id="estiloTextoCupomMultiloja" onchange="aoMudarOpcaoTextoMeli()" style="margin-bottom: 8px; font-size: 12px; padding: 8px; border-color: #ffb74d; font-weight: bold;"></select>
 
-                <!-- Campos Rápidos para Ajustar o Valor e Compra Mínima Opcional (Desmarcada por padrão!) -->
+                <!-- Campos Rápidos para Ajustar o Valor e Compra Mínima Opcional -->
                 <div id="boxConfigMeliAmanhã" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; background: #fffde7; padding: 8px; border-radius: 8px; border: 1px dashed #fbc02d;">
                     <div style="display: flex; gap: 6px; align-items: center;">
                         <div style="flex: 1;">
@@ -2623,7 +2620,7 @@
                     <button type="button" class="btn-paste" onclick="colarCampo('acaoLivreTitulo')" style="padding: 8px 10px;">📋 Colar</button>
                 </div>
 
-                <!-- Link de Afiliada (Já vem preenchido com o Link Fixo da loja ou pode trocar/salvar!) -->
+                <!-- Link de Afiliada -->
                 <label style="font-size: 10px; font-weight: bold; color: #283593; display: block; margin-bottom: 2px;">🔗 Link Fixo da Plataforma (ou cole outro link opcional abaixo):</label>
                 <div class="input-with-paste">
                     <input type="text" id="acaoLivreLink" placeholder="Link de ativação do cookie (https://...)" style="font-size: 11px; padding: 8px; background: #fff;">
