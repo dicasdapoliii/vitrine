@@ -24,8 +24,6 @@
         const GRUPO_VIP_ID = "120363379680961951@g.us";
 
         const MEU_ID_MELI_PARAMS = "matt_word=pepo8413118&matt_tool=46346758&forceInApp=true";
-
-        // Quantidade de produtos exibidos por vez na vitrine completa (evita travamentos no celular)
         const PRODUTOS_POR_PAGINA = 20;
 
         const LINKS_PADRAO_CUPONS = {
@@ -63,7 +61,6 @@
         let imagemAcaoLivreCustomElement = null;
         let imagemAcaoLivreUrlExterna = "";
 
-        // Controle de paginação e modo produto único
         let limiteAtualExibicao = PRODUTOS_POR_PAGINA;
         let listaAtualFiltrada = [];
         let modoProdutoUnicoAtivo = false;
@@ -78,7 +75,6 @@
             }
 
             try {
-                // Limite de 8 segundos para não congelar em conexões 4G lentas
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 8000);
 
@@ -1676,19 +1672,16 @@
                 return;
             }
 
-            // Ordena do mais novo para o mais antigo
             listaAtualFiltrada = [...lista].sort((a, b) => {
                 let numA = parseInt(String(a.num).replace(/\D/g, ""), 10) || 0;
                 let numB = parseInt(String(b.num).replace(/\D/g, ""), 10) || 0;
                 return numB - numA;
             });
 
-            // Se estiver no modo produto único, exibe só o item; caso contrário, aplica o limite de paginação
             const itensParaExibir = modoProdutoUnicoAtivo
                 ? listaAtualFiltrada
                 : listaAtualFiltrada.slice(0, limiteAtualExibicao);
 
-            // Monta todo o HTML na memória primeiro (evita congelar o celular!)
             let htmlAcumulado = "";
 
             itensParaExibir.forEach(p => {
@@ -1728,7 +1721,6 @@
                     botaoSacolaHtml = `<a href="${p.link}" target="_blank" class="btn-buy">Comprar Agora</a>`;
                 }
 
-                // Destaque visual especial quando a pessoa abre o link de 1 produto específico
                 let estiloCardDestaque = modoProdutoUnicoAtivo ? 'border: 2px solid #ff4081; box-shadow: 0 4px 15px rgba(255, 64, 129, 0.25);' : '';
 
                 htmlAcumulado += `
@@ -1749,7 +1741,6 @@
                 `;
             });
 
-            // Se estiver no Modo Turbo (1 produto específico), exibe o botão para ver o restante da vitrine
             if (modoProdutoUnicoAtivo) {
                 htmlAcumulado += `
                     <button type="button" onclick="mostrarVitrineCompleta()" style="width: 100%; background-color: #6f42c1; color: white; border: none; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 5px; box-shadow: 0 3px 8px rgba(0,0,0,0.15);">
@@ -1757,7 +1748,6 @@
                     </button>
                 `;
             } else if (listaAtualFiltrada.length > limiteAtualExibicao) {
-                // Botão de paginação para carregar mais 20 produtos sem travar o celular
                 const restantes = listaAtualFiltrada.length - limiteAtualExibicao;
                 htmlAcumulado += `
                     <button type="button" onclick="carregarMaisProdutos()" style="width: 100%; background-color: #6f42c1; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 5px; box-shadow: 0 3px 8px rgba(0,0,0,0.15);">
@@ -1766,7 +1756,6 @@
                 `;
             }
 
-            // Desenha tudo na tela de uma única vez!
             container.innerHTML = htmlAcumulado;
         }
 
@@ -1777,7 +1766,6 @@
 
         window.mostrarVitrineCompleta = function() {
             modoProdutoUnicoAtivo = false;
-            // Limpa o ?produto=... da barra de endereço sem recarregar a página
             if (window.history && window.history.replaceState) {
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
@@ -2070,14 +2058,13 @@
                     return arrayIds.includes(String(p.id)) || arrayIds.includes(numLimpo);
                 });
 
-                let h1El = document.querySelector('h1');
+                let h1El = document.querySelector('.brand-title');
                 let bioEl = document.querySelector('.bio');
                 if (h1El) h1El.innerText = "🛍️ Sacola de Ofertas da Poli";
                 if (bioEl) bioEl.innerText = "Seleção especial de produtos recomendados para você";
                 
                 renderizarProdutos(produtosDaLista, true);
             } else if (idProduto) {
-                // MODO TURBO: Exibe apenas o produto solicitado no topo + botão para ver o resto da vitrine!
                 let prodUnico = produtos.find(item => String(item.id) === String(idProduto));
                 if (prodUnico) {
                     modoProdutoUnicoAtivo = true;
@@ -2100,7 +2087,6 @@
         }
 
         function filtrarProdutos() {
-            // Se a pessoa começar a pesquisar ou trocar a categoria, sai do modo produto único automaticamente
             modoProdutoUnicoAtivo = false;
 
             const termoInput = document.getElementById('searchInput');
@@ -2335,17 +2321,94 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
         body { background-color: #d1c4e9; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; padding-bottom: 140px; }
-        .container { width: 100%; max-width: 480px; background: #ffffff; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; align-items: center; position: relative; }
-        .profile-pic { width: 120px; height: 120px; border-radius: 50%; border: 3px solid #ff4081; padding: 3px; margin-bottom: 15px; object-fit: cover; }
-        h1 { font-size: 22px; color: #333; margin-bottom: 5px; text-align: center; }
-        .bio { font-size: 14px; color: #666; margin-bottom: 15px; text-align: center; }
-        .social-icons { display: flex; gap: 15px; margin-bottom: 20px; }
-        .social-icons a { font-size: 20px; color: #333; transition: color 0.3s; }
-        .social-icons a:hover { color: #ff4081; }
-        .btn-shopee { width: 100%; background-color: #ff5722; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-align: center; text-decoration: none; display: block; }
-        .btn-whatsapp { width: 100%; background-color: #25d366; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-align: center; text-decoration: none; display: block; }
+        .container { width: 100%; max-width: 480px; background: #ffffff; border-radius: 22px; box-shadow: 0 8px 25px rgba(0,0,0,0.12); padding: 20px; display: flex; flex-direction: column; align-items: center; position: relative; overflow: hidden; }
+        
+        /* ========================================== */
+        /* NOVO TOPO DIGITAL MODERNO DA VITRINE       */
+        /* ========================================== */
+        .header-banner {
+            width: calc(100% + 40px);
+            background: linear-gradient(135deg, #7b2cbf 0%, #c471ed 50%, #ff4081 100%);
+            height: 120px;
+            border-radius: 0 0 32px 32px;
+            margin: -20px -20px 0 -20px;
+            position: relative;
+            box-shadow: 0 6px 20px rgba(123, 44, 191, 0.25);
+        }
+
+        .logo-wrapper {
+            width: 156px;
+            height: 156px;
+            margin: -78px auto 12px auto;
+            padding: 5px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #a855f7, #ec4899);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+            position: relative;
+            z-index: 2;
+            transition: transform 0.3s ease;
+        }
+
+        .logo-wrapper:hover {
+            transform: scale(1.04);
+        }
+
+        .logo-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 50%;
+            border: 4px solid #ffffff;
+            background: #f7f4ec;
+        }
+
+        .brand-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 4px;
+            text-align: center;
+        }
+
+        .bio { font-size: 14px; color: #6b7280; margin-bottom: 16px; text-align: center; font-weight: 500; }
+        .social-icons { display: flex; gap: 16px; margin-bottom: 20px; }
+        .social-icons a { font-size: 20px; color: #374151; transition: all 0.3s; }
+        .social-icons a:hover { color: #a855f7; transform: translateY(-2px); }
+        
+        .btn-shopee { width: 100%; background: linear-gradient(90deg, #ff5722 0%, #f4511e 100%); color: white; border: none; padding: 13px; border-radius: 14px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-align: center; text-decoration: none; display: block; box-shadow: 0 4px 14px rgba(255, 87, 34, 0.3); transition: transform 0.2s; }
+        .btn-shopee:hover { transform: translateY(-2px); }
+
+        .btn-whatsapp-grupo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 14px;
+            background: linear-gradient(90deg, #25D366 0%, #128C7E 100%);
+            color: #ffffff !important;
+            font-weight: 700;
+            font-size: 15px;
+            text-decoration: none;
+            box-shadow: 0 6px 18px rgba(37, 211, 102, 0.35);
+            transition: all 0.25s ease;
+            margin-bottom: 10px;
+        }
+        .btn-whatsapp-grupo:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 22px rgba(37, 211, 102, 0.45);
+        }
+
+        .btn-whatsapp { width: 100%; background-color: #128c7e; color: white; border: none; padding: 13px; border-radius: 14px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-align: center; text-decoration: none; display: block; box-shadow: 0 4px 12px rgba(18, 140, 126, 0.25); transition: transform 0.2s; }
+        .btn-whatsapp:hover { transform: translateY(-2px); }
+
         .filter-section { width: 100%; margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
-        select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; outline: none; }
         
         .admin-label {
             display: block;
@@ -2413,7 +2476,7 @@
         }
 
         .product-list { width: 100%; margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .product-card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 12px; display: flex; gap: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative; transition: all 0.3s ease; }
+        .product-card { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 12px; display: flex; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); position: relative; transition: all 0.3s ease; }
         .product-card img { width: 90px; height: 90px; border-radius: 8px; object-fit: cover; }
         .product-info { display: flex; flex-direction: column; justify-content: space-between; flex: 1; }
         .product-number { font-size: 13px; font-weight: bold; color: #ff4081; }
@@ -2422,7 +2485,7 @@
         .product-promo { margin-top: 5px; font-size: 11px; background: #e8f5e9; color: #2e7d32; padding: 4px 7px; border-radius: 4px; display: inline-block; font-weight: bold; line-height: 1.4; }
         .badge-relampago { position: absolute; top: -9px; right: 10px; background: #ff3d00; color: white; font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
-        .btn-buy { background-color: #e91e63; color: white; border: none; padding: 6px 10px; border-radius: 5px; font-size: 11px; font-weight: bold; text-align: center; text-decoration: none; cursor: pointer; }
+        .btn-buy { background-color: #e91e63; color: white; border: none; padding: 7px 10px; border-radius: 7px; font-size: 12px; font-weight: bold; text-align: center; text-decoration: none; cursor: pointer; }
         .card-admin-actions { display: none; gap: 5px; margin-top: 5px; }
         .btn-edit { background-color: #ff9800; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
         .btn-delete { background-color: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
@@ -2544,11 +2607,20 @@
 <body>
 
     <div class="container">
-        <!-- Logo -->
-        <img id="logoImg" src="logo.jpeg" alt="Logo Dicasdapoliii" class="profile-pic">
+        <!-- NOVO TOPO DIGITAL MODERNO -->
+        <div class="header-banner"></div>
+
+        <div class="logo-wrapper">
+            <img id="logoImg" src="logo.jpeg" alt="Dicas da Poliii">
+        </div>
         
-        <h1>Dicasdapoliii</h1>
-        <p class="bio">Seu guia de compras online</p>
+        <h1 class="brand-title">
+            Dicas da Poliii
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#3b82f6" title="Perfil Verificado">
+                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"/>
+            </svg>
+        </h1>
+        <p class="bio">Seu guia de compras online ✨</p>
 
         <!-- Redes Sociais -->
         <div class="social-icons">
@@ -2561,8 +2633,8 @@
 
         <!-- Botões de Conversão -->
         <a href="https://s.shopee.com.br/8ANLneMzRi" target="_blank" class="btn-shopee">🛍️ Resgatar Cupons Shopee</a>
-        <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="btn-whatsapp">💬 Entrar no Canal de Ofertas</a>
-        <a href="https://wa.me/5566999087449" target="_blank" class="btn-whatsapp" style="background-color: #128c7e;">🟢 Falar com a Poli</a>
+        <a href="https://chat.whatsapp.com/DyPxqUMmch07zp5j1xlB8S" target="_blank" rel="noopener noreferrer" class="btn-whatsapp-grupo">💬 Entrar no Grupo de Ofertas no WhatsApp</a>
+        <a href="https://wa.me/5566999087449" target="_blank" class="btn-whatsapp">🟢 Falar com a Poli</a>
 
         <!-- Filtros e Busca -->
         <div class="filter-section">
@@ -2851,9 +2923,9 @@
 
     <!-- Botões Circulares Compactos Laterais Direitos -->
     <div class="floating-container">
-        <a href="https://whatsapp.com/channel/0029Vb850QcFSAt5LiSPsa0p" target="_blank" class="floating-circle circle-channel" title="Canal Ofertas">
-            <i class="fa-solid fa-bullhorn"></i>
-            <span>Canal Ofertas</span>
+        <a href="https://chat.whatsapp.com/DyPxqUMmch07zp5j1xlB8S" target="_blank" rel="noopener noreferrer" class="floating-circle circle-channel" title="Grupo de Ofertas">
+            <i class="fa-solid fa-users"></i>
+            <span>Grupo Ofertas</span>
         </a>
         <a href="https://wa.me/5566999087449" target="_blank" class="floating-circle circle-zap" title="Ajuda">
             <i class="fa-brands fa-whatsapp"></i>
