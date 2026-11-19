@@ -64,6 +64,7 @@
         let limiteAtualExibicao = PRODUTOS_POR_PAGINA;
         let listaAtualFiltrada = [];
         let modoProdutoUnicoAtivo = false;
+        let lojaFiltroAtiva = "TODAS";
 
         // ==========================================
         // 2. CARREGAMENTO RÁPIDO E GRAVAÇÃO NA NUVEM
@@ -1656,11 +1657,95 @@
         }
 
         // ==========================================
-        // 10. RENDERIZAÇÃO RÁPIDA (LOTE + PAGINAÇÃO + MODO TURBO)
+        // 10. RENDERIZAÇÃO RÁPIDA, CARROSSEL RELÂMPAGO E FILTROS
         // ==========================================
+        function escaparAspas(str) {
+            return String(str || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        }
+
+        // NOVO: Copia o cupom com 1 clique direto no card do cliente!
+        window.copiarCupomCliente = function(btnEl, codigoCupom) {
+            navigator.clipboard.writeText(codigoCupom).then(() => {
+                const textoOriginal = btnEl.innerHTML;
+                btnEl.style.backgroundColor = "#2e7d32";
+                btnEl.style.color = "#ffffff";
+                btnEl.innerHTML = `✅ Copiado: <b>${codigoCupom}</b>`;
+                setTimeout(() => {
+                    btnEl.style.backgroundColor = "#e8f5e9";
+                    btnEl.style.color = "#1b5e20";
+                    btnEl.innerHTML = textoOriginal;
+                }, 2000);
+            }).catch(() => {
+                alert("Cupom: " + codigoCupom);
+            });
+        }
+
+        // NOVO: Copia APENAS o link limpo do produto (ideal para Stories e Direct!)
+        window.copiarApenasLinkProduto = function(idProduto) {
+            let urlBase = window.location.origin + window.location.pathname;
+            let linkLimpo = `${urlBase}?produto=${idProduto}`;
+            navigator.clipboard.writeText(linkLimpo).then(() => {
+                alert("✅ Apenas o link copiado:\n" + linkLimpo);
+            });
+        }
+
+        // NOVO: Faixa de destaque "Ofertas Relâmpago" deslizável no topo
+        function renderizarCarrosselRelampago() {
+            const boxCarrossel = document.getElementById('boxCarrosselRelampago');
+            const trilho = document.getElementById('trilhoRelampago');
+            if (!boxCarrossel || !trilho) return;
+
+            if (modoProdutoUnicoAtivo) {
+                boxCarrossel.style.display = "none";
+                return;
+            }
+
+            const relampagos = produtos.filter(p => p.relampago === "sim").sort((a, b) => {
+                let numA = parseInt(String(a.num).replace(/\D/g, ""), 10) || 0;
+                let numB = parseInt(String(b.num).replace(/\D/g, ""), 10) || 0;
+                return numB - numA;
+            });
+
+            if (relampagos.length === 0) {
+                boxCarrossel.style.display = "none";
+                return;
+            }
+
+            let htmlRel = "";
+            relampagos.forEach(p => {
+                let precoCurto = p.precoPix ? `R$ ${formatarMoedaLimpa(p.precoPix)}` : (p.precoFinal ? p.precoFinal.slice(0, 22) : "Ver oferta");
+                htmlRel += `
+                    <div class="relampago-card">
+                        <img src="${p.img}" alt="${p.title}" loading="lazy" decoding="async">
+                        <div class="relampago-title">${p.title}</div>
+                        <div class="relampago-price">${precoCurto}</div>
+                        <a href="${p.link}" target="_blank" class="relampago-btn">Comprar ⚡</a>
+                    </div>
+                `;
+            });
+
+            trilho.innerHTML = htmlRel;
+            boxCarrossel.style.display = "block";
+        }
+
+        // NOVO: Filtro rápido por botões de Loja
+        window.selecionarLojaFiltro = function(loja) {
+            lojaFiltroAtiva = loja;
+            document.querySelectorAll('.store-pill').forEach(btn => {
+                if (btn.getAttribute('data-loja') === loja) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            filtrarProdutos();
+        }
+
         function renderizarProdutos(lista, resetarPaginacao = true) {
             const container = document.getElementById('productList');
             if (!container) return;
+
+            renderizarCarrosselRelampago();
 
             if (resetarPaginacao) {
                 limiteAtualExibicao = PRODUTOS_POR_PAGINA;
@@ -1668,7 +1753,7 @@
 
             if (!lista || lista.length === 0) {
                 listaAtualFiltrada = [];
-                container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px; padding: 15px 0;'>Nenhum produto cadastrado nesta seleção.</p>";
+                container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px; padding: 15px 0;'>Nenhum produto encontrado nesta seleção.</p>";
                 return;
             }
 
@@ -1688,9 +1773,11 @@
                 let botoesAdmin = isAdminLogado ? `
                     <div class="card-admin-actions" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">
                         <button class="btn-edit" onclick="carregarParaEditar('${p.id}')">✏️ Editar</button>
+                        <button class="btn-edit" style="background-color: #00897b;" onclick="duplicarProduto('${p.id}')">📑 Duplicar</button>
                         <button class="btn-delete" onclick="excluirProduto('${p.id}')">🗑️ Excluir</button>
-                        <button class="btn-share" onclick="compartilharLinkDireto('${p.id}')">🔗 Copiar Texto</button>
-                        <button class="btn-share" style="background-color: #8e24aa;" onclick="compartilharProdutoComFoto('${p.id}')">🖼️ Copiar c/ Foto</button>
+                        <button class="btn-share" style="background-color: #455a64;" onclick="copiarApenasLinkProduto('${p.id}')">🔗 Só o Link</button>
+                        <button class="btn-share" onclick="compartilharLinkDireto('${p.id}')">📝 Texto+Link</button>
+                        <button class="btn-share" style="background-color: #8e24aa;" onclick="compartilharProdutoComFoto('${p.id}')">🖼️ Foto+Texto</button>
                         <button class="btn-share" style="background-color: #2e7d32; width: 100%; padding: 6px; margin-top: 2px;" id="btn-vip-${p.id}" onclick="dispararDiretoGrupoVip('${p.id}')">🚀 Disparar Direto p/ Grupo VIP (1 Clique)</button>
                     </div>
                 ` : '';
@@ -1698,11 +1785,16 @@
                 let seloRelampago = p.relampago === "sim" ? `<div class="badge-relampago"><i class="fa-solid fa-clock"></i> ⚡ OFERTA RELÂMPAGO</div>` : '';
 
                 let infoPromocao = '';
-                if (p.cupom || p.precoFinal) {
-                    let textoPreco = p.precoFinal ? `💰 Por: ${p.precoFinal}` : '';
-                    let textoCupom = p.cupom ? `🎟️ Use o cupom: ${p.cupom} (Aplique no carrinho)` : '';
-                    let separador = (p.cupom && p.precoFinal) ? '<br>' : '';
-                    infoPromocao = `<div class="product-promo">${textoPreco}${separador}${textoCupom}</div>`;
+                if (p.precoFinal) {
+                    infoPromocao += `<div class="product-promo">💰 Por: ${p.precoFinal}</div>`;
+                }
+                if (p.cupom) {
+                    const cupomEscapado = escaparAspas(p.cupom);
+                    infoPromocao += `
+                        <button type="button" class="btn-copy-cupom" onclick="copiarCupomCliente(this, '${cupomEscapado}')">
+                            🎟️ Cupom: <b>${p.cupom}</b> <span>📋 Copiar</span>
+                        </button>
+                    `;
                 }
 
                 let botaoSacolaHtml = '';
@@ -1905,7 +1997,7 @@
 
             let textoCompartilhar = montarTextoWhatsAppEstiloRobo(p);
             navigator.clipboard.writeText(textoCompartilhar).then(() => {
-                alert("✅ Texto da postagem copiado para o WhatsApp!");
+                alert("✅ Texto + Link da postagem copiados para o WhatsApp!");
             });
         }
 
@@ -2107,11 +2199,21 @@
             }
 
             const filtrados = produtos.filter(p => {
-                if (categoria === 'relampago') {
-                    return p.relampago === "sim";
+                // Filtro 1: Loja rápida (pills)
+                let matchLoja = true;
+                if (lojaFiltroAtiva !== "TODAS") {
+                    const descUpper = (p.desc || "").toUpperCase();
+                    const platUpper = (p.plataforma || "").toUpperCase();
+                    matchLoja = descUpper.includes(lojaFiltroAtiva) || platUpper.includes(lojaFiltroAtiva);
                 }
 
+                // Filtro 2: Categoria
+                if (categoria === 'relampago') {
+                    return matchLoja && p.relampago === "sim";
+                }
                 const matchCat = (categoria === 'todos' || p.cat === categoria);
+
+                // Filtro 3: Busca por texto ou número
                 let matchTexto = false;
                 if (/^\d+$/.test(termo)) {
                     let numLimpo = String(p.num).replace("#", "");
@@ -2119,14 +2221,15 @@
                 } else {
                     matchTexto = p.title.toLowerCase().includes(termo) || String(p.num).toLowerCase().includes(termo);
                 }
-                return matchCat && matchTexto;
+
+                return matchLoja && matchCat && matchTexto;
             });
 
             renderizarProdutos(filtrados, true);
         }
 
         // ==========================================
-        // 11. SALVAR E EDITAR PRODUTO NO PAINEL ADMIN
+        // 11. SALVAR, EDITAR E DUPLICAR PRODUTO NO PAINEL ADMIN
         // ==========================================
         async function salvarProduto() {
             const editId = document.getElementById('editId').value;
@@ -2258,6 +2361,46 @@
             }
         }
 
+        // NOVO: Duplica categoria, loja e frete grátis já com o próximo número automático!
+        window.duplicarProduto = function(id) {
+            let p = produtos.find(item => String(item.id) === String(id));
+            if (!p) return;
+
+            limparFormularioprincipal();
+            document.getElementById('editId').value = "";
+            document.getElementById('newNum').value = obterProximoNumeroProduto();
+            document.getElementById('newCat').value = p.cat;
+
+            const platSelect = document.getElementById('newPlataforma');
+            const descAntiga = (p.desc || "").toUpperCase();
+            if (p.plataforma) {
+                platSelect.value = p.plataforma;
+            } else if (descAntiga.includes("AMAZON")) {
+                platSelect.value = "AMAZON";
+            } else if (descAntiga.includes("SHOPEE")) {
+                platSelect.value = "SHOPEE";
+            } else if (descAntiga.includes("MAGALU")) {
+                platSelect.value = "MAGALU";
+            } else if (descAntiga.includes("ALIEXPRESS")) {
+                platSelect.value = "ALIEXPRESS";
+            } else if (descAntiga.includes("TIKTOK")) {
+                platSelect.value = "TIKTOK SHOP";
+            } else {
+                platSelect.value = "MERCADO LIVRE";
+            }
+
+            document.getElementById('newFreteGratis').checked = Boolean(p.freteGratis || descAntiga.includes("FRETE GR"));
+            document.getElementById('newDesc').value = p.descExtra || "";
+            document.getElementById('newRelampago').value = p.relampago || "nao";
+
+            document.getElementById('panel-title').innerText = "📑 Novo Produto (Duplicado de " + p.num + ")";
+            document.getElementById('admin-panel').style.display = 'block';
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            setTimeout(() => {
+                document.getElementById('newLink')?.focus();
+            }, 400);
+        }
+
         function pedirSenhaAdmin() {
             const senhaMestra = "018315"; 
             const digitada = prompt("Digite a senha de administração:");
@@ -2323,9 +2466,7 @@
         body { background-color: #d1c4e9; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; padding-bottom: 140px; }
         .container { width: 100%; max-width: 480px; background: #ffffff; border-radius: 22px; box-shadow: 0 8px 25px rgba(0,0,0,0.12); padding: 20px; display: flex; flex-direction: column; align-items: center; position: relative; overflow: hidden; }
         
-        /* ========================================== */
-        /* NOVO TOPO DIGITAL MODERNO DA VITRINE       */
-        /* ========================================== */
+        /* NOVO TOPO DIGITAL MODERNO */
         .header-banner {
             width: calc(100% + 40px);
             background: linear-gradient(135deg, #7b2cbf 0%, #c471ed 50%, #ff4081 100%);
@@ -2349,9 +2490,7 @@
             transition: transform 0.3s ease;
         }
 
-        .logo-wrapper:hover {
-            transform: scale(1.04);
-        }
+        .logo-wrapper:hover { transform: scale(1.04); }
 
         .logo-wrapper img {
             width: 100%;
@@ -2379,8 +2518,12 @@
         .social-icons a { font-size: 20px; color: #374151; transition: all 0.3s; }
         .social-icons a:hover { color: #a855f7; transform: translateY(-2px); }
         
+        /* BOTÕES DE CONVERSÃO NO TOPO */
         .btn-shopee { width: 100%; background: linear-gradient(90deg, #ff5722 0%, #f4511e 100%); color: white; border: none; padding: 13px; border-radius: 14px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-align: center; text-decoration: none; display: block; box-shadow: 0 4px 14px rgba(255, 87, 34, 0.3); transition: transform 0.2s; }
         .btn-shopee:hover { transform: translateY(-2px); }
+
+        .btn-meli { width: 100%; background: linear-gradient(90deg, #ffe600 0%, #ffd000 100%); color: #2d3277 !important; border: 1px solid #f0c800; padding: 13px; border-radius: 14px; font-weight: 800; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-align: center; text-decoration: none; display: block; box-shadow: 0 4px 14px rgba(255, 214, 0, 0.35); transition: transform 0.2s; }
+        .btn-meli:hover { transform: translateY(-2px); }
 
         .btn-whatsapp-grupo {
             display: flex;
@@ -2399,17 +2542,145 @@
             transition: all 0.25s ease;
             margin-bottom: 10px;
         }
-        .btn-whatsapp-grupo:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 22px rgba(37, 211, 102, 0.45);
-        }
+        .btn-whatsapp-grupo:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(37, 211, 102, 0.45); }
 
         .btn-whatsapp { width: 100%; background-color: #128c7e; color: white; border: none; padding: 13px; border-radius: 14px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-align: center; text-decoration: none; display: block; box-shadow: 0 4px 12px rgba(18, 140, 126, 0.25); transition: transform 0.2s; }
         .btn-whatsapp:hover { transform: translateY(-2px); }
 
-        .filter-section { width: 100%; margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
+        /* CARROSSEL DE OFERTAS RELÂMPAGO */
+        #boxCarrosselRelampago {
+            display: none;
+            width: 100%;
+            margin-top: 8px;
+            margin-bottom: 6px;
+            background: linear-gradient(135deg, #fff3e0 0%, #ffebee 100%);
+            border: 1px solid #ffccbc;
+            border-radius: 14px;
+            padding: 12px;
+        }
+        .relampago-header {
+            font-size: 13px;
+            font-weight: 800;
+            color: #d84315;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #trilhoRelampago {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            scroll-snap-type: x mandatory;
+        }
+        .relampago-card {
+            min-width: 135px;
+            max-width: 135px;
+            background: #fff;
+            border-radius: 10px;
+            padding: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            scroll-snap-align: start;
+            flex-shrink: 0;
+        }
+        .relampago-card img {
+            width: 100%;
+            height: 88px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 6px;
+        }
+        .relampago-title {
+            font-size: 11px;
+            font-weight: bold;
+            color: #333;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+        .relampago-price {
+            font-size: 11px;
+            font-weight: 800;
+            color: #2e7d32;
+            margin-bottom: 6px;
+        }
+        .relampago-btn {
+            background: #ff3d00;
+            color: #fff;
+            text-decoration: none;
+            text-align: center;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 5px;
+            border-radius: 6px;
+            display: block;
+        }
+
+        /* FILTROS RÁPIDOS POR LOJA (PILLS) */
+        .store-pills {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            width: 100%;
+            padding-bottom: 4px;
+            margin-top: 8px;
+        }
+        .store-pill {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+            padding: 7px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .store-pill.active {
+            background: #7b2cbf;
+            color: #ffffff;
+            border-color: #7b2cbf;
+            box-shadow: 0 2px 6px rgba(123, 44, 191, 0.3);
+        }
+
+        .filter-section { width: 100%; margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
         select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; outline: none; }
         
+        /* BOTÃO CLICÁVEL DE COPIAR CUPOM NO CARD */
+        .btn-copy-cupom {
+            margin-top: 5px;
+            background: #e8f5e9;
+            color: #1b5e20;
+            border: 1px dashed #4caf50;
+            padding: 5px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        .btn-copy-cupom span {
+            background: #2e7d32;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            margin-left: 3px;
+        }
+
         .admin-label {
             display: block;
             font-size: 12px;
@@ -2440,17 +2711,9 @@
             white-space: nowrap;
             flex-shrink: 0;
         }
-        .btn-paste:hover {
-            background-color: #59339d;
-        }
-        .grid-2cols {
-            display: flex;
-            gap: 6px;
-            margin-bottom: 6px;
-        }
-        .grid-2cols > div {
-            flex: 1;
-        }
+        .btn-paste:hover { background-color: #59339d; }
+        .grid-2cols { display: flex; gap: 6px; margin-bottom: 6px; }
+        .grid-2cols > div { flex: 1; }
         .upload-box {
             background: #f3f0ff;
             border: 1px dashed #6f42c1;
@@ -2475,7 +2738,7 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
-        .product-list { width: 100%; margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .product-list { width: 100%; margin-top: 16px; display: flex; flex-direction: column; gap: 15px; }
         .product-card { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 12px; display: flex; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); position: relative; transition: all 0.3s ease; }
         .product-card img { width: 90px; height: 90px; border-radius: 8px; object-fit: cover; }
         .product-info { display: flex; flex-direction: column; justify-content: space-between; flex: 1; }
@@ -2485,7 +2748,7 @@
         .product-promo { margin-top: 5px; font-size: 11px; background: #e8f5e9; color: #2e7d32; padding: 4px 7px; border-radius: 4px; display: inline-block; font-weight: bold; line-height: 1.4; }
         .badge-relampago { position: absolute; top: -9px; right: 10px; background: #ff3d00; color: white; font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
-        .btn-buy { background-color: #e91e63; color: white; border: none; padding: 7px 10px; border-radius: 7px; font-size: 12px; font-weight: bold; text-align: center; text-decoration: none; cursor: pointer; }
+        .btn-buy { background-color: #e91e63; color: white; border: none; padding: 7px 10px; border-radius: 7px; font-size: 12px; font-weight: bold; text-align: center; text-decoration: none; cursor: pointer; margin-top: 6px; display: block; }
         .card-admin-actions { display: none; gap: 5px; margin-top: 5px; }
         .btn-edit { background-color: #ff9800; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
         .btn-delete { background-color: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
@@ -2573,11 +2836,7 @@
             font-weight: bold;
             gap: 8px;
         }
-        .botoes-sacola-group {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
+        .botoes-sacola-group { display: flex; gap: 8px; align-items: center; }
         .btn-gerar-sacola {
             background-color: white;
             color: #2e7d32;
@@ -2633,8 +2892,24 @@
 
         <!-- Botões de Conversão -->
         <a href="https://s.shopee.com.br/8ANLneMzRi" target="_blank" class="btn-shopee">🛍️ Resgatar Cupons Shopee</a>
+        <a href="https://www.mercadolivre.com.br/cupons?matt_word=pepo8413118&matt_tool=46346758&forceInApp=true" target="_blank" class="btn-meli">💛 Resgatar Cupons Mercado Livre</a>
         <a href="https://chat.whatsapp.com/DyPxqUMmch07zp5j1xlB8S" target="_blank" rel="noopener noreferrer" class="btn-whatsapp-grupo">💬 Entrar no Grupo de Ofertas no WhatsApp</a>
         <a href="https://wa.me/5566999087449" target="_blank" class="btn-whatsapp">🟢 Falar com a Poli</a>
+
+        <!-- NOVO: Carrossel Horizontal de Ofertas Relâmpago -->
+        <div id="boxCarrosselRelampago">
+            <div class="relampago-header">⚡ OFERTAS RELÂMPAGO EM DESTAQUE</div>
+            <div id="trilhoRelampago"></div>
+        </div>
+
+        <!-- NOVO: Filtros Rápidos por Loja -->
+        <div class="store-pills">
+            <button type="button" class="store-pill active" data-loja="TODAS" onclick="selecionarLojaFiltro('TODAS')">🛒 Todas</button>
+            <button type="button" class="store-pill" data-loja="MERCADO LIVRE" onclick="selecionarLojaFiltro('MERCADO LIVRE')">💛 M. Livre</button>
+            <button type="button" class="store-pill" data-loja="AMAZON" onclick="selecionarLojaFiltro('AMAZON')">📦 Amazon</button>
+            <button type="button" class="store-pill" data-loja="SHOPEE" onclick="selecionarLojaFiltro('SHOPEE')">🧡 Shopee</button>
+            <button type="button" class="store-pill" data-loja="MAGALU" onclick="selecionarLojaFiltro('MAGALU')">💙 Magalu</button>
+        </div>
 
         <!-- Filtros e Busca -->
         <div class="filter-section">
