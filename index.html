@@ -25,6 +25,9 @@
 
         const MEU_ID_MELI_PARAMS = "matt_word=pepo8413118&matt_tool=46346758&forceInApp=true";
 
+        // Quantidade de produtos exibidos por vez na vitrine completa (evita travamentos no celular)
+        const PRODUTOS_POR_PAGINA = 20;
+
         const LINKS_PADRAO_CUPONS = {
             shopee: "https://s.shopee.com.br/8ANLneMzRi",
             meli_todos: "https://www.mercadolivre.com.br/cupons?matt_word=pepo8413118&matt_tool=46346758&forceInApp=true",
@@ -60,12 +63,28 @@
         let imagemAcaoLivreCustomElement = null;
         let imagemAcaoLivreUrlExterna = "";
 
+        // Controle de paginação e modo produto único
+        let limiteAtualExibicao = PRODUTOS_POR_PAGINA;
+        let listaAtualFiltrada = [];
+        let modoProdutoUnicoAtivo = false;
+
         // ==========================================
-        // 2. CARREGAMENTO E GRAVAÇÃO NA NUVEM
+        // 2. CARREGAMENTO RÁPIDO E GRAVAÇÃO NA NUVEM
         // ==========================================
         async function carregarDadosDaNuvem() {
+            const container = document.getElementById('productList');
+            if (container) {
+                container.innerHTML = "<p style='text-align:center; color:#6f42c1; font-weight:bold; font-size:14px; padding: 20px 0;'>⏳ Carregando oferta...</p>";
+            }
+
             try {
-                let resposta = await fetch(NPOINT_URL + "?t=" + new Date().getTime());
+                // Limite de 8 segundos para não congelar em conexões 4G lentas
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+                let resposta = await fetch(NPOINT_URL + "?t=" + new Date().getTime(), { signal: controller.signal });
+                clearTimeout(timeoutId);
+
                 if (!resposta.ok) throw new Error("Erro ao conectar com a nuvem.");
                 
                 let resultado = await resposta.json();
@@ -75,15 +94,17 @@
                     categorias = resultado.categorias;
                 }
                 
-                localStorage.setItem('dicasdapoli_produtos', JSON.stringify(produtos));
-                localStorage.setItem('dicasdapoli_categorias', JSON.stringify(categorias));
+                try {
+                    localStorage.setItem('dicasdapoli_produtos', JSON.stringify(produtos));
+                    localStorage.setItem('dicasdapoli_categorias', JSON.stringify(categorias));
+                } catch (e) {}
 
                 atualizarSelectsDeCategorias();
                 verificarModoListaOuProduto();
                 renderizarGerenciadorCategorias();
                 preencherProximoNumeroAutomatico();
             } catch (erro) {
-                console.warn("⚠️ Nuvem instável. A carregar dados do Cache Local de Segurança...", erro);
+                console.warn("⚠️ Nuvem instável ou lenta. A carregar dados do Cache Local de Segurança...", erro);
                 
                 let cacheProd = localStorage.getItem('dicasdapoli_produtos');
                 let cacheCat = localStorage.getItem('dicasdapoli_categorias');
@@ -108,8 +129,10 @@
 
                 if (!resposta.ok) throw new Error("Erro ao salvar na nuvem.");
                 
-                localStorage.setItem('dicasdapoli_produtos', JSON.stringify(produtos));
-                localStorage.setItem('dicasdapoli_categorias', JSON.stringify(categorias));
+                try {
+                    localStorage.setItem('dicasdapoli_produtos', JSON.stringify(produtos));
+                    localStorage.setItem('dicasdapoli_categorias', JSON.stringify(categorias));
+                } catch (e) {}
 
                 alert("✅ Sincronizado com a nuvem com sucesso para todos!");
             } catch (erro) {
@@ -356,9 +379,9 @@
             const container = document.getElementById('listaCategoriasAdmin');
             if (!container) return;
 
-            container.innerHTML = "";
+            let htmlCats = "";
             categorias.forEach(cat => {
-                container.innerHTML += `
+                htmlCats += `
                     <div style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 10px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px;">
                         <span>📂 ${cat}</span>
                         <div style="display: flex; gap: 4px;">
@@ -368,6 +391,7 @@
                     </div>
                 `;
             });
+            container.innerHTML = htmlCats;
         }
 
         async function adicionarNovaCategoria() {
@@ -437,13 +461,11 @@
         }
 
         // =========================================================
-        // 6. MOTOR DIRETO GREEN-API (SEM SITES EXTERNOS DE 3KB!)
-        // Envia os bytes reais da imagem direto para a Green-API!
+        // 6. MOTOR DIRETO GREEN-API (ENVIO DIRETO DE BYTES DE IMAGEM)
         // =========================================================
         async function enviarDiretoGreenApiBlindado(legenda, opcoesImagem = {}) {
             const { urlWeb, canvasEl, dataUrl } = opcoesImagem;
 
-            // Caso 1: Já é uma URL direta da web (ex: produto da vitrine https://http2.mlstatic.com/...)
             if (urlWeb && urlWeb.startsWith("http")) {
                 try {
                     let respUrl = await fetch(`https://7107.api.greenapi.com/waInstance${GREEN_API_INSTANCE}/sendFileByUrl/${GREEN_API_TOKEN}`, {
@@ -462,7 +484,6 @@
                 } catch (e) {}
             }
 
-            // Extrai o Blob JPEG real e nítido (60KB a 120KB) a partir do Canvas ou do DataURL
             let blobReal = null;
             try {
                 if (canvasEl) {
@@ -483,7 +504,6 @@
             }
 
             if (blobReal && blobReal.size > 5000) {
-                // Camada A: Upload Direto via sendFileByFile Oficial da Green-API (CORS Nativo!)
                 try {
                     const arquivoJpg = new File([blobReal], "cupom-dicasdapoli.jpg", { type: "image/jpeg" });
                     const fd = new FormData();
@@ -506,7 +526,6 @@
                     console.warn("Aviso sendFileByFile direto:", errFile);
                 }
 
-                // Camada B: Usa o endpoint nativo uploadFile da própria Green-API e em seguida dispara sendFileByUrl!
                 try {
                     const respUp = await fetch(`https://7107.media.greenapi.com/waInstance${GREEN_API_INSTANCE}/uploadFile/${GREEN_API_TOKEN}`, {
                         method: "POST",
@@ -540,7 +559,7 @@
         }
 
         // =========================================================
-        // 7. GERADOR FIEL DOS TICKETS DE CUPOM ENVIADOS PELA POLI
+        // 7. GERADOR FIEL DOS TICKETS DE CUPOM
         // =========================================================
         function desenharConfetesESacolinhasFundo(ctx, corConfete1, corConfete2, comMoedasShopee = false) {
             const posicoes = [
@@ -1383,7 +1402,7 @@
         }
 
         // =========================================================
-        // 9. DISPARADOR RÁPIDO DE CUPOM (USA OS TICKETS OFICIAIS POR LOJA!)
+        // 9. DISPARADOR RÁPIDO DE CUPOM
         // =========================================================
         function obterLinkFixoDaPlataforma(plat) {
             const salvo = localStorage.getItem(`link_fixo_disparador_${plat}`);
@@ -1641,25 +1660,38 @@
         }
 
         // ==========================================
-        // 10. RENDERIZAÇÃO DOS PRODUTOS E GESTÃO DA SACOLA
+        // 10. RENDERIZAÇÃO RÁPIDA (LOTE + PAGINAÇÃO + MODO TURBO)
         // ==========================================
-        function renderizarProdutos(lista) {
+        function renderizarProdutos(lista, resetarPaginacao = true) {
             const container = document.getElementById('productList');
             if (!container) return;
-            container.innerHTML = "";
 
-            if(lista.length === 0) {
-                container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px;'>Nenhum produto cadastrado nesta seleção.</p>";
+            if (resetarPaginacao) {
+                limiteAtualExibicao = PRODUTOS_POR_PAGINA;
+            }
+
+            if (!lista || lista.length === 0) {
+                listaAtualFiltrada = [];
+                container.innerHTML = "<p style='text-align:center; color:#888; font-size:13px; padding: 15px 0;'>Nenhum produto cadastrado nesta seleção.</p>";
                 return;
             }
 
-            let listaOrdenada = [...lista].sort((a, b) => {
+            // Ordena do mais novo para o mais antigo
+            listaAtualFiltrada = [...lista].sort((a, b) => {
                 let numA = parseInt(String(a.num).replace(/\D/g, ""), 10) || 0;
                 let numB = parseInt(String(b.num).replace(/\D/g, ""), 10) || 0;
                 return numB - numA;
             });
 
-            listaOrdenada.forEach(p => {
+            // Se estiver no modo produto único, exibe só o item; caso contrário, aplica o limite de paginação
+            const itensParaExibir = modoProdutoUnicoAtivo
+                ? listaAtualFiltrada
+                : listaAtualFiltrada.slice(0, limiteAtualExibicao);
+
+            // Monta todo o HTML na memória primeiro (evita congelar o celular!)
+            let htmlAcumulado = "";
+
+            itensParaExibir.forEach(p => {
                 let botoesAdmin = isAdminLogado ? `
                     <div class="card-admin-actions" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">
                         <button class="btn-edit" onclick="carregarParaEditar('${p.id}')">✏️ Editar</button>
@@ -1696,10 +1728,13 @@
                     botaoSacolaHtml = `<a href="${p.link}" target="_blank" class="btn-buy">Comprar Agora</a>`;
                 }
 
-                container.innerHTML += `
-                    <div class="product-card" id="produto-${p.id}">
+                // Destaque visual especial quando a pessoa abre o link de 1 produto específico
+                let estiloCardDestaque = modoProdutoUnicoAtivo ? 'border: 2px solid #ff4081; box-shadow: 0 4px 15px rgba(255, 64, 129, 0.25);' : '';
+
+                htmlAcumulado += `
+                    <div class="product-card" id="produto-${p.id}" style="${estiloCardDestaque}">
                         ${seloRelampago}
-                        <img src="${p.img}" alt="${p.title}">
+                        <img src="${p.img}" alt="${p.title}" loading="lazy" decoding="async">
                         <div class="product-info">
                             <div>
                                 <span class="product-number">${p.num}</span>
@@ -1713,6 +1748,43 @@
                     </div>
                 `;
             });
+
+            // Se estiver no Modo Turbo (1 produto específico), exibe o botão para ver o restante da vitrine
+            if (modoProdutoUnicoAtivo) {
+                htmlAcumulado += `
+                    <button type="button" onclick="mostrarVitrineCompleta()" style="width: 100%; background-color: #6f42c1; color: white; border: none; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 5px; box-shadow: 0 3px 8px rgba(0,0,0,0.15);">
+                        🛍️ Ver o restante da vitrine (${produtos.length} ofertas)
+                    </button>
+                `;
+            } else if (listaAtualFiltrada.length > limiteAtualExibicao) {
+                // Botão de paginação para carregar mais 20 produtos sem travar o celular
+                const restantes = listaAtualFiltrada.length - limiteAtualExibicao;
+                htmlAcumulado += `
+                    <button type="button" onclick="carregarMaisProdutos()" style="width: 100%; background-color: #6f42c1; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 5px; box-shadow: 0 3px 8px rgba(0,0,0,0.15);">
+                        ⬇️ Carregar mais produtos (restam ${restantes})
+                    </button>
+                `;
+            }
+
+            // Desenha tudo na tela de uma única vez!
+            container.innerHTML = htmlAcumulado;
+        }
+
+        window.carregarMaisProdutos = function() {
+            limiteAtualExibicao += PRODUTOS_POR_PAGINA;
+            renderizarProdutos(listaAtualFiltrada, false);
+        }
+
+        window.mostrarVitrineCompleta = function() {
+            modoProdutoUnicoAtivo = false;
+            // Limpa o ?produto=... da barra de endereço sem recarregar a página
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            const filterSec = document.querySelector('.filter-section');
+            if (filterSec) filterSec.style.display = 'flex';
+            renderizarProdutos(produtos, true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         window.toggleProdutoSacola = function(id) {
@@ -1991,6 +2063,7 @@
             const listaIds = parametros.get('lista');
 
             if (listaIds) {
+                modoProdutoUnicoAtivo = false;
                 let arrayIds = listaIds.split(',').map(i => i.trim());
                 let produtosDaLista = produtos.filter(p => {
                     let numLimpo = String(p.num).replace("#", "");
@@ -2002,38 +2075,34 @@
                 if (h1El) h1El.innerText = "🛍️ Sacola de Ofertas da Poli";
                 if (bioEl) bioEl.innerText = "Seleção especial de produtos recomendados para você";
                 
-                renderizarProdutos(produtosDaLista);
-            } else {
-                renderizarProdutos(produtos);
-                if (idProduto) {
-                    let prodUnico = produtos.find(item => String(item.id) === String(idProduto));
-                    if (prodUnico) {
-                        document.title = `${prodUnico.title} - Dicas da Poliii`;
-                        let ogT = document.getElementById('ogTitle');
-                        let ogI = document.getElementById('ogImage');
-                        if (ogT) ogT.setAttribute('content', `${prodUnico.num} - ${prodUnico.title}`);
-                        if (ogI && prodUnico.img && prodUnico.img.startsWith('http')) {
-                            ogI.setAttribute('content', prodUnico.img);
-                        }
+                renderizarProdutos(produtosDaLista, true);
+            } else if (idProduto) {
+                // MODO TURBO: Exibe apenas o produto solicitado no topo + botão para ver o resto da vitrine!
+                let prodUnico = produtos.find(item => String(item.id) === String(idProduto));
+                if (prodUnico) {
+                    modoProdutoUnicoAtivo = true;
+                    document.title = `${prodUnico.title} - Dicas da Poliii`;
+                    let ogT = document.getElementById('ogTitle');
+                    let ogI = document.getElementById('ogImage');
+                    if (ogT) ogT.setAttribute('content', `${prodUnico.num} - ${prodUnico.title}`);
+                    if (ogI && prodUnico.img && prodUnico.img.startsWith('http')) {
+                        ogI.setAttribute('content', prodUnico.img);
                     }
-
-                    setTimeout(() => {
-                        const card = document.getElementById(`produto-${idProduto}`);
-                        if (card) {
-                            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            card.style.border = "2px solid #ff4081";
-                            card.style.boxShadow = "0 0 15px rgba(255, 64, 129, 0.4)";
-                            setTimeout(() => {
-                                card.style.border = "1px solid #eee";
-                                card.style.boxShadow = "0 2px 5px rgba(0,0,0,0.05)";
-                            }, 4000);
-                        }
-                    }, 600);
+                    renderizarProdutos([prodUnico], true);
+                } else {
+                    modoProdutoUnicoAtivo = false;
+                    renderizarProdutos(produtos, true);
                 }
+            } else {
+                modoProdutoUnicoAtivo = false;
+                renderizarProdutos(produtos, true);
             }
         }
 
         function filtrarProdutos() {
+            // Se a pessoa começar a pesquisar ou trocar a categoria, sai do modo produto único automaticamente
+            modoProdutoUnicoAtivo = false;
+
             const termoInput = document.getElementById('searchInput');
             const categoriaSelect = document.getElementById('categoryFilter');
             const btnCompartilharCat = document.getElementById('btnCompartilharCategoria');
@@ -2067,7 +2136,7 @@
                 return matchCat && matchTexto;
             });
 
-            renderizarProdutos(filtrados);
+            renderizarProdutos(filtrados, true);
         }
 
         // ==========================================
@@ -2138,7 +2207,8 @@
                 produtos.push(dadosNovo);
             }
 
-            renderizarProdutos(produtos);
+            modoProdutoUnicoAtivo = false;
+            renderizarProdutos(produtos, true);
             await salvarDadosNaNuvem();
             limparFormularioprincipal();
         }
@@ -2146,7 +2216,7 @@
         async function excluirProduto(id) {
             if(confirm("Tem certeza que deseja excluir este produto?")) {
                 produtos = produtos.filter(p => String(p.id) !== String(id));
-                renderizarProdutos(produtos);
+                renderizarProdutos(produtos, true);
                 await salvarDadosNaNuvem();
                 preencherProximoNumeroAutomatico();
             }
@@ -2208,7 +2278,8 @@
 
             if (digitada === senhaMestra) {
                 isAdminLogado = true;
-                renderizarProdutos(produtos);
+                modoProdutoUnicoAtivo = false;
+                renderizarProdutos(produtos, true);
                 filtrarProdutos();
                 preencherProximoNumeroAutomatico();
                 selecionarAbaCentralCupons("meli");
@@ -2224,7 +2295,7 @@
             isAdminLogado = false;
             produtosSelecionadosSacola = [];
             atualizarBarraSacolaFlutuante();
-            renderizarProdutos(produtos);
+            renderizarProdutos(produtos, true);
             filtrarProdutos();
             document.getElementById('admin-panel').style.display = 'none';
             limparFormularioprincipal();
@@ -2342,7 +2413,7 @@
         }
 
         .product-list { width: 100%; margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .product-card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 12px; display: flex; gap: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative; transition: all 0.5s ease; }
+        .product-card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 12px; display: flex; gap: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative; transition: all 0.3s ease; }
         .product-card img { width: 90px; height: 90px; border-radius: 8px; object-fit: cover; }
         .product-info { display: flex; flex-direction: column; justify-content: space-between; flex: 1; }
         .product-number { font-size: 13px; font-weight: bold; color: #ff4081; }
