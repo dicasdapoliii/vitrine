@@ -2453,4 +2453,885 @@
             } else if (descAntiga.includes("MAGALU")) {
                 platSelect.value = "MAGALU";
             } else if (descAntiga.includes("ALIEXPRESS")) {
-                platSelect.value
+                platSelect.value = "ALIEXPRESS";
+            } else if (descAntiga.includes("TIKTOK")) {
+                platSelect.value = "TIKTOK SHOP";
+            } else {
+                platSelect.value = "MERCADO LIVRE";
+            }
+
+            document.getElementById('newFreteGratis').checked = Boolean(p.freteGratis || descAntiga.includes("FRETE GR"));
+            document.getElementById('newDesc').value = p.descExtra || "";
+            document.getElementById('newRelampago').value = p.relampago || "nao";
+
+            document.getElementById('panel-title').innerText = "📑 Novo Produto (Duplicado de " + p.num + ")";
+            document.getElementById('admin-panel').style.display = 'block';
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            setTimeout(() => {
+                document.getElementById('newLink')?.focus();
+            }, 400);
+        }
+
+        function pedirSenhaAdmin() {
+            const senhaMestra = "018315"; 
+            const digitada = prompt("Digite a senha de administração:");
+
+            if (digitada === senhaMestra) {
+                isAdminLogado = true;
+                modoProdutoUnicoAtivo = false;
+                renderizarProdutos(produtos, true);
+                filtrarProdutos();
+                preencherProximoNumeroAutomatico();
+                selecionarAbaCentralCupons("meli");
+                aoMudarPlataformaDisparador();
+                document.getElementById('admin-panel').style.display = 'block';
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            } else if (digitada !== null) {
+                alert("Senha incorreta! Acesso negado.");
+            }
+        }
+
+        function sairDoAdmin() {
+            isAdminLogado = false;
+            produtosSelecionadosSacola = [];
+            atualizarBarraSacolaFlutuante();
+            renderizarProdutos(produtos, true);
+            filtrarProdutos();
+            document.getElementById('admin-panel').style.display = 'none';
+            limparFormularioprincipal();
+        }
+
+        function cancelarEdicao() {
+            limparFormularioprincipal();
+        }
+
+        function limparFormularioprincipal() {
+            document.getElementById('editId').value = '';
+            document.getElementById('newTitle').value = '';
+            document.getElementById('newPlataforma').value = 'MERCADO LIVRE';
+            document.getElementById('newFreteGratis').checked = false;
+            document.getElementById('newDesc').value = '';
+            document.getElementById('newCupom').value = '';
+            document.getElementById('newPrecoPix').value = '';
+            document.getElementById('newPrecoParcelado').value = '';
+            document.getElementById('newQtdParcelas').value = '';
+            document.getElementById('newTipoJuros').value = 'sem_juros';
+            document.getElementById('newPrecoFinal').value = '';
+            document.getElementById('newRelampago').value = 'nao';
+            document.getElementById('newImg').value = '';
+            const fileInput = document.getElementById('newImgFile');
+            if (fileInput) fileInput.value = '';
+            mostrarPreviaImagem('');
+            document.getElementById('newLink').value = '';
+            document.getElementById('panel-title').innerText = "➕ Adicionar Novo Produto";
+            document.getElementById('btnSalvar').innerText = "💾 Salvar Produto na Nuvem";
+            document.getElementById('btnCancelar').style.display = "none";
+            preencherProximoNumeroAutomatico();
+        }
+
+        window.onload = carregarDadosDaNuvem;
+    </script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { background-color: #d1c4e9; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; padding-bottom: 140px; }
+        .container { width: 100%; max-width: 480px; background: #ffffff; border-radius: 22px; box-shadow: 0 8px 25px rgba(0,0,0,0.12); padding: 20px; display: flex; flex-direction: column; align-items: center; position: relative; overflow: hidden; }
+        
+        /* NOVO TOPO DIGITAL MODERNO */
+        .header-banner {
+            width: calc(100% + 40px);
+            background: linear-gradient(135deg, #7b2cbf 0%, #c471ed 50%, #ff4081 100%);
+            height: 120px;
+            border-radius: 0 0 32px 32px;
+            margin: -20px -20px 0 -20px;
+            position: relative;
+            box-shadow: 0 6px 20px rgba(123, 44, 191, 0.25);
+        }
+
+        .logo-wrapper {
+            width: 156px;
+            height: 156px;
+            margin: -78px auto 12px auto;
+            padding: 5px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #a855f7, #ec4899);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+            position: relative;
+            z-index: 2;
+            transition: transform 0.3s ease;
+        }
+
+        .logo-wrapper:hover { transform: scale(1.04); }
+
+        .logo-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 50%;
+            border: 4px solid #ffffff;
+            background: #f7f4ec;
+        }
+
+        .brand-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 4px;
+            text-align: center;
+        }
+
+        .bio { font-size: 14px; color: #6b7280; margin-bottom: 16px; text-align: center; font-weight: 500; }
+        .social-icons { display: flex; gap: 16px; margin-bottom: 20px; }
+        .social-icons a { font-size: 20px; color: #374151; transition: all 0.3s; }
+        .social-icons a:hover { color: #a855f7; transform: translateY(-2px); }
+        
+        /* BOTÕES DE CONVERSÃO NO TOPO */
+        .btn-shopee { width: 100%; background: linear-gradient(90deg, #ff5722 0%, #f4511e 100%); color: white; border: none; padding: 13px; border-radius: 14px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-align: center; text-decoration: none; display: block; box-shadow: 0 4px 14px rgba(255, 87, 34, 0.3); transition: transform 0.2s; }
+        .btn-shopee:hover { transform: translateY(-2px); }
+
+        .btn-meli { width: 100%; background: linear-gradient(90deg, #ffe600 0%, #ffd000 100%); color: #2d3277 !important; border: 1px solid #f0c800; padding: 13px; border-radius: 14px; font-weight: 800; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-align: center; text-decoration: none; display: block; box-shadow: 0 4px 14px rgba(255, 214, 0, 0.35); transition: transform 0.2s; }
+        .btn-meli:hover { transform: translateY(-2px); }
+
+        .btn-whatsapp-grupo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 14px;
+            background: linear-gradient(90deg, #25D366 0%, #128C7E 100%);
+            color: #ffffff !important;
+            font-weight: 700;
+            font-size: 15px;
+            text-decoration: none;
+            box-shadow: 0 6px 18px rgba(37, 211, 102, 0.35);
+            transition: all 0.25s ease;
+            margin-bottom: 10px;
+        }
+        .btn-whatsapp-grupo:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(37, 211, 102, 0.45); }
+
+        .btn-whatsapp { width: 100%; background-color: #128c7e; color: white; border: none; padding: 13px; border-radius: 14px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-align: center; text-decoration: none; display: block; box-shadow: 0 4px 12px rgba(18, 140, 126, 0.25); transition: transform 0.2s; }
+        .btn-whatsapp:hover { transform: translateY(-2px); }
+
+        /* CARROSSEL DE OFERTAS RELÂMPAGO */
+        #boxCarrosselRelampago {
+            display: none;
+            width: 100%;
+            margin-top: 8px;
+            margin-bottom: 6px;
+            background: linear-gradient(135deg, #fff3e0 0%, #ffebee 100%);
+            border: 1px solid #ffccbc;
+            border-radius: 14px;
+            padding: 12px;
+        }
+        .relampago-header {
+            font-size: 13px;
+            font-weight: 800;
+            color: #d84315;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #trilhoRelampago {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            scroll-snap-type: x mandatory;
+        }
+        .relampago-card {
+            min-width: 135px;
+            max-width: 135px;
+            background: #fff;
+            border-radius: 10px;
+            padding: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            scroll-snap-align: start;
+            flex-shrink: 0;
+        }
+        .relampago-card img {
+            width: 100%;
+            height: 88px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 6px;
+        }
+        .relampago-title {
+            font-size: 11px;
+            font-weight: bold;
+            color: #333;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+        .relampago-price {
+            font-size: 11px;
+            font-weight: 800;
+            color: #2e7d32;
+            margin-bottom: 6px;
+        }
+        .relampago-btn {
+            background: #ff3d00;
+            color: #fff;
+            text-decoration: none;
+            text-align: center;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 5px;
+            border-radius: 6px;
+            display: block;
+        }
+
+        /* FILTROS RÁPIDOS POR LOJA (PILLS) */
+        .store-pills {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            width: 100%;
+            padding-bottom: 4px;
+            margin-top: 8px;
+        }
+        .store-pill {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+            padding: 7px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .store-pill.active {
+            background: #7b2cbf;
+            color: #ffffff;
+            border-color: #7b2cbf;
+            box-shadow: 0 2px 6px rgba(123, 44, 191, 0.3);
+        }
+
+        .filter-section { width: 100%; margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; outline: none; }
+        
+        /* BOTÃO CLICÁVEL DE COPIAR CUPOM NO CARD */
+        .btn-copy-cupom {
+            margin-top: 5px;
+            background: #e8f5e9;
+            color: #1b5e20;
+            border: 1px dashed #4caf50;
+            padding: 5px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        .btn-copy-cupom span {
+            background: #2e7d32;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            margin-left: 3px;
+        }
+
+        .admin-label {
+            display: block;
+            font-size: 12px;
+            font-weight: bold;
+            color: #4a5568;
+            margin-bottom: 4px;
+            margin-top: 8px;
+        }
+        .input-with-paste {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .input-with-paste input {
+            flex: 1;
+            margin-bottom: 0 !important;
+        }
+        .btn-paste {
+            background-color: #6f42c1;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 10px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .btn-paste:hover { background-color: #59339d; }
+
+        /* NOVO: BOTÃO DE APAGAR CAMPO AO LADO DO COLAR */
+        .btn-clear {
+            background-color: #ef5350;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 10px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+        .btn-clear:hover { background-color: #d32f2f; }
+
+        .grid-2cols { display: flex; gap: 6px; margin-bottom: 6px; }
+        .grid-2cols > div { flex: 1; }
+        .upload-box {
+            background: #f3f0ff;
+            border: 1px dashed #6f42c1;
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        #btnCompartilharCategoria {
+            display: none;
+            width: 100%;
+            background-color: #1976d2;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .product-list { width: 100%; margin-top: 16px; display: flex; flex-direction: column; gap: 15px; }
+        .product-card { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 12px; display: flex; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); position: relative; transition: all 0.3s ease; }
+        .product-card img { width: 90px; height: 90px; border-radius: 8px; object-fit: cover; }
+        .product-info { display: flex; flex-direction: column; justify-content: space-between; flex: 1; }
+        .product-number { font-size: 13px; font-weight: bold; color: #ff4081; }
+        .product-title { font-size: 14px; font-weight: bold; color: #333; }
+        .product-desc { font-size: 11px; color: #666; font-weight: bold; margin-top: 2px; }
+        .product-promo { margin-top: 5px; font-size: 11px; background: #e8f5e9; color: #2e7d32; padding: 4px 7px; border-radius: 4px; display: inline-block; font-weight: bold; line-height: 1.4; }
+        .badge-relampago { position: absolute; top: -9px; right: 10px; background: #ff3d00; color: white; font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
+        .btn-buy { background-color: #e91e63; color: white; border: none; padding: 7px 10px; border-radius: 7px; font-size: 12px; font-weight: bold; text-align: center; text-decoration: none; cursor: pointer; margin-top: 6px; display: block; }
+        .card-admin-actions { display: none; gap: 5px; margin-top: 5px; }
+        .btn-edit { background-color: #ff9800; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
+        .btn-delete { background-color: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
+        .btn-share { background-color: #2196F3; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
+        .admin-link { margin-top: 30px; font-size: 12px; color: #aaa; text-decoration: none; cursor: pointer; display: block; text-align: center; padding-bottom: 20px; }
+        .admin-link:hover { color: #333; }
+        #admin-panel { display: none; width: 100%; background: #f9f9f9; border: 1px solid #ddd; border-radius: 12px; padding: 15px; margin-top: 20px; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 6px; }
+        #admin-panel h3 { font-size: 15px; color: #d63384; margin: 0; }
+        .btn-close-admin { background-color: #e0e0e0; color: #333; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .btn-close-admin:hover { background-color: #ccc; }
+
+        .floating-container { 
+            position: fixed; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            right: 2px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            z-index: 9999; 
+            align-items: center; 
+        }
+        .floating-circle { 
+            width: 48px; 
+            height: 48px; 
+            border-radius: 50%; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            color: white; 
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3); 
+            text-decoration: none; 
+            transition: transform 0.3s; 
+            text-align: center;
+            padding: 2px;
+        }
+        .floating-circle:hover { transform: scale(1.1); }
+        .floating-circle i { font-size: 13px; margin-bottom: 1px; }
+        .floating-circle span { font-size: 5.5px; font-weight: bold; line-height: 1; text-transform: uppercase; }
+        .circle-zap { background-color: #25d366; }
+        .circle-channel { background-color: #128c7e; }
+
+        .scroll-buttons-container {
+            position: fixed;
+            bottom: 25px;
+            left: 15px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .scroll-btn {
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s;
+        }
+        .scroll-btn:hover { transform: scale(1.1); }
+
+        #barraSacolaFlutuante {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #2e7d32;
+            color: white;
+            padding: 12px 16px;
+            z-index: 99998;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: bold;
+            gap: 8px;
+        }
+        .botoes-sacola-group { display: flex; gap: 8px; align-items: center; }
+        .btn-gerar-sacola {
+            background-color: white;
+            color: #2e7d32;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            white-space: nowrap;
+        }
+        .btn-limpar-sacola {
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- NOVO TOPO DIGITAL MODERNO -->
+        <div class="header-banner"></div>
+
+        <div class="logo-wrapper">
+            <img id="logoImg" src="logo.jpeg" alt="Dicas da Poliii">
+        </div>
+        
+        <h1 class="brand-title">
+            Dicas da Poliii
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#3b82f6" title="Perfil Verificado">
+                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"/>
+            </svg>
+        </h1>
+        <p class="bio">Seu guia de compras online ✨</p>
+
+        <!-- Redes Sociais -->
+        <div class="social-icons">
+            <a href="https://www.facebook.com/share/1GKAczQjX4/" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+            <a href="https://www.tiktok.com" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
+            <a href="https://www.instagram.com" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+            <a href="https://www.youtube.com" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+            <a href="https://www.pinterest.com" target="_blank"><i class="fa-brands fa-pinterest"></i></a>
+        </div>
+
+        <!-- Botões de Conversão -->
+        <a href="https://s.shopee.com.br/8ANLneMzRi" target="_blank" class="btn-shopee">🛍️ Resgatar Cupons Shopee</a>
+        <a href="https://www.mercadolivre.com.br/cupons?matt_word=pepo8413118&matt_tool=46346758&forceInApp=true" target="_blank" class="btn-meli">💛 Resgatar Cupons Mercado Livre</a>
+        <a href="https://chat.whatsapp.com/DyPxqUMmch07zp5j1xlB8S" target="_blank" rel="noopener noreferrer" class="btn-whatsapp-grupo">💬 Entrar no Grupo de Ofertas no WhatsApp</a>
+        <a href="https://wa.me/5566999087449" target="_blank" class="btn-whatsapp">🟢 Falar com a Poli</a>
+
+        <!-- Carrossel Horizontal de Ofertas Relâmpago -->
+        <div id="boxCarrosselRelampago">
+            <div class="relampago-header">⚡ OFERTAS RELÂMPAGO EM DESTAQUE</div>
+            <div id="trilhoRelampago"></div>
+        </div>
+
+        <!-- Filtros Rápidos por Loja -->
+        <div class="store-pills">
+            <button type="button" class="store-pill active" data-loja="TODAS" onclick="selecionarLojaFiltro('TODAS')">🛒 Todas</button>
+            <button type="button" class="store-pill" data-loja="MERCADO LIVRE" onclick="selecionarLojaFiltro('MERCADO LIVRE')">💛 M. Livre</button>
+            <button type="button" class="store-pill" data-loja="AMAZON" onclick="selecionarLojaFiltro('AMAZON')">📦 Amazon</button>
+            <button type="button" class="store-pill" data-loja="SHOPEE" onclick="selecionarLojaFiltro('SHOPEE')">🧡 Shopee</button>
+            <button type="button" class="store-pill" data-loja="MAGALU" onclick="selecionarLojaFiltro('MAGALU')">💙 Magalu</button>
+        </div>
+
+        <!-- Filtros e Busca -->
+        <div class="filter-section">
+            <select id="categoryFilter" onchange="filtrarProdutos()"></select>
+            <button id="btnCompartilharCategoria" onclick="compartilharCategoriaAtual()">🔗 Compartilhar Esta Categoria</button>
+            <input type="text" id="searchInput" placeholder="🔍 Digite o número ou nome do produto..." onkeyup="filtrarProdutos()">
+        </div>
+
+        <!-- Lista Dinâmica de Produtos -->
+        <div class="product-list" id="productList"></div>
+
+        <!-- Botão Protegido por Senha para abrir o Painel -->
+        <a class="admin-link" onclick="pedirSenhaAdmin()">⚙️ Painel de Administração</a>
+
+        <!-- Painel Restrito de Administração Otimizado -->
+        <div id="admin-panel">
+            <div class="admin-header">
+                <h3 id="panel-title">➕ Adicionar Novo Produto</h3>
+                <div style="display: flex; gap: 5px;">
+                    <button type="button" class="btn-close-admin" style="background: #ffebee; color: #c62828;" onclick="limparFormularioprincipal()" title="Limpar todos os campos">🧹 Limpar Tudo</button>
+                    <button class="btn-close-admin" onclick="sairDoAdmin()">✕ Sair</button>
+                </div>
+            </div>
+
+            <!-- ================================================================= -->
+            <!-- 1. CENTRAL MULTILOJAS DE CUPONS (ENVIO DIRETO DE BYTES DE IMAGEM) -->
+            <!-- ================================================================= -->
+            <div style="background: #fff8e1; padding: 12px; border-radius: 10px; margin-bottom: 14px; border: 2px solid #ffb300;">
+                <h4 style="font-size: 14px; color: #d84315; margin-bottom: 6px;">🎟️ Central de Cupons (Shopee, Meli e Amazon)</h4>
+                <p style="font-size: 11px; color: #555; margin-bottom: 8px;">Envia a chamada <b>"Resgate os cupons disponíveis clicando no link abaixo"</b> + o ticket fixo da loja:</p>
+
+                <!-- Botões das 3 Lojas -->
+                <div style="display: flex; gap: 6px; margin-bottom: 10px;">
+                    <button type="button" id="tab-cupom-meli" onclick="selecionarAbaCentralCupons('meli')" style="flex: 1; background: #ffe600; color: #2d3277; border: 1px solid #d4bf00; padding: 8px 4px; border-radius: 8px; font-weight: 900; font-size: 11px; cursor: pointer;">
+                        💛 M. Livre
+                    </button>
+                    <button type="button" id="tab-cupom-amazon" onclick="selecionarAbaCentralCupons('amazon')" style="flex: 1; background: #ff6200; color: #ffffff; border: 1px solid #e65100; padding: 8px 4px; border-radius: 8px; font-weight: 900; font-size: 11px; cursor: pointer;">
+                        📦 Amazon
+                    </button>
+                    <button type="button" id="tab-cupom-shopee" onclick="selecionarAbaCentralCupons('shopee')" style="flex: 1; background: #ee4d2d; color: #ffffff; border: 1px solid #bf360c; padding: 8px 4px; border-radius: 8px; font-weight: 900; font-size: 11px; cursor: pointer;">
+                        🧡 Shopee
+                    </button>
+                </div>
+
+                <!-- Prévia da Arte Fixa -->
+                <div style="text-align: center; margin-bottom: 8px;">
+                    <img id="previaBannerCupomMultiloja" src="" alt="Prévia Montagem Cupons" style="width: 100%; max-width: 300px; border-radius: 8px; border: 2px solid #ff6f00; box-shadow: 0 3px 8px rgba(0,0,0,0.18);">
+                </div>
+
+                <!-- Seletor de Frase / Estratégia -->
+                <label style="font-size: 11px; font-weight: bold; color: #444; display: block; margin-bottom: 3px;">📝 Escolha a campanha / tipo de chamada:</label>
+                <select id="estiloTextoCupomMultiloja" onchange="aoMudarOpcaoTextoMeli()" style="margin-bottom: 8px; font-size: 12px; padding: 8px; border-color: #ffb74d; font-weight: bold;"></select>
+
+                <!-- Campos Rápidos para Ajustar o Valor e Compra Mínima Opcional -->
+                <div id="boxConfigMeliAmanhã" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; background: #fffde7; padding: 8px; border-radius: 8px; border: 1px dashed #fbc02d;">
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 10px; font-weight: bold; color: #2d3277;">Destaque no Texto:</label>
+                            <input type="text" id="valorCupomAmanhã" value="R$ 40 OFF" style="font-size: 11px; padding: 6px; background: #fff; font-weight: bold;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 10px; font-weight: bold; color: #2d3277; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                <input type="checkbox" id="checkIncluirMinimoAmanhã" style="width: auto;"> Incluir Compra Mínima?
+                            </label>
+                            <input type="text" id="minimoCupomAmanhã" value="Compra mínima R$ 199" style="font-size: 11px; padding: 6px; background: #fff;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Campo para Trocar o Link Quando Necessário -->
+                <label style="font-size: 11px; font-weight: bold; color: #444; display: block; margin-bottom: 3px;">🔗 Link da Central de Cupons (já com seu ID no Mercado Livre):</label>
+                <div class="input-with-paste" style="margin-bottom: 8px;">
+                    <input type="text" id="linkEditavelCupomAtual" style="font-size: 11px; padding: 8px; background: #fff;">
+                    <button type="button" class="btn-paste" onclick="colarCampo('linkEditavelCupomAtual')" style="padding: 8px 10px; font-size: 11px;">📋 Colar</button>
+                    <button type="button" class="btn-clear" onclick="limparCampo('linkEditavelCupomAtual')" style="padding: 8px 10px; font-size: 11px;" title="Apagar">✖</button>
+                    <button type="button" onclick="salvarLinkEditadoCupom()" style="background: #2e7d32; color: #fff; border: none; border-radius: 8px; padding: 8px 10px; font-size: 11px; font-weight: bold; cursor: pointer;" title="Guardar novo link">💾</button>
+                </div>
+
+                <!-- 3 Botões de Disparo -->
+                <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+                    <button type="button" onclick="copiarTextoCentralCupons()" style="flex: 1; background-color: #ff5722; color: white; border: none; padding: 9px 6px; border-radius: 8px; font-weight: bold; font-size: 11px; cursor: pointer;">
+                        🔗 Só Copiar Link/Texto
+                    </button>
+                    <button type="button" onclick="enviarCentralCuponsComFoto()" style="flex: 1; background-color: #8e24aa; color: white; border: none; padding: 9px 6px; border-radius: 8px; font-weight: bold; font-size: 11px; cursor: pointer;">
+                        🖼️ Enviar c/ Foto (WhatsApp)
+                    </button>
+                </div>
+                <button type="button" id="btnDispararCupomVip" onclick="dispararCentralCuponsGrupoVip()" style="width: 100%; background-color: #2e7d32; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; margin-bottom: 6px;">
+                    🚀 Disparar Montagem + Link Direto no Grupo VIP
+                </button>
+
+                <details style="font-size: 11px; color: #bf360c; cursor: pointer;">
+                    <summary style="font-weight: bold;">📸 Trocar imagem da montagem por outra do meu aparelho (opcional)</summary>
+                    <input type="file" id="inputFotoCustomCentralCupom" accept="image/*" onchange="carregarFotoCustomCentralCupom(event)" style="font-size: 11px; padding: 4px; margin-top: 4px; background: #fff;">
+                    <button type="button" onclick="restaurarArteAutomaticaCentral()" style="margin-top: 4px; background: #777; color: #fff; border: none; padding: 5px 8px; border-radius: 6px; font-size: 10px; cursor: pointer;">🔄 Voltar para a Arte Padrão</button>
+                </details>
+            </div>
+
+            <!-- ================================================================= -->
+            <!-- 2. DISPARADOR DE CUPOM COM LINKS FIXOS E TICKETS FIXOS POR LOJA!  -->
+            <!-- ================================================================= -->
+            <div style="background: #e8eaf6; padding: 12px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #9fa8da;">
+                <h4 style="font-size: 13px; color: #283593; margin-bottom: 4px;">⚡ Disparador Rápido de Cupom (Links & Artes Fixas)</h4>
+                <p style="font-size: 11px; color: #555; margin-bottom: 8px;">Ao escolher a plataforma, o <b>Link Fixo</b> e o <b>Ticket Oficial da Loja</b> já carregam sozinhos! Basta colocar o nome do cupom:</p>
+
+                <select id="acaoLivrePlataforma" onchange="aoMudarPlataformaDisparador()" style="margin-bottom: 8px; font-size: 12px; padding: 8px; font-weight: bold; border: 2px solid #3949ab;">
+                    <option value="MERCADO LIVRE">💛 Mercado Livre (Link & Ticket Fixo)</option>
+                    <option value="AMAZON">📦 Amazon (Link & Ticket Fixo)</option>
+                    <option value="SHOPEE">🧡 Shopee (Link & Ticket Fixo)</option>
+                    <option value="MAGALU">💙 Magalu (Link & Ticket Fixo)</option>
+                    <option value="ALIEXPRESS">❤️ AliExpress (Ticket Fixo)</option>
+                    <option value="TIKTOK SHOP">🎵 TikTok Shop (Ticket Fixo)</option>
+                    <option value="BLACK FRIDAY">🖤 Especial Black Friday</option>
+                </select>
+
+                <!-- Prévia Automática do Ticket Fixo da Plataforma Selecionada -->
+                <div style="text-align: center; margin-bottom: 8px;">
+                    <img id="previaImgAcaoLivre" src="" alt="Ticket Fixo Plataforma" style="width: 100%; max-width: 280px; border-radius: 8px; margin: 0 auto; border: 2px solid #3949ab; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
+                </div>
+
+                <!-- Coluna do Nome do Cupom + Botão Colar + Apagar -->
+                <div class="input-with-paste">
+                    <input type="text" id="acaoLivreCupom" placeholder="🎟️ Nome do(s) Cupom(ns) (ex: AFILIADO20, BLACK50)" style="font-size: 12px; padding: 8px; background: #fffde7; font-weight: bold; border-color: #fbc02d;">
+                    <button type="button" class="btn-paste" onclick="colarCampo('acaoLivreCupom')" style="padding: 8px 10px;">📋 Colar</button>
+                    <button type="button" class="btn-clear" onclick="limparCampo('acaoLivreCupom')" style="padding: 8px 10px;" title="Apagar">✖</button>
+                </div>
+
+                <!-- Frase / Regra Opcional da Promoção -->
+                <div class="input-with-paste">
+                    <input type="text" id="acaoLivreTitulo" placeholder="Regra opcional (ex: 20% OFF ou R$ 30 OFF)" style="font-size: 12px; padding: 8px;">
+                    <button type="button" class="btn-paste" onclick="colarCampo('acaoLivreTitulo')" style="padding: 8px 10px;">📋 Colar</button>
+                    <button type="button" class="btn-clear" onclick="limparCampo('acaoLivreTitulo')" style="padding: 8px 10px;" title="Apagar">✖</button>
+                </div>
+
+                <!-- Link de Afiliada -->
+                <label style="font-size: 10px; font-weight: bold; color: #283593; display: block; margin-bottom: 2px;">🔗 Link Fixo da Plataforma (ou cole outro link opcional abaixo):</label>
+                <div class="input-with-paste">
+                    <input type="text" id="acaoLivreLink" placeholder="Link de ativação do cookie (https://...)" style="font-size: 11px; padding: 8px; background: #fff;">
+                    <button type="button" class="btn-paste" onclick="colarCampo('acaoLivreLink')" style="padding: 8px 10px; font-size: 11px;">📋 Colar</button>
+                    <button type="button" class="btn-clear" onclick="limparCampo('acaoLivreLink')" style="padding: 8px 10px; font-size: 11px;" title="Apagar">✖</button>
+                    <button type="button" onclick="salvarLinkFixoDisparadorAtual()" style="background: #2e7d32; color: #fff; border: none; border-radius: 8px; padding: 8px 10px; font-size: 11px; font-weight: bold; cursor: pointer;" title="Salvar este link como fixo para esta loja">💾</button>
+                </div>
+
+                <!-- Opção recolhida caso queira usar outra foto da internet ou do computador -->
+                <details style="font-size: 11px; color: #283593; cursor: pointer; margin-bottom: 8px; background: #fff; padding: 6px; border-radius: 6px; border: 1px dashed #9fa8da;">
+                    <summary style="font-weight: bold;">🖼️ Quero trocar a imagem fixa por outra foto/URL (opcional)</summary>
+                    <div class="input-with-paste" style="margin-top: 6px;">
+                        <input type="text" id="acaoLivreImgUrl" placeholder="URL da Imagem (https://...)" oninput="imagemAcaoLivreUrlExterna=this.value; imagemAcaoLivreCustomElement=null; atualizarPreviaBannerDisparador();" style="font-size: 11px; padding: 6px;">
+                        <button type="button" class="btn-paste" onclick="colarCampo('acaoLivreImgUrl')" style="padding: 6px 8px; font-size: 11px;">📋 Colar</button>
+                        <button type="button" class="btn-clear" onclick="limparCampo('acaoLivreImgUrl')" style="padding: 6px 8px; font-size: 11px;" title="Apagar">✖</button>
+                    </div>
+                    <input type="file" id="inputFileAcaoLivre" accept="image/*" onchange="processarUploadAcaoLivre(event)" style="font-size: 11px; padding: 3px; margin-top: 3px;">
+                    <button type="button" onclick="restaurarBannerFixoDisparador()" style="margin-top: 4px; background: #777; color: #fff; border: none; padding: 4px 8px; border-radius: 5px; font-size: 10px; cursor: pointer;">🔄 Voltar para o Ticket Padrão da Loja</button>
+                </details>
+
+                <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+                    <button type="button" onclick="executarAcaoPromocionalLivre('copiar')" style="flex: 1; background: #3949ab; color: #fff; border: none; padding: 8px; border-radius: 8px; font-weight: bold; font-size: 11px; cursor: pointer;">
+                        🔗 Só Copiar Texto
+                    </button>
+                    <button type="button" onclick="executarAcaoPromocionalLivre('whatsapp')" style="flex: 1; background: #8e24aa; color: #fff; border: none; padding: 8px; border-radius: 8px; font-weight: bold; font-size: 11px; cursor: pointer;">
+                        🖼️ Enviar c/ Foto (WhatsApp)
+                    </button>
+                </div>
+                <button type="button" id="btnAcaoLivreVip" onclick="executarAcaoPromocionalLivre('vip')" style="width: 100%; background: #2e7d32; color: #fff; border: none; padding: 9px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer;">
+                    🚀 Disparar Cupom + Foto Direto no Grupo VIP
+                </button>
+            </div>
+
+            <!-- Seção de Gerenciamento de Categorias -->
+            <div style="background: #eee; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                <h4 style="font-size: 13px; color: #333; margin-bottom: 6px;">📂 Gerenciar Categorias da Vitrine</h4>
+                <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+                    <input type="text" id="novaCategoriaInput" placeholder="Nova Categoria (ex: Promoções)" style="margin-bottom: 0;">
+                    <button onclick="adicionarNovaCategoria()" style="background: #4CAF50; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; white-space: nowrap;">Adicionar</button>
+                </div>
+                <div id="listaCategoriasAdmin" style="display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto;"></div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #ddd; margin-bottom: 12px;">
+
+            <input type="hidden" id="editId">
+
+            <button type="button" id="btnCorrigirSequencia" onclick="corrigirNumerosForaDaSequencia()" style="display: none; width: 100%; background-color: #ff9800; color: white; border: none; padding: 9px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; margin-bottom: 10px;">
+                🔧 Corrigir Nºs altos para a sequência correta
+            </button>
+
+            <!-- 1. Número Automático e Categoria -->
+            <div style="display: flex; gap: 8px;">
+                <div style="width: 38%;">
+                    <label class="admin-label">Nº Automático:</label>
+                    <input type="text" id="newNum" placeholder="Ex: 313">
+                </div>
+                <div style="flex: 1;">
+                    <label class="admin-label">Categoria da Vitrine:</label>
+                    <select id="newCat"></select>
+                </div>
+            </div>
+
+            <!-- 2. Link de Afiliado (com Colar e Apagar) -->
+            <label class="admin-label">🔗 Link de Afiliado (URL):</label>
+            <div class="input-with-paste">
+                <input type="text" id="newLink" placeholder="Cole o link da loja aqui..." oninput="autoDetectarPlataforma(this.value)">
+                <button type="button" class="btn-paste" onclick="colarCampo('newLink')">📋 Colar</button>
+                <button type="button" class="btn-clear" onclick="limparCampo('newLink')" title="Apagar">✖</button>
+            </div>
+
+            <!-- 3. Plataforma / Loja + Frete Grátis -->
+            <label class="admin-label">🏪 Plataforma / Loja Oficial:</label>
+            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+                <select id="newPlataforma" style="flex: 1;">
+                    <option value="MERCADO LIVRE">💛 MERCADO LIVRE</option>
+                    <option value="AMAZON">📦 AMAZON</option>
+                    <option value="SHOPEE">🧡 SHOPEE</option>
+                    <option value="MAGALU">💙 MAGALU</option>
+                    <option value="ALIEXPRESS">❤️ ALIEXPRESS</option>
+                    <option value="TIKTOK SHOP">🎵 TIKTOK SHOP</option>
+                </select>
+                <label style="font-size: 12px; font-weight: bold; color: #2e7d32; display: flex; align-items: center; gap: 4px; white-space: nowrap; background: #e8f5e9; padding: 9px 10px; border-radius: 8px; border: 1px solid #c8e6c9; cursor: pointer;">
+                    <input type="checkbox" id="newFreteGratis" style="width: auto;"> 🚚 Frete Grátis
+                </label>
+            </div>
+            <input type="text" id="newDesc" placeholder="Observação extra opcional (ex: Loja Oficial, Bivolt...)" style="margin-bottom: 6px; font-size: 12px; padding: 8px;">
+
+            <!-- 4. Título do Produto (com Colar e Apagar) -->
+            <label class="admin-label">🏷️ Título do Produto / Achadinho:</label>
+            <div class="input-with-paste">
+                <input type="text" id="newTitle" placeholder="Ex: Pack de 4 Mini Figuras Harry Potter...">
+                <button type="button" class="btn-paste" onclick="colarCampo('newTitle')">📋 Colar</button>
+                <button type="button" class="btn-clear" onclick="limparCampo('newTitle')" title="Apagar">✖</button>
+            </div>
+
+            <!-- 5. Calculadora de Preço Pix e Parcelamento (Valor Total Primeiro!) -->
+            <label class="admin-label">💰 Preço no Pix e Parcelamento (Calcula sozinho):</label>
+            <div class="grid-2cols">
+                <div>
+                    <input type="text" id="newPrecoPix" placeholder="Pix (ex: 89,99)" oninput="atualizarPreviaPrecoAdmin()">
+                </div>
+                <div>
+                    <input type="text" id="newPrecoParcelado" placeholder="Total Parc (ex: 99,99)" oninput="atualizarPreviaPrecoAdmin()">
+                </div>
+            </div>
+            <div class="grid-2cols">
+                <div style="max-width: 110px;">
+                    <input type="number" id="newQtdParcelas" placeholder="Vezes (ex: 6)" min="1" oninput="atualizarPreviaPrecoAdmin()">
+                </div>
+                <div>
+                    <select id="newTipoJuros" onchange="atualizarPreviaPrecoAdmin()">
+                        <option value="sem_juros">✅ Sem juros (Mostra "sem juros")</option>
+                        <option value="com_juros">💳 Com juros (Oculta "com juros")</option>
+                    </select>
+                </div>
+            </div>
+            <input type="text" id="newPrecoFinal" placeholder="Resumo do Preço (preenchido automático ou digite manual)" style="margin-bottom: 6px; background: #f1f8e9; font-size: 12px; color: #2e7d32; font-weight: bold;">
+
+            <!-- 6. Cupom (com Colar e Apagar) -->
+            <label class="admin-label">🎟️ Cupom de Desconto (Opcional):</label>
+            <div class="input-with-paste">
+                <input type="text" id="newCupom" placeholder="Ex: PROMO10">
+                <button type="button" class="btn-paste" onclick="colarCampo('newCupom')">📋 Colar</button>
+                <button type="button" class="btn-clear" onclick="limparCampo('newCupom')" title="Apagar">✖</button>
+            </div>
+
+            <!-- 7. Oferta Relâmpago -->
+            <label class="admin-label">⚡ Destaque Relâmpago:</label>
+            <select id="newRelampago" style="margin-bottom: 8px;">
+                <option value="nao">⏳ Oferta Relâmpago? Não</option>
+                <option value="sim">⚡ Oferta Relâmpago? SIM (Com Relógio e Destaque)</option>
+            </select>
+
+            <!-- 8. Imagem: Colar URL da Web (com Apagar) OU Subir do Aparelho -->
+            <label class="admin-label">🖼️ Imagem do Produto (URL ou Arquivo do Aparelho):</label>
+            <div class="input-with-paste">
+                <input type="text" id="newImg" placeholder="Cole o link da imagem (https://...)" oninput="mostrarPreviaImagem(this.value)">
+                <button type="button" class="btn-paste" onclick="colarCampo('newImg')">📋 Colar</button>
+                <button type="button" class="btn-clear" onclick="limparCampo('newImg')" title="Apagar">✖</button>
+            </div>
+            <div class="upload-box">
+                <label for="newImgFile" style="font-size: 12px; color: #59339d; font-weight: bold; cursor: pointer; display: block; margin-bottom: 4px;">
+                    📱 Ou Carregar Foto do Celular / Computador:
+                </label>
+                <input type="file" id="newImgFile" accept="image/*" onchange="processarUploadImagem(event)" style="font-size: 11px; padding: 4px; background: #fff;">
+                <img id="previaImgAdmin" src="" alt="Prévia" style="display: none; width: 80px; height: 80px; object-fit: cover; border-radius: 8px; margin: 8px auto 0; border: 2px solid #6f42c1;">
+            </div>
+
+            <button class="btn-shopee" id="btnSalvar" onclick="salvarProduto()" style="margin-top: 10px; background: #2e7d32;">💾 Salvar Produto na Nuvem</button>
+            <button class="btn-shopee" id="btnSalvarDisparar" onclick="salvarEDispararVip()" style="margin-top: 6px; background: linear-gradient(90deg, #1b5e20 0%, #2e7d32 100%);">🚀 Salvar e Já Disparar no Grupo VIP</button>
+            <button class="btn-buy" id="btnCancelar" onclick="cancelarEdicao()" style="display:none; background-color:#777; margin-top:5px; width: 100%; padding: 10px;">Cancelar Edição</button>
+        </div>
+    </div>
+
+    <!-- Barra Flutuante para Sacola Personalizada -->
+    <div id="barraSacolaFlutuante">
+        <span>🛍️ <span id="contadorSacola">0</span> produto(s) na sacola</span>
+        <div class="botoes-sacola-group">
+            <button class="btn-gerar-sacola" onclick="gerarLinkSacolaSelecionada()">🔗 Gerar Link da Sacola</button>
+            <button class="btn-limpar-sacola" onclick="limparSacolaCompleta()" title="Desmarcar todos os produtos">🗑️ Limpar Sacola</button>
+        </div>
+    </div>
+
+    <!-- Botões Circulares Compactos Laterais Direitos -->
+    <div class="floating-container">
+        <a href="https://chat.whatsapp.com/DyPxqUMmch07zp5j1xlB8S" target="_blank" rel="noopener noreferrer" class="floating-circle circle-channel" title="Grupo de Ofertas">
+            <i class="fa-solid fa-users"></i>
+            <span>Grupo Ofertas</span>
+        </a>
+        <a href="https://wa.me/5566999087449" target="_blank" class="floating-circle circle-zap" title="Ajuda">
+            <i class="fa-brands fa-whatsapp"></i>
+            <span>Ajuda</span>
+        </a>    
+    </div>
+
+    <!-- Botões de Navegação Rápida (Subir e Descer) na Lateral Esquerda -->
+    <div class="scroll-buttons-container">
+        <button class="scroll-btn" onclick="voltarAoTopo()" title="Ir para o topo">
+            <i class="fa-solid fa-arrow-up"></i>
+        </button>
+        <button class="scroll-btn" onclick="irParaBaixo()" title="Ir para o fim">
+            <i class="fa-solid fa-arrow-down"></i>
+        </button>
+    </div>
+
+    <script>
+        function voltarAoTopo() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        function irParaBaixo() {
+            window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    </script>
+</body>
+</html>
