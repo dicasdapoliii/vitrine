@@ -25,6 +25,8 @@
 
         const MEU_ID_MELI_PARAMS = "matt_word=pepo8413118&matt_tool=46346758&forceInApp=true";
         const PRODUTOS_POR_PAGINA = 20;
+        const ADMIN_AUTH_KEY = "dicasdapoli_admin_auth_expira";
+        const ADMIN_DIAS_SESSAO = 30;
 
         const LINKS_PADRAO_CUPONS = {
             shopee: "https://s.shopee.com.br/8ANLneMzRi",
@@ -66,10 +68,47 @@
         let modoProdutoUnicoAtivo = false;
         let lojaFiltroAtiva = "TODAS";
 
+        function verificarSessaoAdminSalva() {
+            try {
+                const expiraEm = parseInt(localStorage.getItem(ADMIN_AUTH_KEY) || "0", 10);
+                if (expiraEm > Date.now()) {
+                    return true;
+                }
+                localStorage.removeItem(ADMIN_AUTH_KEY);
+            } catch (e) {}
+            return false;
+        }
+
+        function aplicarEstadoVisualAdmin(rolarAtePainel = false) {
+            const barraTopo = document.getElementById('adminTopBar');
+            if (barraTopo) barraTopo.style.display = isAdminLogado ? 'flex' : 'none';
+            const painel = document.getElementById('admin-panel');
+            if (painel) painel.style.display = isAdminLogado ? 'block' : 'none';
+
+            if (isAdminLogado) {
+                preencherProximoNumeroAutomatico();
+                selecionarAbaCentralCupons("meli");
+                aoMudarPlataformaDisparador();
+                if (rolarAtePainel && painel) {
+                    painel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+        }
+
+        function irParaPainelAdmin() {
+            const painel = document.getElementById('admin-panel');
+            if (painel) {
+                painel.style.display = 'block';
+                painel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
         // ==========================================
         // 2. CARREGAMENTO RÁPIDO E GRAVAÇÃO NA NUVEM
         // ==========================================
         async function carregarDadosDaNuvem() {
+            isAdminLogado = verificarSessaoAdminSalva();
+
             const container = document.getElementById('productList');
             if (container) {
                 container.innerHTML = "<p style='text-align:center; color:#6f42c1; font-weight:bold; font-size:14px; padding: 20px 0;'>⏳ Carregando oferta...</p>";
@@ -100,6 +139,7 @@
                 verificarModoListaOuProduto();
                 renderizarGerenciadorCategorias();
                 preencherProximoNumeroAutomatico();
+                aplicarEstadoVisualAdmin(false);
             } catch (erro) {
                 console.warn("⚠️ Nuvem instável ou lenta. A carregar dados do Cache Local de Segurança...", erro);
                 
@@ -113,6 +153,7 @@
                 verificarModoListaOuProduto();
                 renderizarGerenciadorCategorias();
                 preencherProximoNumeroAutomatico();
+                aplicarEstadoVisualAdmin(false);
             }
         }
 
@@ -231,7 +272,6 @@
             }
         }
 
-        // NOVO: Apaga o conteúdo de um campo específico com 1 clique e já foca nele!
         function limparCampo(idInput) {
             const el = document.getElementById(idInput);
             if (el) {
@@ -341,12 +381,10 @@
                 let valorTotal = parseFloat(numLimpo);
                 if (!isNaN(valorTotal) && valorTotal > 0) {
                     let valorParcela = (valorTotal / qtd).toFixed(2).replace(".", ",");
-                    // Novo formato: Valor Total primeiro + "em até Xx de R$ Y sem juros"
                     return `R$ ${pParc} em até ${qtd}x de R$ ${valorParcela}${sufixoJuros}`;
                 }
                 return `R$ ${pParc} em até ${qtd}x${sufixoJuros}`;
             }
-            // Quando não tem quantidade de parcelas preenchida, mostra só o valor
             return `R$ ${pParc}`;
         }
 
@@ -2327,7 +2365,6 @@
             limparFormularioprincipal();
         }
 
-        // NOVO: Salva na nuvem e já dispara direto para o Grupo VIP em 1 clique!
         async function salvarEDispararVip() {
             const resultado = coletarDadosFormularioProduto();
             if (!resultado) return;
@@ -2473,19 +2510,28 @@
         }
 
         function pedirSenhaAdmin() {
+            if (isAdminLogado || verificarSessaoAdminSalva()) {
+                isAdminLogado = true;
+                modoProdutoUnicoAtivo = false;
+                renderizarProdutos(produtos, true);
+                filtrarProdutos();
+                aplicarEstadoVisualAdmin(true);
+                return;
+            }
+
             const senhaMestra = "018315"; 
             const digitada = prompt("Digite a senha de administração:");
 
             if (digitada === senhaMestra) {
                 isAdminLogado = true;
+                try {
+                    const expiraEm = Date.now() + (ADMIN_DIAS_SESSAO * 24 * 60 * 60 * 1000);
+                    localStorage.setItem(ADMIN_AUTH_KEY, String(expiraEm));
+                } catch (e) {}
                 modoProdutoUnicoAtivo = false;
                 renderizarProdutos(produtos, true);
                 filtrarProdutos();
-                preencherProximoNumeroAutomatico();
-                selecionarAbaCentralCupons("meli");
-                aoMudarPlataformaDisparador();
-                document.getElementById('admin-panel').style.display = 'block';
-                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                aplicarEstadoVisualAdmin(true);
             } else if (digitada !== null) {
                 alert("Senha incorreta! Acesso negado.");
             }
@@ -2493,11 +2539,14 @@
 
         function sairDoAdmin() {
             isAdminLogado = false;
+            try {
+                localStorage.removeItem(ADMIN_AUTH_KEY);
+            } catch (e) {}
             produtosSelecionadosSacola = [];
             atualizarBarraSacolaFlutuante();
             renderizarProdutos(produtos, true);
             filtrarProdutos();
-            document.getElementById('admin-panel').style.display = 'none';
+            aplicarEstadoVisualAdmin(false);
             limparFormularioprincipal();
         }
 
@@ -2588,6 +2637,21 @@
         .social-icons { display: flex; gap: 16px; margin-bottom: 20px; }
         .social-icons a { font-size: 20px; color: #374151; transition: all 0.3s; }
         .social-icons a:hover { color: #a855f7; transform: translateY(-2px); }
+
+        /* BARRA RÁPIDA DO ADMIN (SÓ APARECE QUANDO LOGADA) */
+        #adminTopBar {
+            display: none;
+            width: 100%;
+            justify-content: space-between;
+            align-items: center;
+            background: #2c3e50;
+            color: #ffffff;
+            padding: 9px 12px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            gap: 8px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+        }
         
         /* BOTÕES DE CONVERSÃO NO TOPO */
         .btn-shopee { width: 100%; background: linear-gradient(90deg, #ff5722 0%, #f4511e 100%); color: white; border: none; padding: 13px; border-radius: 14px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-align: center; text-decoration: none; display: block; box-shadow: 0 4px 14px rgba(255, 87, 34, 0.3); transition: transform 0.2s; }
@@ -2784,7 +2848,6 @@
         }
         .btn-paste:hover { background-color: #59339d; }
 
-        /* NOVO: BOTÃO DE APAGAR CAMPO AO LADO DO COLAR */
         .btn-clear {
             background-color: #ef5350;
             color: #fff;
@@ -2975,6 +3038,15 @@
             <a href="https://www.instagram.com" target="_blank"><i class="fa-brands fa-instagram"></i></a>
             <a href="https://www.youtube.com" target="_blank"><i class="fa-brands fa-youtube"></i></a>
             <a href="https://www.pinterest.com" target="_blank"><i class="fa-brands fa-pinterest"></i></a>
+        </div>
+
+        <!-- Barra Rápida do Admin (Só aparece quando você está logada) -->
+        <div id="adminTopBar">
+            <span style="font-size: 12px; font-weight: bold;">🔓 Modo Admin Ativo</span>
+            <div style="display: flex; gap: 6px;">
+                <button type="button" onclick="irParaPainelAdmin()" style="background: #ff9800; color: #fff; border: none; padding: 6px 10px; border-radius: 7px; font-size: 11px; font-weight: bold; cursor: pointer;">⚙️ Ir p/ Painel</button>
+                <button type="button" onclick="sairDoAdmin()" style="background: #e53935; color: #fff; border: none; padding: 6px 10px; border-radius: 7px; font-size: 11px; font-weight: bold; cursor: pointer;">🔒 Sair</button>
+            </div>
         </div>
 
         <!-- Botões de Conversão -->
