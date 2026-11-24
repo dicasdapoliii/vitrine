@@ -19,6 +19,7 @@
         // 1. CONFIGURAÇÃO DA NUVEM NPOINT, GREEN-API E LINKS FIXOS
         // ==========================================
         const NPOINT_URL = "https://api.npoint.io/fd32c904d4aafe739782"; 
+        const ROBO_API_URL = "https://robo-ofertas-whatsapp.onrender.com";
         const GREEN_API_INSTANCE = "710722755197";
         const GREEN_API_TOKEN = "7f26121b7a3a4fe5ac41abc60054a69526473ea64c004fa1a8";
         const GRUPO_VIP_ID = "120363379680961951@g.us";
@@ -67,6 +68,14 @@
         let listaAtualFiltrada = [];
         let modoProdutoUnicoAtivo = false;
         let lojaFiltroAtiva = "TODAS";
+
+        function normalizarBusca(texto) {
+            return String(texto || "")
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .toLowerCase()
+                .trim();
+        }
 
         function verificarSessaoAdminSalva() {
             try {
@@ -184,7 +193,7 @@
         }
 
         // ==========================================
-        // 3. AUTOMAÇÃO DE NÚMERO, COLAR E APAGAR CAMPOS
+        // 3. AUTOMAÇÃO DE NÚMERO, PUXAR LINK, COLAR E APAGAR CAMPOS
         // ==========================================
         function obterMaiorNumeroSequencialReal() {
             if (!produtos || produtos.length === 0) return 0;
@@ -282,6 +291,10 @@
                     const fileInput = document.getElementById('newImgFile');
                     if (fileInput) fileInput.value = '';
                 }
+                if (idInput === 'newLink') {
+                    const msg = document.getElementById('msgExtratorVitrine');
+                    if (msg) msg.innerText = '';
+                }
                 if (idInput === 'acaoLivreImgUrl') {
                     imagemAcaoLivreUrlExterna = "";
                     atualizarPreviaBannerDisparador();
@@ -310,6 +323,74 @@
             }
         }
 
+        async function puxarDadosDoLinkVitrine() {
+            const url = (document.getElementById('newLink')?.value || '').trim();
+            const msgEl = document.getElementById('msgExtratorVitrine');
+            const btn = document.getElementById('btnPuxarVitrine');
+
+            if (!url.startsWith('http')) {
+                alert("Cole primeiro o link do produto (https://...)!");
+                return;
+            }
+
+            autoDetectarPlataforma(url);
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = "⏳";
+            }
+            if (msgEl) {
+                msgEl.style.color = "#6f42c1";
+                msgEl.innerText = "🪄 Puxando título e foto do link...";
+            }
+
+            try {
+                const resp = await fetch(`${ROBO_API_URL}/extrair-link`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url })
+                });
+
+                const dados = await resp.json();
+                if (resp.ok && dados.status === "sucesso") {
+                    const platSelect = document.getElementById('newPlataforma');
+                    if (dados.plataforma && platSelect) {
+                        const platUp = dados.plataforma.toUpperCase();
+                        const encontrouOpcao = Array.from(platSelect.options).some(opt => opt.value === platUp);
+                        if (encontrouOpcao) platSelect.value = platUp;
+                    }
+                    if (dados.titulo && !document.getElementById('newTitle').value.trim()) {
+                        document.getElementById('newTitle').value = dados.titulo;
+                    }
+                    if (dados.imagem) {
+                        document.getElementById('newImg').value = dados.imagem;
+                        mostrarPreviaImagem(dados.imagem);
+                    }
+                    if (msgEl) {
+                        msgEl.style.color = "#2e7d32";
+                        msgEl.innerText = dados.titulo || dados.imagem
+                            ? "✅ Dados puxados! Confira os campos ou carregue uma foto do celular."
+                            : "⚠️ A loja bloqueou leitura automática. Preencha o título e envie a foto do celular.";
+                    }
+                } else {
+                    if (msgEl) {
+                        msgEl.style.color = "#c62828";
+                        msgEl.innerText = "⚠️ Não foi possível ler o link automaticamente.";
+                    }
+                }
+            } catch (e) {
+                if (msgEl) {
+                    msgEl.style.color = "#c62828";
+                    msgEl.innerText = "⚠️ Sem conexão com o extrator agora. Preencha manualmente ou use a foto do celular.";
+                }
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "🪄";
+                }
+            }
+        }
+
         function mostrarPreviaImagem(src) {
             const imgPrev = document.getElementById('previaImgAdmin');
             if (!imgPrev) return;
@@ -330,7 +411,7 @@
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const maxDim = 420;
+                    const maxDim = 600;
                     let w = img.width;
                     let h = img.height;
 
@@ -353,7 +434,7 @@
                     ctx.fillRect(0, 0, w, h);
                     ctx.drawImage(img, 0, 0, w, h);
 
-                    const dataUrlComprimida = canvas.toDataURL('image/jpeg', 0.78);
+                    const dataUrlComprimida = canvas.toDataURL('image/jpeg', 0.84);
                     document.getElementById('newImg').value = dataUrlComprimida;
                     mostrarPreviaImagem(dataUrlComprimida);
                 };
@@ -2245,7 +2326,7 @@
 
             if (!termoInput || !categoriaSelect) return;
 
-            const termo = termoInput.value.toLowerCase().trim();
+            const termo = normalizarBusca(termoInput.value);
             const categoria = categoriaSelect.value;
 
             if (btnCompartilharCat) {
@@ -2274,7 +2355,7 @@
                     let numLimpo = String(p.num).replace("#", "");
                     matchTexto = (numLimpo === termo);
                 } else {
-                    matchTexto = p.title.toLowerCase().includes(termo) || String(p.num).toLowerCase().includes(termo);
+                    matchTexto = normalizarBusca(p.title).includes(termo) || normalizarBusca(p.num).includes(termo);
                 }
 
                 return matchLoja && matchCat && matchTexto;
@@ -2572,6 +2653,8 @@
             if (fileInput) fileInput.value = '';
             mostrarPreviaImagem('');
             document.getElementById('newLink').value = '';
+            const msgExtrator = document.getElementById('msgExtratorVitrine');
+            if (msgExtrator) msgExtrator.innerText = '';
             document.getElementById('panel-title').innerText = "➕ Adicionar Novo Produto";
             document.getElementById('btnSalvar').innerText = "💾 Salvar Produto na Nuvem";
             document.getElementById('btnCancelar').style.display = "none";
@@ -2725,9 +2808,11 @@
         .relampago-card img {
             width: 100%;
             height: 88px;
-            object-fit: cover;
+            object-fit: contain;
+            background: #ffffff;
             border-radius: 6px;
             margin-bottom: 6px;
+            padding: 2px;
         }
         .relampago-title {
             font-size: 11px;
@@ -2848,6 +2933,19 @@
         }
         .btn-paste:hover { background-color: #59339d; }
 
+        .btn-magic-vitrine {
+            background: linear-gradient(90deg, #ff6b6b 0%, #f06595 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 10px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
         .btn-clear {
             background-color: #ef5350;
             color: #fff;
@@ -2889,8 +2987,8 @@
         }
 
         .product-list { width: 100%; margin-top: 16px; display: flex; flex-direction: column; gap: 15px; }
-        .product-card { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 12px; display: flex; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); position: relative; transition: all 0.3s ease; }
-        .product-card img { width: 90px; height: 90px; border-radius: 8px; object-fit: cover; }
+        .product-card { background: #fff; border: 1px solid #ece8f5; border-radius: 14px; padding: 12px; display: flex; gap: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.06); position: relative; transition: all 0.3s ease; }
+        .product-card img { width: 96px; height: 96px; border-radius: 10px; object-fit: contain; background: #ffffff; border: 1px solid #f1f3f5; padding: 3px; flex-shrink: 0; }
         .product-info { display: flex; flex-direction: column; justify-content: space-between; flex: 1; }
         .product-number { font-size: 13px; font-weight: bold; color: #ff4081; }
         .product-title { font-size: 14px; font-weight: bold; color: #333; }
@@ -3267,13 +3365,15 @@
                 </div>
             </div>
 
-            <!-- 2. Link de Afiliado (com Colar e Apagar) -->
+            <!-- 2. Link de Afiliado (com Colar, Puxar e Apagar) -->
             <label class="admin-label">🔗 Link de Afiliado (URL):</label>
             <div class="input-with-paste">
                 <input type="text" id="newLink" placeholder="Cole o link da loja aqui..." oninput="autoDetectarPlataforma(this.value)">
                 <button type="button" class="btn-paste" onclick="colarCampo('newLink')">📋 Colar</button>
+                <button type="button" class="btn-magic-vitrine" id="btnPuxarVitrine" onclick="puxarDadosDoLinkVitrine()" title="Puxa título e foto do link">🪄</button>
                 <button type="button" class="btn-clear" onclick="limparCampo('newLink')" title="Apagar">✖</button>
             </div>
+            <div id="msgExtratorVitrine" style="font-size: 11px; color: #6f42c1; font-weight: bold; margin-bottom: 6px;"></div>
 
             <!-- 3. Plataforma / Loja + Frete Grátis -->
             <label class="admin-label">🏪 Plataforma / Loja Oficial:</label>
@@ -3347,10 +3447,10 @@
             </div>
             <div class="upload-box">
                 <label for="newImgFile" style="font-size: 12px; color: #59339d; font-weight: bold; cursor: pointer; display: block; margin-bottom: 4px;">
-                    📱 Ou Carregar Foto do Celular / Computador:
+                    📱 Ou Carregar Foto do Celular / Computador (Fica inteira no card!):
                 </label>
                 <input type="file" id="newImgFile" accept="image/*" onchange="processarUploadImagem(event)" style="font-size: 11px; padding: 4px; background: #fff;">
-                <img id="previaImgAdmin" src="" alt="Prévia" style="display: none; width: 80px; height: 80px; object-fit: cover; border-radius: 8px; margin: 8px auto 0; border: 2px solid #6f42c1;">
+                <img id="previaImgAdmin" src="" alt="Prévia" style="display: none; width: 92px; height: 92px; object-fit: contain; background: #ffffff; border-radius: 8px; margin: 8px auto 0; border: 2px solid #6f42c1; padding: 3px;">
             </div>
 
             <button class="btn-shopee" id="btnSalvar" onclick="salvarProduto()" style="margin-top: 10px; background: #2e7d32;">💾 Salvar Produto na Nuvem</button>
