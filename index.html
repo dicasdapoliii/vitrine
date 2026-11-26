@@ -193,8 +193,49 @@
         }
 
         // ==========================================
-        // 3. AUTOMAÇÃO DE NÚMERO, PUXAR LINK, COLAR E APAGAR CAMPOS
+        // 3. AUTOMAÇÃO DE NÚMERO, PUXAR LINK, COLAR, APAGAR E FOTO 1:1
         // ==========================================
+        function gerarCanvasQuadrado1x1(src, tamanho = 800, margemPct = 0.05) {
+            return new Promise((resolve) => {
+                if (!src) {
+                    resolve(null);
+                    return;
+                }
+                const img = new Image();
+                if (src.startsWith('http')) {
+                    img.crossOrigin = "anonymous";
+                }
+                img.onload = function() {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = tamanho;
+                        canvas.height = tamanho;
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = "#FFFFFF";
+                        ctx.fillRect(0, 0, tamanho, tamanho);
+
+                        const areaUtil = tamanho * (1 - 2 * margemPct);
+                        const escala = Math.min(areaUtil / img.width, areaUtil / img.height);
+                        const w = Math.round(img.width * escala);
+                        const h = Math.round(img.height * escala);
+                        const x = Math.round((tamanho - w) / 2);
+                        const y = Math.round((tamanho - h) / 2);
+
+                        ctx.drawImage(img, x, y, w, h);
+                        // Testa leitura do canvas para detectar bloqueio CORS
+                        canvas.toDataURL('image/jpeg', 0.9);
+                        resolve(canvas);
+                    } catch (e) {
+                        resolve(null);
+                    }
+                };
+                img.onerror = function() {
+                    resolve(null);
+                };
+                img.src = src;
+            });
+        }
+
         function obterMaiorNumeroSequencialReal() {
             if (!produtos || produtos.length === 0) return 0;
             let maior = 0;
@@ -407,38 +448,13 @@
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    const maxDim = 600;
-                    let w = img.width;
-                    let h = img.height;
-
-                    if (w > h) {
-                        if (w > maxDim) {
-                            h = Math.round((h * maxDim) / w);
-                            w = maxDim;
-                        }
-                    } else {
-                        if (h > maxDim) {
-                            w = Math.round((w * maxDim) / h);
-                            h = maxDim;
-                        }
-                    }
-
-                    canvas.width = w;
-                    canvas.height = h;
-                    const ctx = canvas.getContext('2d');
-                    ctx.fillStyle = "#FFFFFF";
-                    ctx.fillRect(0, 0, w, h);
-                    ctx.drawImage(img, 0, 0, w, h);
-
-                    const dataUrlComprimida = canvas.toDataURL('image/jpeg', 0.84);
+            reader.onload = async function(e) {
+                const canvas = await gerarCanvasQuadrado1x1(e.target.result, 600, 0.05);
+                if (canvas) {
+                    const dataUrlComprimida = canvas.toDataURL('image/jpeg', 0.86);
                     document.getElementById('newImg').value = dataUrlComprimida;
                     mostrarPreviaImagem(dataUrlComprimida);
-                };
-                img.src = e.target.result;
+                }
             };
             reader.readAsDataURL(file);
         }
@@ -606,24 +622,6 @@
         async function enviarDiretoGreenApiBlindado(legenda, opcoesImagem = {}) {
             const { urlWeb, canvasEl, dataUrl } = opcoesImagem;
 
-            if (urlWeb && urlWeb.startsWith("http")) {
-                try {
-                    let respUrl = await fetch(`https://7107.api.greenapi.com/waInstance${GREEN_API_INSTANCE}/sendFileByUrl/${GREEN_API_TOKEN}`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            chatId: GRUPO_VIP_ID,
-                            urlFile: urlWeb,
-                            fileName: "oferta-dicasdapoli.jpg",
-                            caption: legenda
-                        })
-                    });
-                    if (respUrl.ok) {
-                        return { sucesso: true, comFoto: true };
-                    }
-                } catch (e) {}
-            }
-
             let blobReal = null;
             try {
                 if (canvasEl) {
@@ -645,11 +643,11 @@
 
             if (blobReal && blobReal.size > 5000) {
                 try {
-                    const arquivoJpg = new File([blobReal], "cupom-dicasdapoli.jpg", { type: "image/jpeg" });
+                    const arquivoJpg = new File([blobReal], "oferta-dicasdapoli.jpg", { type: "image/jpeg" });
                     const fd = new FormData();
                     fd.append("chatId", GRUPO_VIP_ID);
                     fd.append("caption", legenda);
-                    fd.append("file", arquivoJpg, "cupom-dicasdapoli.jpg");
+                    fd.append("file", arquivoJpg, "oferta-dicasdapoli.jpg");
 
                     const respFile = await fetch(`https://7107.media.greenapi.com/waInstance${GREEN_API_INSTANCE}/sendFileByFile/${GREEN_API_TOKEN}`, {
                         method: "POST",
@@ -681,7 +679,7 @@
                                 body: JSON.stringify({
                                     chatId: GRUPO_VIP_ID,
                                     urlFile: jsonUp.urlFile,
-                                    fileName: "cupom-dicasdapoli.jpg",
+                                    fileName: "oferta-dicasdapoli.jpg",
                                     caption: legenda
                                 })
                             });
@@ -693,6 +691,24 @@
                 } catch (errUp) {
                     console.warn("Aviso uploadFile Green-API:", errUp);
                 }
+            }
+
+            if (urlWeb && urlWeb.startsWith("http")) {
+                try {
+                    let respUrl = await fetch(`https://7107.api.greenapi.com/waInstance${GREEN_API_INSTANCE}/sendFileByUrl/${GREEN_API_TOKEN}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            chatId: GRUPO_VIP_ID,
+                            urlFile: urlWeb,
+                            fileName: "oferta-dicasdapoli.jpg",
+                            caption: legenda
+                        })
+                    });
+                    if (respUrl.ok) {
+                        return { sucesso: true, comFoto: true };
+                    }
+                } catch (e) {}
             }
 
             return { sucesso: false, comFoto: false };
@@ -2151,58 +2167,48 @@
             let texto = montarTextoWhatsAppEstiloRobo(p);
 
             try {
-                const img = new Image();
-                img.crossOrigin = "anonymous";
-                img.onload = function() {
-                    const canvas = document.createElement("canvas");
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    const ctx = canvas.getContext("2d");
-                    ctx.fillStyle = "#FFFFFF";
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(img, 0, 0);
+                const canvas = await gerarCanvasQuadrado1x1(p.img, 800, 0.05);
+                if (!canvas) {
+                    await navigator.clipboard.writeText(texto);
+                    alert("✅ Legenda copiada! (Para levar a foto junto no PC, clique com o botão direito na foto do produto e escolha 'Copiar imagem').");
+                    return;
+                }
 
-                    canvas.toBlob(async function(blob) {
-                        if (!blob) {
-                            await navigator.clipboard.writeText(texto);
-                            alert("✅ Texto copiado!");
-                            return;
-                        }
+                canvas.toBlob(async function(blob) {
+                    if (!blob) {
+                        await navigator.clipboard.writeText(texto);
+                        alert("✅ Texto copiado!");
+                        return;
+                    }
 
-                        if (ehDispositivoMovel() && navigator.canShare) {
-                            await navigator.clipboard.writeText(texto);
-                            const arquivoFoto = new File([blob], "oferta-vitrine.png", { type: "image/png" });
-                            if (navigator.canShare({ files: [arquivoFoto] })) {
-                                try {
-                                    await navigator.share({
-                                        files: [arquivoFoto],
-                                        title: p.title,
-                                        text: texto
-                                    });
-                                    return;
-                                } catch (e) {}
-                            }
-                        }
-
-                        if (navigator.clipboard && window.ClipboardItem) {
+                    if (ehDispositivoMovel() && navigator.canShare) {
+                        await navigator.clipboard.writeText(texto);
+                        const arquivoFoto = new File([blob], "oferta-vitrine.png", { type: "image/png" });
+                        if (navigator.canShare({ files: [arquivoFoto] })) {
                             try {
-                                await navigator.clipboard.write([
-                                    new ClipboardItem({ "image/png": blob })
-                                ]);
-                                exibirModalFotoProntaPC(texto, p.title);
+                                await navigator.share({
+                                    files: [arquivoFoto],
+                                    title: p.title,
+                                    text: texto
+                                });
                                 return;
                             } catch (e) {}
                         }
+                    }
 
-                        await navigator.clipboard.writeText(texto);
-                        alert("✅ Legenda copiada para o WhatsApp!");
-                    }, "image/png");
-                };
-                img.onerror = async function() {
+                    if (navigator.clipboard && window.ClipboardItem) {
+                        try {
+                            await navigator.clipboard.write([
+                                new ClipboardItem({ "image/png": blob })
+                            ]);
+                            exibirModalFotoProntaPC(texto, p.title);
+                            return;
+                        } catch (e) {}
+                    }
+
                     await navigator.clipboard.writeText(texto);
-                    alert("✅ Legenda copiada! (Para levar a foto junto no PC, clique com o botão direito na foto do produto e escolha 'Copiar imagem').");
-                };
-                img.src = p.img;
+                    alert("✅ Legenda copiada para o WhatsApp!");
+                }, "image/png");
             } catch (erro) {
                 await navigator.clipboard.writeText(texto);
                 alert("✅ Legenda copiada para o WhatsApp!");
@@ -2259,10 +2265,14 @@
             let legenda = montarTextoWhatsAppEstiloRobo(p);
 
             try {
-                const res = await enviarDiretoGreenApiBlindado(legenda, {
-                    urlWeb: (p.img && p.img.startsWith("http")) ? p.img : "",
-                    dataUrl: (p.img && p.img.startsWith("data:image")) ? p.img : ""
-                });
+                const canvasQuadrado = await gerarCanvasQuadrado1x1(p.img, 800, 0.05);
+                const opcoesMidia = canvasQuadrado
+                    ? { canvasEl: canvasQuadrado, urlWeb: (p.img && p.img.startsWith("http")) ? p.img : "" }
+                    : {
+                        urlWeb: (p.img && p.img.startsWith("http")) ? p.img : "",
+                        dataUrl: (p.img && p.img.startsWith("data:image")) ? p.img : ""
+                    };
+                const res = await enviarDiretoGreenApiBlindado(legenda, opcoesMidia);
                 if (res.sucesso) {
                     alert("✅ Oferta enviada com FOTO GRANDE direto para o grupo DICAS DA POLI!");
                 } else {
@@ -2473,10 +2483,14 @@
 
                 if (salvou) {
                     const legenda = montarTextoWhatsAppEstiloRobo(resultado.dados);
-                    const res = await enviarDiretoGreenApiBlindado(legenda, {
-                        urlWeb: (resultado.dados.img && resultado.dados.img.startsWith("http")) ? resultado.dados.img : "",
-                        dataUrl: (resultado.dados.img && resultado.dados.img.startsWith("data:image")) ? resultado.dados.img : ""
-                    });
+                    const canvasQuadrado = await gerarCanvasQuadrado1x1(resultado.dados.img, 800, 0.05);
+                    const opcoesMidia = canvasQuadrado
+                        ? { canvasEl: canvasQuadrado, urlWeb: (resultado.dados.img && resultado.dados.img.startsWith("http")) ? resultado.dados.img : "" }
+                        : {
+                            urlWeb: (resultado.dados.img && resultado.dados.img.startsWith("http")) ? resultado.dados.img : "",
+                            dataUrl: (resultado.dados.img && resultado.dados.img.startsWith("data:image")) ? resultado.dados.img : ""
+                        };
+                    const res = await enviarDiretoGreenApiBlindado(legenda, opcoesMidia);
                     if (res.sucesso) {
                         alert("✅ Produto salvo na vitrine E enviado com foto no Grupo VIP!");
                     } else {
